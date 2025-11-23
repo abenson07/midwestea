@@ -1,0 +1,14 @@
+{
+  "name": "@midwestea/types",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "lint": "echo 'No lint script configured'"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
+

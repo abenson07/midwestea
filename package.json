@@ -1,0 +1,9 @@
+{
+  "name": "midwestea-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
+
