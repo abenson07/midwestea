@@ -4,6 +4,13 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "test:supabase": "tsx scripts/test-supabase-connection.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "dotenv": "^16.4.5"
+  }
 }
 

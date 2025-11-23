@@ -7,6 +7,9 @@
   "scripts": {
     "lint": "echo 'No lint script configured'"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
   "devDependencies": {
     "typescript": "^5.0.0"
   }
