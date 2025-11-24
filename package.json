@@ -6,11 +6,17 @@
     "packages/*"
   ],
   "scripts": {
-    "test:supabase": "tsx scripts/test-supabase-connection.ts"
+    "test:supabase": "tsx scripts/test-supabase-connection.ts",
+    "apply-migrations": "tsx scripts/apply-migrations.ts",
+    "apply-migrations:api": "tsx scripts/apply-migrations-via-api.ts",
+    "list-tables": "tsx scripts/list-tables.ts",
+    "setup-logs": "tsx scripts/setup-and-apply-logs-migration.ts",
+    "insert-daily-log": "tsx scripts/insert-daily-log.ts"
   },
   "devDependencies": {
     "tsx": "^4.7.0",
-    "dotenv": "^16.4.5"
+    "dotenv": "^16.4.5",
+    "@supabase/supabase-js": "^2.39.0"
   }
 }
 
