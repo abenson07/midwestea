@@ -23,6 +23,11 @@ export default function AddClassTestPage() {
   const [checking, setChecking] = useState(true);
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [enrollmentStart, setEnrollmentStart] = useState("");
+  const [enrollmentClose, setEnrollmentClose] = useState("");
+  const [classStartDate, setClassStartDate] = useState("");
+  const [classCloseDate, setClassCloseDate] = useState("");
+  const [isOnline, setIsOnline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -96,12 +101,22 @@ export default function AddClassTestPage() {
         selectedCourse.id,
         selectedCourse.course_name,
         selectedCourse.course_code,
-        classId
+        classId,
+        enrollmentStart || null,
+        enrollmentClose || null,
+        classStartDate || null,
+        classCloseDate || null,
+        isOnline
       );
 
       if (result.success) {
         setSuccess(`Class created successfully with ID: ${classId}`);
         setSelectedCourseId("");
+        setEnrollmentStart("");
+        setEnrollmentClose("");
+        setClassStartDate("");
+        setClassCloseDate("");
+        setIsOnline(false);
       } else {
         setError(result.error || "Failed to create class");
       }
@@ -157,6 +172,7 @@ export default function AddClassTestPage() {
                   value={selectedCourseId}
                   onChange={(e) => setSelectedCourseId(e.target.value)}
                   disabled={loading || saving}
+                  className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
                 >
                   <option value="">Select a course</option>
                   {courses.map((course) => (
@@ -165,6 +181,102 @@ export default function AddClassTestPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Enrollment Start Date */}
+              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
+                <label
+                  htmlFor="enrollmentStart"
+                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                >
+                  Enrollment Start Date
+                </label>
+                <div className="relative w-full">
+                  <input
+                    id="enrollmentStart"
+                    type="date"
+                    value={enrollmentStart}
+                    onChange={(e) => setEnrollmentStart(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                  />
+                </div>
+              </div>
+
+              {/* Enrollment Close Date */}
+              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
+                <label
+                  htmlFor="enrollmentClose"
+                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                >
+                  Enrollment Close Date
+                </label>
+                <div className="relative w-full">
+                  <input
+                    id="enrollmentClose"
+                    type="date"
+                    value={enrollmentClose}
+                    onChange={(e) => setEnrollmentClose(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                  />
+                </div>
+              </div>
+
+              {/* Class Start Date */}
+              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
+                <label
+                  htmlFor="classStartDate"
+                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                >
+                  Class Start Date
+                </label>
+                <div className="relative w-full">
+                  <input
+                    id="classStartDate"
+                    type="date"
+                    value={classStartDate}
+                    onChange={(e) => setClassStartDate(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                  />
+                </div>
+              </div>
+
+              {/* Class Close Date */}
+              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
+                <label
+                  htmlFor="classCloseDate"
+                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                >
+                  Class Close Date
+                </label>
+                <div className="relative w-full">
+                  <input
+                    id="classCloseDate"
+                    type="date"
+                    value={classCloseDate}
+                    onChange={(e) => setClassCloseDate(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                  />
+                </div>
+              </div>
+
+              {/* Online Class Checkbox */}
+              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isOnline}
+                    onChange={(e) => setIsOnline(e.target.checked)}
+                    disabled={loading || saving}
+                    className="w-4 h-4 text-black border-black rounded focus:ring-2 focus:ring-black disabled:opacity-50"
+                  />
+                  <span className="font-normal leading-[1.5] text-black text-[16px]">
+                    Online Class
+                  </span>
+                </label>
               </div>
 
               {/* Error Message */}
@@ -200,8 +312,8 @@ export default function AddClassTestPage() {
       </div>
 
       {/* Placeholder Image */}
-      <div className="grow h-full min-h-0 min-w-0 relative shrink-0 bg-gray-100">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300" />
+      <div className="grow h-full min-h-0 min-w-0 relative shrink-0 bg-white">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100" />
       </div>
     </div>
   );

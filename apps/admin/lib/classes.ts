@@ -96,7 +96,12 @@ export async function createClass(
   courseUuid: string,
   className: string,
   courseCode: string,
-  classId: string
+  classId: string,
+  enrollmentStart?: string | null,
+  enrollmentClose?: string | null,
+  classStartDate?: string | null,
+  classCloseDate?: string | null,
+  isOnline?: boolean
 ): Promise<ClassResponse> {
   try {
     const supabase = createSupabaseClient();
@@ -105,6 +110,11 @@ export async function createClass(
       class_name: className,
       course_code: courseCode,
       class_id: classId,
+      enrollment_start: enrollmentStart || null,
+      enrollment_close: enrollmentClose || null,
+      class_start_date: classStartDate || null,
+      class_close_date: classCloseDate || null,
+      is_online: isOnline || false,
     });
 
     if (error) {
