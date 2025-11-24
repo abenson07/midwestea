@@ -10,7 +10,7 @@ export default function AdminPage() {
   useEffect(() => {
     getSession().then(({ session }) => {
       if (session) {
-        router.push("/success");
+        router.push("/add_class_test");
       } else {
         router.push("/login");
       }

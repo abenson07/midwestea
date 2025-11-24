@@ -4,12 +4,15 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithOTP, getSession } from "@/lib/auth";
 
+
 // Placeholder logo component
 function CompanyLogo({ className }: { className?: string }) {
   return (
     <div className={className}>
-      <div className="h-[36px] w-[70px] flex items-center justify-center">
-        <span className="text-xl font-bold">Logo</span>
+      <div className="h-[36px] flex items-center justify-center">
+        <span className="text-2xl font-bold italic tracking-tight" style={{ fontFamily: 'serif' }}>
+          Logo
+        </span>
       </div>
     </div>
   );
@@ -25,7 +28,7 @@ export default function LoginPage() {
   useEffect(() => {
     getSession().then(({ session }) => {
       if (session) {
-        router.push("/success");
+        router.push("/add_class_test");
       }
     });
   }, [router]);
@@ -47,33 +50,34 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="bg-white flex items-center justify-center relative w-full h-screen">
-      <div className="flex flex-col grow h-full items-center px-16 py-0 relative shrink-0 w-full">
-        {/* Navbar */}
-        <div className="flex flex-col h-[72px] items-start justify-center overflow-clip relative shrink-0 w-full">
-          <CompanyLogo className="h-[36px] overflow-clip relative shrink-0 w-[84px]" />
+    <div className="flex w-full h-screen">
+      {/* Left Column - Login Form (60%) */}
+      <div className="flex flex-col w-[60%] bg-white h-full relative">
+        {/* Logo - Top Left */}
+        <div className="flex items-center h-[72px] px-16 pt-0 pb-0">
+          <CompanyLogo className="h-[36px]" />
         </div>
 
-        {/* Content */}
-        <div className="flex flex-col gap-8 grow items-center justify-center min-h-0 min-w-0 relative shrink-0 w-full">
-          {/* Section Title */}
-          <div className="flex flex-col gap-6 items-center max-w-[480px] relative shrink-0 text-black text-center w-full">
-            <p className="font-bold leading-[1.2] relative shrink-0 text-[48px] w-full">
-              Log In
-            </p>
-            <p className="font-normal leading-[1.5] relative shrink-0 text-[18px] w-full">
-              Lorem ipsum dolor sit amet adipiscing elit.
-            </p>
-          </div>
+        {/* Content - Centered */}
+        <div className="flex-1 flex flex-col items-center justify-center px-16">
+          <div className="w-full max-w-[480px]">
+            {/* Section Title */}
+            <div className="flex flex-col gap-6 items-center text-center mb-8">
+              <h1 className="text-[48px] font-bold leading-[1.2] text-black">
+                Log In
+              </h1>
+              <p className="text-[18px] font-normal leading-[1.5] text-black">
+                Lorem ipsum dolor sit amet adipiscing elit.
+              </p>
+            </div>
 
-          {/* Form */}
-          <div className="flex flex-col gap-6 items-center justify-center max-w-[480px] relative shrink-0 w-full">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
               {/* Email Input */}
-              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
+              <div className="flex flex-col gap-2">
                 <label
                   htmlFor="email"
-                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  className="text-[16px] font-normal leading-[1.5] text-black"
                 >
                   Email*
                 </label>
@@ -84,7 +88,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={loading}
-                  className="border border-black border-solid box-border flex gap-2 items-center p-3 shrink-0 w-full focus:outline-none focus:ring-2 focus:ring-black"
+                  className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50"
                   placeholder="Enter your email"
                 />
               </div>
@@ -94,39 +98,44 @@ export default function LoginPage() {
                 <div className="text-red-600 text-sm">{error}</div>
               )}
 
-              {/* Buttons */}
-              <div className="flex flex-col gap-6 items-center relative shrink-0">
-                <div className="flex flex-col gap-4 items-start relative shrink-0 w-[480px]">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-black border border-black border-solid box-border flex gap-2 items-center justify-center px-6 py-3 relative shrink-0 w-full text-white text-[16px] font-normal leading-[1.5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
-                  >
-                    {loading ? "Sending..." : "Log in"}
-                  </button>
-                </div>
-                <div className="flex font-normal gap-[5px] items-center leading-[1.5] relative shrink-0 text-black text-[16px] text-center whitespace-pre">
-                  <p className="relative shrink-0">Don&apos;t have an account?</p>
-                  <p className="underline relative shrink-0 cursor-pointer hover:text-gray-600">
-                    Sign Up
-                  </p>
-                </div>
+              {/* Login Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-black text-white border border-black rounded-lg px-6 py-3 text-[16px] font-normal leading-[1.5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
+              >
+                {loading ? "Sending..." : "Log in"}
+              </button>
+
+              {/* Sign Up Link */}
+              <div className="flex items-center justify-center gap-1 text-[16px] font-normal leading-[1.5] text-black text-center">
+                <span>Don&apos;t have an account?</span>
+                <button
+                  type="button"
+                  className="underline hover:text-gray-600 cursor-pointer"
+                >
+                  Sign Up
+                </button>
               </div>
             </form>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-[5px] h-[72px] items-center relative shrink-0 w-full">
-          <p className="font-normal leading-[1.5] relative shrink-0 text-black text-[14px] text-center whitespace-pre">
+        {/* Footer - Bottom Left */}
+        <div className="flex items-center h-[72px] px-16">
+          <p className="text-[14px] font-normal leading-[1.5] text-black">
             © 2022 Relume
           </p>
         </div>
       </div>
 
-      {/* Placeholder Image */}
-      <div className="grow h-full min-h-0 min-w-0 relative shrink-0 bg-gray-100">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300" />
+      {/* Right Column - Image (40%) */}
+      <div className="w-[40%] h-full relative overflow-hidden">
+        <img
+          src="https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/6912436c1ee78552087a3a09_ccp.avif"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOTP, resendOTP, getSession } from "@/lib/auth";
+
 
 // Placeholder logo component
 function CompanyLogo({ className }: { className?: string }) {
@@ -15,7 +16,7 @@ function CompanyLogo({ className }: { className?: string }) {
   );
 }
 
-export default function OTPPage() {
+function OTPForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -29,16 +30,21 @@ export default function OTPPage() {
   useEffect(() => {
     getSession().then(({ session }) => {
       if (session) {
-        router.push("/success");
+        router.push("/add_class_test");
       }
     });
   }, [router]);
 
-  // Redirect if no email
+  // Redirect if no email (but wait a bit for searchParams to be available)
   useEffect(() => {
-    if (!email) {
-      router.push("/login");
-    }
+    // Give searchParams time to be available
+    const timer = setTimeout(() => {
+      if (!email) {
+        router.push("/login");
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, [email, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,7 +82,25 @@ export default function OTPPage() {
     const result = await verifyOTP(email, otp);
 
     if (result.success) {
-      router.push("/success");
+      // Wait a moment for session to be established, then verify and redirect
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check session before redirecting
+      const { session } = await getSession();
+      if (session) {
+        router.push("/add_class_test");
+      } else {
+        // Retry once more after a short delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const { session: retrySession } = await getSession();
+        if (retrySession) {
+          router.push("/add_class_test");
+        } else {
+          setError("Session not established. Please try again.");
+          setLoading(false);
+          setOtp("");
+        }
+      }
     } else {
       setError(result.error || "Invalid OTP code");
       setLoading(false);
@@ -194,6 +218,18 @@ export default function OTPPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300" />
       </div>
     </div>
+  );
+}
+
+export default function OTPPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center w-full h-screen">
+        <p>Loading...</p>
+      </div>
+    }>
+      <OTPForm />
+    </Suspense>
   );
 }
 
