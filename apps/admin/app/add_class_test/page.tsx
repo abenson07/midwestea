@@ -2,21 +2,10 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getCourses, generateClassId, createClass, type Course } from "@/lib/classes";
-
-// Placeholder logo component
-function CompanyLogo({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <div className="h-[36px] flex items-center justify-center">
-        <span className="text-2xl font-bold italic tracking-tight" style={{ fontFamily: 'serif' }}>
-          Logo
-        </span>
-      </div>
-    </div>
-  );
-}
+import { Logo } from "@midwestea/ui";
 
 export default function AddClassTestPage() {
   const router = useRouter();
@@ -28,10 +17,40 @@ export default function AddClassTestPage() {
   const [classStartDate, setClassStartDate] = useState("");
   const [classCloseDate, setClassCloseDate] = useState("");
   const [isOnline, setIsOnline] = useState(false);
+  const [lengthOfClass, setLengthOfClass] = useState("");
+  const [certificationLength, setCertificationLength] = useState("");
+  const [graduationRate, setGraduationRate] = useState("");
+  const [registrationLimit, setRegistrationLimit] = useState("");
+  const [price, setPrice] = useState("");
+  const [registrationFee, setRegistrationFee] = useState("");
+  
+  // Helper functions for formatting
+  const formatDollars = (cents: number | null | undefined): string => {
+    if (!cents && cents !== 0) return "";
+    return (cents / 100).toFixed(2);
+  };
+  
+  const parseDollars = (value: string): number | null => {
+    if (!value) return null;
+    const dollars = parseFloat(value);
+    if (isNaN(dollars)) return null;
+    return Math.round(dollars * 100);
+  };
+  
+  const formatPercentage = (value: number | null | undefined): string => {
+    if (!value && value !== 0) return "";
+    return (value / 100).toFixed(2);
+  };
+  
+  const parsePercentage = (value: string): number | null => {
+    if (!value) return null;
+    const percent = parseFloat(value);
+    if (isNaN(percent)) return null;
+    return Math.round(percent * 100);
+  };
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   // Check if authenticated, redirect if not
   useEffect(() => {
@@ -49,6 +68,29 @@ export default function AddClassTestPage() {
       loadCourses();
     }
   }, [checking]);
+
+  // Auto-populate fields when course is selected
+  useEffect(() => {
+    if (selectedCourseId) {
+      const selectedCourse = courses.find((c) => c.id === selectedCourseId);
+      if (selectedCourse) {
+        setLengthOfClass(selectedCourse.length_of_class || "");
+        setCertificationLength(selectedCourse.certification_length?.toString() || "");
+        setGraduationRate(formatPercentage(selectedCourse.graduation_rate));
+        setRegistrationLimit(selectedCourse.registration_limit?.toString() || "");
+        setPrice(formatDollars(selectedCourse.price));
+        setRegistrationFee(formatDollars(selectedCourse.registration_fee));
+      }
+    } else {
+      // Clear fields when no course is selected
+      setLengthOfClass("");
+      setCertificationLength("");
+      setGraduationRate("");
+      setRegistrationLimit("");
+      setPrice("");
+      setRegistrationFee("");
+    }
+  }, [selectedCourseId, courses]);
 
   const loadCourses = async () => {
     setLoading(true);
@@ -70,7 +112,6 @@ export default function AddClassTestPage() {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
     if (!selectedCourseId) {
       setError("Please select a course");
@@ -106,17 +147,19 @@ export default function AddClassTestPage() {
         enrollmentClose || null,
         classStartDate || null,
         classCloseDate || null,
-        isOnline
+        isOnline,
+        lengthOfClass || null,
+        certificationLength ? parseInt(certificationLength, 10) : null,
+        parsePercentage(graduationRate),
+        registrationLimit ? parseInt(registrationLimit, 10) : null,
+        parseDollars(price),
+        parseDollars(registrationFee),
+        selectedCourse.stripe_product_id || null
       );
 
       if (result.success) {
-        setSuccess(`Class created successfully with ID: ${classId}`);
-        setSelectedCourseId("");
-        setEnrollmentStart("");
-        setEnrollmentClose("");
-        setClassStartDate("");
-        setClassCloseDate("");
-        setIsOnline(false);
+        // Redirect to classes listing page
+        router.push("/");
       } else {
         setError(result.error || "Failed to create class");
       }
@@ -141,7 +184,7 @@ export default function AddClassTestPage() {
       <div className="flex flex-col grow h-full items-center px-16 py-0 relative shrink-0 w-full">
         {/* Navbar */}
         <div className="flex flex-col h-[72px] items-start justify-center overflow-clip relative shrink-0 w-full">
-          <CompanyLogo className="h-[36px] overflow-clip relative shrink-0 w-[84px]" />
+          <Logo />
         </div>
 
         {/* Content */}
@@ -183,83 +226,194 @@ export default function AddClassTestPage() {
                 </select>
               </div>
 
-              {/* Enrollment Start Date */}
-              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
-                <label
-                  htmlFor="enrollmentStart"
-                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
-                >
-                  Enrollment Start Date
-                </label>
-                <div className="relative w-full">
+              {/* Length of Class and Registration Limit */}
+              <div className="flex flex-row gap-4 items-start relative shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="lengthOfClass"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Length of Class
+                  </label>
                   <input
-                    id="enrollmentStart"
-                    type="date"
-                    value={enrollmentStart}
-                    onChange={(e) => setEnrollmentStart(e.target.value)}
+                    id="lengthOfClass"
+                    type="text"
+                    value={lengthOfClass}
+                    onChange={(e) => setLengthOfClass(e.target.value)}
                     disabled={loading || saving}
-                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="registrationLimit"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Registration Limit
+                  </label>
+                  <input
+                    id="registrationLimit"
+                    type="number"
+                    value={registrationLimit}
+                    onChange={(e) => setRegistrationLimit(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
                   />
                 </div>
               </div>
 
-              {/* Enrollment Close Date */}
-              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
-                <label
-                  htmlFor="enrollmentClose"
-                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
-                >
-                  Enrollment Close Date
-                </label>
-                <div className="relative w-full">
+              {/* Certification Length and Graduation Rate */}
+              <div className="flex flex-row gap-4 items-start relative shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="certificationLength"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Certification Length
+                  </label>
                   <input
-                    id="enrollmentClose"
-                    type="date"
-                    value={enrollmentClose}
-                    onChange={(e) => setEnrollmentClose(e.target.value)}
+                    id="certificationLength"
+                    type="number"
+                    value={certificationLength}
+                    onChange={(e) => setCertificationLength(e.target.value)}
                     disabled={loading || saving}
-                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="graduationRate"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Graduation Rate (%)
+                  </label>
+                  <input
+                    id="graduationRate"
+                    type="number"
+                    step="0.01"
+                    value={graduationRate}
+                    onChange={(e) => setGraduationRate(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
                   />
                 </div>
               </div>
 
-              {/* Class Start Date */}
-              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
-                <label
-                  htmlFor="classStartDate"
-                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
-                >
-                  Class Start Date
-                </label>
-                <div className="relative w-full">
+              {/* Price and Registration Fee */}
+              <div className="flex flex-row gap-4 items-start relative shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="price"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Price ($)
+                  </label>
                   <input
-                    id="classStartDate"
-                    type="date"
-                    value={classStartDate}
-                    onChange={(e) => setClassStartDate(e.target.value)}
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
                     disabled={loading || saving}
-                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="registrationFee"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Registration Fee ($)
+                  </label>
+                  <input
+                    id="registrationFee"
+                    type="number"
+                    step="0.01"
+                    value={registrationFee}
+                    onChange={(e) => setRegistrationFee(e.target.value)}
+                    disabled={loading || saving}
+                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full"
                   />
                 </div>
               </div>
 
-              {/* Class Close Date */}
-              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
-                <label
-                  htmlFor="classCloseDate"
-                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
-                >
-                  Class Close Date
-                </label>
-                <div className="relative w-full">
-                  <input
-                    id="classCloseDate"
-                    type="date"
-                    value={classCloseDate}
-                    onChange={(e) => setClassCloseDate(e.target.value)}
-                    disabled={loading || saving}
-                    className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
-                  />
+              {/* Enrollment Start Date and Enrollment Close Date */}
+              <div className="flex flex-row gap-4 items-start relative shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="enrollmentStart"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Enrollment Start Date
+                  </label>
+                  <div className="relative w-full">
+                    <input
+                      id="enrollmentStart"
+                      type="date"
+                      value={enrollmentStart}
+                      onChange={(e) => setEnrollmentStart(e.target.value)}
+                      disabled={loading || saving}
+                      className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="enrollmentClose"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Enrollment Close Date
+                  </label>
+                  <div className="relative w-full">
+                    <input
+                      id="enrollmentClose"
+                      type="date"
+                      value={enrollmentClose}
+                      onChange={(e) => setEnrollmentClose(e.target.value)}
+                      disabled={loading || saving}
+                      className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Class Start Date and Class Close Date */}
+              <div className="flex flex-row gap-4 items-start relative shrink-0 w-full">
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="classStartDate"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Class Start Date
+                  </label>
+                  <div className="relative w-full">
+                    <input
+                      id="classStartDate"
+                      type="date"
+                      value={classStartDate}
+                      onChange={(e) => setClassStartDate(e.target.value)}
+                      disabled={loading || saving}
+                      className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 items-start relative shrink-0 flex-1">
+                  <label
+                    htmlFor="classCloseDate"
+                    className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
+                  >
+                    Class Close Date
+                  </label>
+                  <div className="relative w-full">
+                    <input
+                      id="classCloseDate"
+                      type="date"
+                      value={classCloseDate}
+                      onChange={(e) => setClassCloseDate(e.target.value)}
+                      disabled={loading || saving}
+                      className="border border-black rounded-lg px-3 py-3 text-[16px] focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 bg-white text-black w-full cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5 [&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -271,7 +425,7 @@ export default function AddClassTestPage() {
                     checked={isOnline}
                     onChange={(e) => setIsOnline(e.target.checked)}
                     disabled={loading || saving}
-                    className="w-4 h-4 text-black border-black rounded focus:ring-2 focus:ring-black disabled:opacity-50"
+                    className="w-4 h-4 rounded border-gray-300 text-black focus:ring-2 focus:ring-black focus:ring-offset-0 disabled:opacity-50 cursor-pointer"
                   />
                   <span className="font-normal leading-[1.5] text-black text-[16px]">
                     Online Class
@@ -284,11 +438,6 @@ export default function AddClassTestPage() {
                 <div className="text-red-600 text-sm text-center">{error}</div>
               )}
 
-              {/* Success Message */}
-              {success && (
-                <div className="text-green-600 text-sm text-center">{success}</div>
-              )}
-
               {/* Save Button */}
               <div className="flex flex-col gap-4 items-start relative shrink-0 w-full">
                 <button
@@ -298,6 +447,12 @@ export default function AddClassTestPage() {
                 >
                   {saving ? "Saving..." : loading ? "Loading courses..." : "Save"}
                 </button>
+                <Link
+                  href="/"
+                  className="text-center text-black text-[16px] font-normal leading-[1.5] hover:underline w-full"
+                >
+                  Cancel
+                </Link>
               </div>
             </form>
           </div>

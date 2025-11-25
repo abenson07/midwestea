@@ -3,18 +3,7 @@
 import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOTP, resendOTP, getSession } from "@/lib/auth";
-
-
-// Placeholder logo component
-function CompanyLogo({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <div className="h-[36px] w-[70px] flex items-center justify-center">
-        <span className="text-xl font-bold">Logo</span>
-      </div>
-    </div>
-  );
-}
+import { Logo } from "@midwestea/ui";
 
 function OTPForm() {
   const router = useRouter();
@@ -30,7 +19,7 @@ function OTPForm() {
   useEffect(() => {
     getSession().then(({ session }) => {
       if (session) {
-        router.push("/add_class_test");
+        router.push("/");
       }
     });
   }, [router]);
@@ -88,13 +77,13 @@ function OTPForm() {
       // Check session before redirecting
       const { session } = await getSession();
       if (session) {
-        router.push("/add_class_test");
+        router.push("/");
       } else {
         // Retry once more after a short delay
         await new Promise(resolve => setTimeout(resolve, 500));
         const { session: retrySession } = await getSession();
         if (retrySession) {
-          router.push("/add_class_test");
+          router.push("/");
         } else {
           setError("Session not established. Please try again.");
           setLoading(false);
@@ -136,7 +125,7 @@ function OTPForm() {
       <div className="flex flex-col grow h-full items-center px-16 py-0 relative shrink-0 w-full">
         {/* Navbar */}
         <div className="flex flex-col h-[72px] items-start justify-center overflow-clip relative shrink-0 w-full">
-          <CompanyLogo className="h-[36px] overflow-clip relative shrink-0 w-[84px]" />
+          <Logo />
         </div>
 
         {/* Content */}

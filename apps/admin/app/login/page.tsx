@@ -3,20 +3,7 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { signInWithOTP, getSession } from "@/lib/auth";
-
-
-// Placeholder logo component
-function CompanyLogo({ className }: { className?: string }) {
-  return (
-    <div className={className}>
-      <div className="h-[36px] flex items-center justify-center">
-        <span className="text-2xl font-bold italic tracking-tight" style={{ fontFamily: 'serif' }}>
-          Logo
-        </span>
-      </div>
-    </div>
-  );
-}
+import { Logo } from "@midwestea/ui";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -28,7 +15,7 @@ export default function LoginPage() {
   useEffect(() => {
     getSession().then(({ session }) => {
       if (session) {
-        router.push("/add_class_test");
+        router.push("/");
       }
     });
   }, [router]);
@@ -55,7 +42,7 @@ export default function LoginPage() {
       <div className="flex flex-col w-[60%] bg-white h-full relative">
         {/* Logo - Top Left */}
         <div className="flex items-center h-[72px] px-16 pt-0 pb-0">
-          <CompanyLogo className="h-[36px]" />
+          <Logo />
         </div>
 
         {/* Content - Centered */}

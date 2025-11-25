@@ -1,7 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+// Singleton instance for client-side
+let supabaseClientInstance: SupabaseClient | null = null;
+
 // Client-side/client connection (uses ANON key)
 export const createSupabaseClient = (): SupabaseClient => {
+  // Return existing instance if available
+  if (supabaseClientInstance) {
+    return supabaseClientInstance;
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
@@ -9,7 +17,9 @@ export const createSupabaseClient = (): SupabaseClient => {
     throw new Error('Missing Supabase URL or ANON key. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
   }
 
-  return createClient(url, key);
+  // Create and cache the client instance
+  supabaseClientInstance = createClient(url, key);
+  return supabaseClientInstance;
 };
 
 // Server-side/admin connection (uses SERVICE_ROLE key - bypasses RLS)

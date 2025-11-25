@@ -11,12 +11,17 @@
     "apply-migrations:api": "tsx scripts/apply-migrations-via-api.ts",
     "list-tables": "tsx scripts/list-tables.ts",
     "setup-logs": "tsx scripts/setup-and-apply-logs-migration.ts",
-    "insert-daily-log": "tsx scripts/insert-daily-log.ts"
+    "insert-daily-log": "tsx scripts/insert-daily-log.ts",
+    "webflow": "webflow",
+    "webflow:auth:login": "webflow auth login",
+    "webflow:cloud:init": "webflow cloud init",
+    "webflow:cloud:deploy": "webflow cloud deploy",
+    "webflow:cloud:list": "webflow cloud list"
   },
   "devDependencies": {
-    "tsx": "^4.7.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "@webflow/webflow-cli": "^1.8.49",
     "dotenv": "^16.4.5",
-    "@supabase/supabase-js": "^2.39.0"
+    "tsx": "^4.7.0"
   }
 }
-

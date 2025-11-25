@@ -1,6 +1,14 @@
 {
   "cloud": {
-    "framework": "nextjs"
+    "framework": "nextjs",
+    "project_id": "71ae03ab-cd3e-4a8b-8f49-474f8a70c785"
+  },
+  "telemetry": {
+    "global": {
+      "allowTelemetry": true,
+      "lastPrompted": 1764002398162,
+      "version": "1.8.49"
+    }
   }
 }
 
