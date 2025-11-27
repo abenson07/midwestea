@@ -79,3 +79,4 @@ Or check the Cloudflare dashboard under Workers & Pages → Your Worker → Logs
 
 
 
+

@@ -92,7 +92,7 @@ export async function getCourses(): Promise<{ courses: Course[] | null; error: s
 export async function generateClassId(courseCode: string): Promise<{ classId: string | null; error: string | null }> {
   try {
     const supabase = createSupabaseClient();
-    
+
     // Query all classes with the same course_code
     const { data, error } = await supabase
       .from("classes")
@@ -115,7 +115,7 @@ export async function generateClassId(courseCode: string): Promise<{ classId: st
       .map((classItem) => {
         const classId = classItem.class_id;
         if (!classId || typeof classId !== "string") return null;
-        
+
         // Try new format first: COURSECODE-001
         if (classId.includes("-")) {
           const parts = classId.split("-");
@@ -124,7 +124,7 @@ export async function generateClassId(courseCode: string): Promise<{ classId: st
             return isNaN(num) ? null : num;
           }
         }
-        
+
         // Fall back to old format: COURSECODE0001 (for backward compatibility)
         const numericPart = classId.replace(courseCode, "").replace("-", "");
         const num = parseInt(numericPart, 10);
@@ -243,7 +243,7 @@ export async function updateClass(
   try {
     const supabase = createSupabaseClient();
     const updateData: any = {};
-    
+
     if (enrollmentStart !== undefined) updateData.enrollment_start = enrollmentStart;
     if (enrollmentClose !== undefined) updateData.enrollment_close = enrollmentClose;
     if (classStartDate !== undefined) updateData.class_start_date = classStartDate;
@@ -272,3 +272,71 @@ export async function updateClass(
   }
 }
 
+
+/**
+ * Fetch a single course by ID
+ */
+export async function getCourseById(id: string): Promise<{ course: Course | null; error: string | null }> {
+  try {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      return { course: null, error: error.message };
+    }
+
+    return { course: data as Course, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { course: null, error: error.message || "Failed to fetch course" };
+  }
+}
+
+/**
+ * Update a course in the courses table
+ */
+export async function updateCourse(
+  id: string,
+  courseName?: string,
+  courseCode?: string,
+  lengthOfClass?: string | null,
+  certificationLength?: number | null,
+  graduationRate?: number | null,
+  registrationLimit?: number | null,
+  price?: number | null,
+  registrationFee?: number | null,
+  stripeProductId?: string | null
+): Promise<ClassResponse> {
+  try {
+    const supabase = createSupabaseClient();
+    const updateData: any = {};
+
+    if (courseName !== undefined) updateData.course_name = courseName;
+    if (courseCode !== undefined) updateData.course_code = courseCode;
+    if (lengthOfClass !== undefined) updateData.length_of_class = lengthOfClass;
+    if (certificationLength !== undefined) updateData.certification_length = certificationLength;
+    if (graduationRate !== undefined) updateData.graduation_rate = graduationRate;
+    if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
+    if (price !== undefined) updateData.price = price;
+    if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
+    if (stripeProductId !== undefined) updateData.stripe_product_id = stripeProductId;
+
+    const { error } = await supabase
+      .from("courses")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { success: false, error: error.message || "Failed to update course" };
+  }
+}
