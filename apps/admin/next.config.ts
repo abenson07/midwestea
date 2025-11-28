@@ -8,9 +8,13 @@ const nextConfig: NextConfig = {
   
   // Additional Next.js configuration options can be added here
   reactStrictMode: true,
+  
+  // Explicitly set output to standalone for OpenNext compatibility
+  output: 'standalone',
 };
 
 export default nextConfig;
+
 
 
 

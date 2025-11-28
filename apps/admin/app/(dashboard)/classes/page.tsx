@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClasses, getClassById, updateClass, type Class } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 
-export default function ClassesPage() {
+function ClassesPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [classes, setClasses] = useState<Class[]>([]);
@@ -321,6 +321,26 @@ export default function ClassesPage() {
                 )}
             </DetailSidebar>
         </div>
+    );
+}
+
+export default function ClassesPage() {
+    return (
+        <Suspense fallback={
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Classes</h1>
+                        <p className="text-sm text-gray-500 mt-1">Manage scheduled classes</p>
+                    </div>
+                </div>
+                <div className="flex justify-center py-8">
+                    <p className="text-gray-500">Loading...</p>
+                </div>
+            </div>
+        }>
+            <ClassesPageContent />
+        </Suspense>
     );
 }
 

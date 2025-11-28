@@ -30,7 +30,8 @@ async function checkEnv() {
         new URL(url);
         console.log('✅ URL format is valid.');
     } catch (e) {
-        console.error('❌ Invalid URL format.');
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('❌ Invalid URL format:', errorMessage);
         return;
     }
 
@@ -47,7 +48,8 @@ async function checkEnv() {
             console.log(`Table 'classes' exists and is accessible.`);
         }
     } catch (e) {
-        console.error('❌ Unexpected error during connection check:', e.message);
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.error('❌ Unexpected error during connection check:', errorMessage);
     }
 }
 

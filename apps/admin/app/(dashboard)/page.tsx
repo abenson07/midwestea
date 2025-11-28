@@ -1,7 +1,18 @@
-export default function DashboardPage() {
+// Force dynamic rendering to ensure OpenNext generates required files
+export const dynamic = 'force-dynamic';
+
+import { cookies } from "next/headers";
+import { Logo } from "@midwestea/ui";
+
+export default async function DashboardPage() {
+    // Force dynamic rendering by accessing cookies
+    await cookies();
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <div className="flex items-center gap-4">
+                <Logo />
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+            </div>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {/* Placeholder cards */}
                 <div className="bg-white overflow-hidden shadow rounded-lg">

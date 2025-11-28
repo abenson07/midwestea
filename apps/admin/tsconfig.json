@@ -19,12 +19,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@midwestea/ui": ["../../packages/ui"],
+      "@midwestea/utils": ["../../packages/utils"],
+      "@midwestea/types": ["../../packages/types"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "scripts"]
 }
+
 
 
 

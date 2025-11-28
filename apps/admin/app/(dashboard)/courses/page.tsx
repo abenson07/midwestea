@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCourses, getCourseById, updateCourse, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 
-export default function CoursesPage() {
+function CoursesPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [courses, setCourses] = useState<Course[]>([]);
@@ -261,5 +261,25 @@ export default function CoursesPage() {
                 )}
             </DetailSidebar>
         </div>
+    );
+}
+
+export default function CoursesPage() {
+    return (
+        <Suspense fallback={
+            <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
+                        <p className="text-sm text-gray-500 mt-1">Manage your course offerings</p>
+                    </div>
+                </div>
+                <div className="flex justify-center py-8">
+                    <p className="text-gray-500">Loading...</p>
+                </div>
+            </div>
+        }>
+            <CoursesPageContent />
+        </Suspense>
     );
 }
