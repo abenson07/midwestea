@@ -39,12 +39,12 @@ export function DetailSidebar({ isOpen, onClose, title, children }: DetailSideba
                 onClick={onClose}
             />
 
-            {/* Sidebar */}
+            {/* Sidebar - Full screen on mobile, sidebar on desktop */}
             <div
                 ref={sidebarRef}
-                className="relative w-full max-w-md bg-white shadow-xl h-full flex flex-col animate-in slide-in-from-right duration-300"
+                className="relative w-full md:max-w-md bg-white shadow-xl h-full flex flex-col animate-in slide-in-from-right duration-300"
             >
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-gray-200">
                     <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
                     <button
                         onClick={onClose}
@@ -54,7 +54,7 @@ export function DetailSidebar({ isOpen, onClose, title, children }: DetailSideba
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6">
                     {children}
                 </div>
             </div>

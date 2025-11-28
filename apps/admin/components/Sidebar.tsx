@@ -43,7 +43,7 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col w-64 border-r border-gray-200 bg-white h-screen sticky top-0">
+    <div className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white h-screen sticky top-0">
       <div className="h-16 flex items-center px-6 border-b border-gray-200">
         <Logo />
       </div>
@@ -56,8 +56,8 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    ? "bg-gray-100 text-gray-900"
+                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
                 >
                   <item.icon className={`h-5 w-5 ${isActive ? "text-black" : "text-gray-400"}`} />

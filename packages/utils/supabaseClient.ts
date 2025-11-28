@@ -14,6 +14,9 @@ export const createSupabaseClient = (): SupabaseClient => {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
   if (!url || !key) {
+    console.error('Supabase Client Error: Missing environment variables');
+    console.error('NEXT_PUBLIC_SUPABASE_URL:', url ? 'Set' : 'Missing');
+    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', key ? 'Set' : 'Missing');
     throw new Error('Missing Supabase URL or ANON key. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
   }
 

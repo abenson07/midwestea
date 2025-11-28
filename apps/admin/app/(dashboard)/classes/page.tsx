@@ -40,6 +40,7 @@ export default function ClassesPage() {
         const { classes: fetchedClasses, error: fetchError } = await getClasses();
 
         if (fetchError) {
+            console.error("Error fetching classes:", fetchError);
             setError(fetchError);
         } else if (fetchedClasses) {
             setClasses(fetchedClasses);
@@ -175,7 +176,7 @@ export default function ClassesPage() {
                         </div>
 
                         {/* Enrollment Dates */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Enrollment Start</label>
                                 <input
@@ -197,7 +198,7 @@ export default function ClassesPage() {
                         </div>
 
                         {/* Class Dates */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Class Start</label>
                                 <input
@@ -231,7 +232,7 @@ export default function ClassesPage() {
                         </div>
 
                         {/* Class Details */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Length of Class</label>
                                 <input
@@ -252,7 +253,7 @@ export default function ClassesPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Cert. Length</label>
                                 <input
@@ -275,7 +276,7 @@ export default function ClassesPage() {
                         </div>
 
                         {/* Financials */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Price ($)</label>
                                 <input

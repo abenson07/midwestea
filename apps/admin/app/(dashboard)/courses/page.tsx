@@ -162,7 +162,7 @@ export default function CoursesPage() {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Length of Class</label>
                                 <input
@@ -183,7 +183,7 @@ export default function CoursesPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Cert. Length</label>
                                 <input
@@ -205,7 +205,7 @@ export default function CoursesPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Price ($)</label>
                                 <input
