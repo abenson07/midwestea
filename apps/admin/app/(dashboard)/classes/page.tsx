@@ -2,8 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { getClasses, getClassById, updateClass, type Class } from "@/lib/classes";
+import { getClasses, getClassById, updateClass, createClass, generateClassId, getCourses, type Class, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 
@@ -19,6 +18,24 @@ function ClassesPageContent() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isAddMode, setIsAddMode] = useState(false);
+    const [courses, setCourses] = useState<Course[]>([]);
+    
+    // Form state for adding new class
+    const [newClassData, setNewClassData] = useState({
+        courseId: "",
+        enrollmentStart: "",
+        enrollmentClose: "",
+        classStartDate: "",
+        classCloseDate: "",
+        isOnline: false,
+        lengthOfClass: "",
+        certificationLength: "",
+        graduationRate: "",
+        registrationLimit: "",
+        price: "",
+        registrationFee: "",
+    });
 
     useEffect(() => {
         loadClasses();
@@ -59,6 +76,11 @@ function ClassesPageContent() {
     };
 
     const handleRowClick = (classItem: Class) => {
+        router.push(`/classes/${classItem.id}`);
+    };
+
+    const handleEditClick = (classItem: Class, e: React.MouseEvent) => {
+        e.stopPropagation();
         router.push(`/classes?classId=${classItem.id}`);
     };
 
@@ -69,6 +91,87 @@ function ClassesPageContent() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        if (isAddMode) {
+            await handleCreateClass();
+        } else {
+            await handleUpdateClass();
+        }
+    };
+
+    const handleCreateClass = async () => {
+        if (!newClassData.courseId) {
+            alert("Please select a course");
+            return;
+        }
+
+        const selectedCourse = courses.find(c => c.id === newClassData.courseId);
+        if (!selectedCourse) {
+            alert("Selected course not found");
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            // Generate class_id
+            const { classId, error: classIdError } = await generateClassId(selectedCourse.course_code);
+            
+            if (classIdError || !classId) {
+                alert(classIdError || "Failed to generate class ID");
+                setSaving(false);
+                return;
+            }
+
+            // Helper functions for parsing
+            const parseDollars = (value: string): number | null => {
+                if (!value) return null;
+                const dollars = parseFloat(value);
+                if (isNaN(dollars)) return null;
+                return Math.round(dollars * 100);
+            };
+
+            const parsePercentage = (value: string): number | null => {
+                if (!value) return null;
+                const percent = parseFloat(value);
+                if (isNaN(percent)) return null;
+                return Math.round(percent * 100);
+            };
+
+            // Create the class
+            const result = await createClass(
+                selectedCourse.id,
+                selectedCourse.course_name,
+                selectedCourse.course_code,
+                classId,
+                newClassData.enrollmentStart || null,
+                newClassData.enrollmentClose || null,
+                newClassData.classStartDate || null,
+                newClassData.classCloseDate || null,
+                newClassData.isOnline,
+                newClassData.lengthOfClass || null,
+                newClassData.certificationLength ? parseInt(newClassData.certificationLength, 10) : null,
+                parsePercentage(newClassData.graduationRate),
+                newClassData.registrationLimit ? parseInt(newClassData.registrationLimit, 10) : null,
+                parseDollars(newClassData.price),
+                parseDollars(newClassData.registrationFee),
+                selectedCourse.stripe_product_id || null
+            );
+
+            if (result.success) {
+                await loadClasses(); // Refresh list
+                handleCloseSidebar();
+            } else {
+                alert(`Failed to create class: ${result.error}`);
+            }
+        } catch (err) {
+            alert("An unexpected error occurred");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleUpdateClass = async () => {
         if (!selectedClass) return;
 
         setSaving(true);
@@ -130,12 +233,12 @@ function ClassesPageContent() {
                     <h1 className="text-2xl font-bold text-gray-900">Classes</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage scheduled classes</p>
                 </div>
-                <Link
-                    href="/add_class_test"
+                <button
+                    onClick={handleAddClassClick}
                     className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
                 >
                     Add Class
-                </Link>
+                </button>
             </div>
 
             {error && (
@@ -149,6 +252,7 @@ function ClassesPageContent() {
                 columns={columns}
                 isLoading={loading}
                 onRowClick={handleRowClick}
+                onEditClick={handleEditClick}
                 emptyMessage="No classes found."
             />
 
@@ -156,12 +260,186 @@ function ClassesPageContent() {
             <DetailSidebar
                 isOpen={isSidebarOpen}
                 onClose={handleCloseSidebar}
-                title={selectedClass ? `Edit ${selectedClass.class_id}` : "Class Details"}
+                title={isAddMode ? "Add New Class" : selectedClass ? `Edit ${selectedClass.class_id}` : "Class Details"}
             >
                 {loadingDetail ? (
                     <div className="flex justify-center py-8">
                         <p className="text-gray-500">Loading details...</p>
                     </div>
+                ) : isAddMode ? (
+                    <form onSubmit={handleSave} className="space-y-6">
+                        {/* Course Selection */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Course*</label>
+                            <select
+                                value={newClassData.courseId}
+                                onChange={(e) => {
+                                    const courseId = e.target.value;
+                                    const selectedCourse = courses.find(c => c.id === courseId);
+                                    setNewClassData({
+                                        ...newClassData,
+                                        courseId,
+                                        lengthOfClass: selectedCourse?.length_of_class || "",
+                                        certificationLength: selectedCourse?.certification_length?.toString() || "",
+                                        graduationRate: selectedCourse?.graduation_rate ? (selectedCourse.graduation_rate / 100).toFixed(2) : "",
+                                        registrationLimit: selectedCourse?.registration_limit?.toString() || "",
+                                        price: selectedCourse?.price ? (selectedCourse.price / 100).toFixed(2) : "",
+                                        registrationFee: selectedCourse?.registration_fee ? (selectedCourse.registration_fee / 100).toFixed(2) : "",
+                                    });
+                                }}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                required
+                            >
+                                <option value="">Select a course</option>
+                                {courses.map((course) => (
+                                    <option key={course.id} value={course.id}>
+                                        {course.course_code} - {course.course_name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Enrollment Dates */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Enrollment Start</label>
+                                <input
+                                    type="date"
+                                    value={newClassData.enrollmentStart}
+                                    onChange={(e) => setNewClassData({ ...newClassData, enrollmentStart: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Enrollment Close</label>
+                                <input
+                                    type="date"
+                                    value={newClassData.enrollmentClose}
+                                    onChange={(e) => setNewClassData({ ...newClassData, enrollmentClose: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Class Dates */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Class Start</label>
+                                <input
+                                    type="date"
+                                    value={newClassData.classStartDate}
+                                    onChange={(e) => setNewClassData({ ...newClassData, classStartDate: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Class End</label>
+                                <input
+                                    type="date"
+                                    value={newClassData.classCloseDate}
+                                    onChange={(e) => setNewClassData({ ...newClassData, classCloseDate: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Online Checkbox */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="isOnline"
+                                checked={newClassData.isOnline}
+                                onChange={(e) => setNewClassData({ ...newClassData, isOnline: e.target.checked })}
+                                className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                            />
+                            <label htmlFor="isOnline" className="text-sm font-medium text-gray-700">Online Class</label>
+                        </div>
+
+                        {/* Class Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Length of Class</label>
+                                <input
+                                    type="text"
+                                    value={newClassData.lengthOfClass}
+                                    onChange={(e) => setNewClassData({ ...newClassData, lengthOfClass: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
+                                <input
+                                    type="number"
+                                    value={newClassData.registrationLimit}
+                                    onChange={(e) => setNewClassData({ ...newClassData, registrationLimit: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Cert. Length</label>
+                                <input
+                                    type="number"
+                                    value={newClassData.certificationLength}
+                                    onChange={(e) => setNewClassData({ ...newClassData, certificationLength: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Graduation Rate (%)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={newClassData.graduationRate}
+                                    onChange={(e) => setNewClassData({ ...newClassData, graduationRate: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Financials */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Price ($)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={newClassData.price}
+                                    onChange={(e) => setNewClassData({ ...newClassData, price: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Reg. Fee ($)</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    value={newClassData.registrationFee}
+                                    onChange={(e) => setNewClassData({ ...newClassData, registrationFee: e.target.value })}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={handleCloseSidebar}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
+                            >
+                                {saving ? "Creating..." : "Create Class"}
+                            </button>
+                        </div>
+                    </form>
                 ) : selectedClass ? (
                     <form onSubmit={handleSave} className="space-y-6">
                         <div>

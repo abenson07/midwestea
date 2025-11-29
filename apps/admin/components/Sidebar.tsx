@@ -8,19 +8,21 @@ import {
   Users,
   GraduationCap,
   CheckSquare,
-  LayoutDashboard,
   FileText,
-  LogOut
+  LogOut,
+  FolderOpen,
+  CreditCard,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Courses", href: "/courses", icon: BookOpen },
+  { name: "Programs", href: "/programs", icon: FolderOpen },
   { name: "Classes", href: "/classes", icon: Users },
   { name: "Students", href: "/students", icon: GraduationCap },
   { name: "Instructors", href: "/instructors", icon: FileText },
+  { name: "Payments", href: "/payments", icon: CreditCard },
   { name: "Approvals", href: "/approvals", icon: CheckSquare },
 ];
 

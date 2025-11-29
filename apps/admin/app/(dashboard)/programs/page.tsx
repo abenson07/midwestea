@@ -2,28 +2,28 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getCourses, getCourseById, updateCourse, createCourse, type Course } from "@/lib/classes";
+import { getPrograms, getCourseById, updateCourse, createProgram, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 
-function CoursesPageContent() {
+function ProgramsPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [courses, setCourses] = useState<Course[]>([]);
+    const [programs, setPrograms] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     // Sidebar state
-    const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+    const [selectedProgram, setSelectedProgram] = useState<Course | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isAddMode, setIsAddMode] = useState(false);
     
-    // Form state for adding new course
-    const [newCourseData, setNewCourseData] = useState({
-        courseName: "",
-        courseCode: "",
+    // Form state for adding new program
+    const [newProgramData, setNewProgramData] = useState({
+        programName: "",
+        programCode: "",
         lengthOfClass: "",
         certificationLength: "",
         graduationRate: "",
@@ -33,23 +33,23 @@ function CoursesPageContent() {
     });
 
     useEffect(() => {
-        loadCourses();
+        loadPrograms();
     }, []);
 
     // Handle URL params for deep linking
     useEffect(() => {
-        const courseId = searchParams.get("courseId");
+        const programId = searchParams.get("programId");
         const mode = searchParams.get("mode");
-        if (courseId) {
+        if (programId) {
             setIsAddMode(false);
-            loadCourseDetail(courseId);
+            loadProgramDetail(programId);
         } else if (mode === "add") {
             setIsAddMode(true);
-            setSelectedCourse(null);
+            setSelectedProgram(null);
             setIsSidebarOpen(true);
-            setNewCourseData({
-                courseName: "",
-                courseCode: "",
+            setNewProgramData({
+                programName: "",
+                programCode: "",
                 lengthOfClass: "",
                 certificationLength: "",
                 graduationRate: "",
@@ -59,64 +59,63 @@ function CoursesPageContent() {
             });
         } else {
             setIsSidebarOpen(false);
-            setSelectedCourse(null);
+            setSelectedProgram(null);
             setIsAddMode(false);
         }
     }, [searchParams]);
 
-    const loadCourses = async () => {
-        setLoading(true);
-        const { courses: fetchedCourses, error: fetchError } = await getCourses();
-
-        if (fetchError) {
-            setError(fetchError);
-        } else if (fetchedCourses) {
-            setCourses(fetchedCourses);
-        }
-        setLoading(false);
-    };
-
-    const loadCourseDetail = async (id: string) => {
+    const loadProgramDetail = async (id: string) => {
         setLoadingDetail(true);
         setIsSidebarOpen(true);
-        const { course: fetchedCourse, error } = await getCourseById(id);
-        if (fetchedCourse) {
-            setSelectedCourse(fetchedCourse);
+        const { course: fetchedProgram, error } = await getCourseById(id);
+        if (fetchedProgram) {
+            setSelectedProgram(fetchedProgram);
         }
         setLoadingDetail(false);
     };
 
-    const handleRowClick = (course: Course) => {
-        router.push(`/courses/${course.id}`);
+    const loadPrograms = async () => {
+        setLoading(true);
+        const { programs: fetchedPrograms, error: fetchError } = await getPrograms();
+        if (fetchError) {
+            setError(fetchError);
+        } else if (fetchedPrograms) {
+            setPrograms(fetchedPrograms);
+        }
+        setLoading(false);
     };
 
-    const handleEditClick = (course: Course, e: React.MouseEvent) => {
+    const handleRowClick = (program: Course) => {
+        router.push(`/programs/${program.id}`);
+    };
+
+    const handleEditClick = (program: Course, e: React.MouseEvent) => {
         e.stopPropagation();
-        router.push(`/courses?courseId=${course.id}`);
+        router.push(`/programs?programId=${program.id}`);
     };
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
         setIsAddMode(false);
-        router.push("/courses");
+        router.push("/programs");
     };
 
-    const handleAddCourseClick = () => {
-        router.push("/courses?mode=add");
+    const handleAddProgramClick = () => {
+        router.push("/programs?mode=add");
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         
         if (isAddMode) {
-            await handleCreateCourse();
+            await handleCreateProgram();
         } else {
-            await handleUpdateCourse();
+            await handleUpdateProgram();
         }
     };
 
-    const handleCreateCourse = async () => {
-        if (!newCourseData.courseName || !newCourseData.courseCode) {
+    const handleCreateProgram = async () => {
+        if (!newProgramData.programName || !newProgramData.programCode) {
             alert("Please fill in all required fields");
             return;
         }
@@ -137,46 +136,46 @@ function CoursesPageContent() {
             return Math.round(percent * 100);
         };
 
-        const result = await createCourse(
-            newCourseData.courseName,
-            newCourseData.courseCode,
-            newCourseData.lengthOfClass || null,
-            newCourseData.certificationLength ? parseInt(newCourseData.certificationLength, 10) : null,
-            parsePercentage(newCourseData.graduationRate),
-            newCourseData.registrationLimit ? parseInt(newCourseData.registrationLimit, 10) : null,
-            parseDollars(newCourseData.price),
-            parseDollars(newCourseData.registrationFee),
+        const result = await createProgram(
+            newProgramData.programName,
+            newProgramData.programCode,
+            newProgramData.lengthOfClass || null,
+            newProgramData.certificationLength ? parseInt(newProgramData.certificationLength, 10) : null,
+            parsePercentage(newProgramData.graduationRate),
+            newProgramData.registrationLimit ? parseInt(newProgramData.registrationLimit, 10) : null,
+            parseDollars(newProgramData.price),
+            parseDollars(newProgramData.registrationFee),
             null
         );
 
         if (result.success) {
-            await loadCourses(); // Refresh list
+            await loadPrograms(); // Refresh list
             handleCloseSidebar();
         } else {
-            alert(`Failed to create course: ${result.error}`);
+            alert(`Failed to create program: ${result.error}`);
         }
         setSaving(false);
     };
 
-    const handleUpdateCourse = async () => {
-        if (!selectedCourse) return;
+    const handleUpdateProgram = async () => {
+        if (!selectedProgram) return;
 
         setSaving(true);
         const { success, error } = await updateCourse(
-            selectedCourse.id,
-            selectedCourse.course_name,
-            selectedCourse.course_code,
-            selectedCourse.length_of_class,
-            selectedCourse.certification_length,
-            selectedCourse.graduation_rate,
-            selectedCourse.registration_limit,
-            selectedCourse.price,
-            selectedCourse.registration_fee,
-            selectedCourse.stripe_product_id
+            selectedProgram.id,
+            selectedProgram.course_name,
+            selectedProgram.course_code,
+            selectedProgram.length_of_class,
+            selectedProgram.certification_length,
+            selectedProgram.graduation_rate,
+            selectedProgram.registration_limit,
+            selectedProgram.price,
+            selectedProgram.registration_fee,
+            selectedProgram.stripe_product_id
         );
 
         if (success) {
-            await loadCourses(); // Refresh list
+            await loadPrograms(); // Refresh list
             handleCloseSidebar();
         } else {
             alert(`Failed to save: ${error}`);
@@ -203,14 +202,14 @@ function CoursesPageContent() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
-                    <p className="text-sm text-gray-500 mt-1">Manage your course offerings</p>
+                    <h1 className="text-2xl font-bold text-gray-900">Programs</h1>
+                    <p className="text-sm text-gray-500 mt-1">Manage program offerings</p>
                 </div>
                 <button
-                    onClick={handleAddCourseClick}
+                    onClick={handleAddProgramClick}
                     className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
                 >
-                    Add Course
+                    Add Program
                 </button>
             </div>
 
@@ -221,18 +220,18 @@ function CoursesPageContent() {
             )}
 
             <DataTable
-                data={courses}
+                data={programs}
                 columns={columns}
                 isLoading={loading}
                 onRowClick={handleRowClick}
                 onEditClick={handleEditClick}
-                emptyMessage="No courses found."
+                emptyMessage="No programs found."
             />
 
             <DetailSidebar
                 isOpen={isSidebarOpen}
                 onClose={handleCloseSidebar}
-                title={isAddMode ? "Add New Course" : selectedCourse ? `Edit ${selectedCourse.course_code}` : "Course Details"}
+                title={isAddMode ? "Add New Program" : selectedProgram ? `Edit ${selectedProgram.course_code}` : "Program Details"}
             >
                 {loadingDetail ? (
                     <div className="flex justify-center py-8">
@@ -241,22 +240,22 @@ function CoursesPageContent() {
                 ) : isAddMode ? (
                     <form onSubmit={handleSave} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Course Name*</label>
+                            <label className="block text-sm font-medium text-gray-700">Program Name*</label>
                             <input
                                 type="text"
-                                value={newCourseData.courseName}
-                                onChange={(e) => setNewCourseData({ ...newCourseData, courseName: e.target.value })}
+                                value={newProgramData.programName}
+                                onChange={(e) => setNewProgramData({ ...newProgramData, programName: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Course Code*</label>
+                            <label className="block text-sm font-medium text-gray-700">Program Code*</label>
                             <input
                                 type="text"
-                                value={newCourseData.courseCode}
-                                onChange={(e) => setNewCourseData({ ...newCourseData, courseCode: e.target.value })}
+                                value={newProgramData.programCode}
+                                onChange={(e) => setNewProgramData({ ...newProgramData, programCode: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 required
                             />
@@ -267,8 +266,8 @@ function CoursesPageContent() {
                                 <label className="block text-sm font-medium text-gray-700">Length of Class</label>
                                 <input
                                     type="text"
-                                    value={newCourseData.lengthOfClass}
-                                    onChange={(e) => setNewCourseData({ ...newCourseData, lengthOfClass: e.target.value })}
+                                    value={newProgramData.lengthOfClass}
+                                    onChange={(e) => setNewProgramData({ ...newProgramData, lengthOfClass: e.target.value })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -276,8 +275,8 @@ function CoursesPageContent() {
                                 <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
                                 <input
                                     type="number"
-                                    value={newCourseData.registrationLimit}
-                                    onChange={(e) => setNewCourseData({ ...newCourseData, registrationLimit: e.target.value })}
+                                    value={newProgramData.registrationLimit}
+                                    onChange={(e) => setNewProgramData({ ...newProgramData, registrationLimit: e.target.value })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -288,8 +287,8 @@ function CoursesPageContent() {
                                 <label className="block text-sm font-medium text-gray-700">Cert. Length</label>
                                 <input
                                     type="number"
-                                    value={newCourseData.certificationLength}
-                                    onChange={(e) => setNewCourseData({ ...newCourseData, certificationLength: e.target.value })}
+                                    value={newProgramData.certificationLength}
+                                    onChange={(e) => setNewProgramData({ ...newProgramData, certificationLength: e.target.value })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -298,8 +297,8 @@ function CoursesPageContent() {
                                 <input
                                     type="number"
                                     step="0.01"
-                                    value={newCourseData.graduationRate}
-                                    onChange={(e) => setNewCourseData({ ...newCourseData, graduationRate: e.target.value })}
+                                    value={newProgramData.graduationRate}
+                                    onChange={(e) => setNewProgramData({ ...newProgramData, graduationRate: e.target.value })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -311,8 +310,8 @@ function CoursesPageContent() {
                                 <input
                                     type="number"
                                     step="0.01"
-                                    value={newCourseData.price}
-                                    onChange={(e) => setNewCourseData({ ...newCourseData, price: e.target.value })}
+                                    value={newProgramData.price}
+                                    onChange={(e) => setNewProgramData({ ...newProgramData, price: e.target.value })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -321,8 +320,8 @@ function CoursesPageContent() {
                                 <input
                                     type="number"
                                     step="0.01"
-                                    value={newCourseData.registrationFee}
-                                    onChange={(e) => setNewCourseData({ ...newCourseData, registrationFee: e.target.value })}
+                                    value={newProgramData.registrationFee}
+                                    onChange={(e) => setNewProgramData({ ...newProgramData, registrationFee: e.target.value })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -341,106 +340,29 @@ function CoursesPageContent() {
                                 disabled={saving}
                                 className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
                             >
-                                {saving ? "Creating..." : "Create Course"}
+                                {saving ? "Creating..." : "Create Program"}
                             </button>
                         </div>
                     </form>
-                ) : selectedCourse ? (
+                ) : selectedProgram ? (
                     <form onSubmit={handleSave} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Course Name</label>
+                            <label className="block text-sm font-medium text-gray-700">Program Name</label>
                             <input
                                 type="text"
-                                value={selectedCourse.course_name}
-                                onChange={(e) => setSelectedCourse({ ...selectedCourse, course_name: e.target.value })}
+                                value={selectedProgram.course_name}
+                                onChange={(e) => setSelectedProgram({ ...selectedProgram, course_name: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Course Code</label>
+                            <label className="block text-sm font-medium text-gray-700">Program Code</label>
                             <input
                                 type="text"
-                                value={selectedCourse.course_code}
-                                onChange={(e) => setSelectedCourse({ ...selectedCourse, course_code: e.target.value })}
+                                value={selectedProgram.course_code}
+                                onChange={(e) => setSelectedProgram({ ...selectedProgram, course_code: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Length of Class</label>
-                                <input
-                                    type="text"
-                                    value={selectedCourse.length_of_class || ''}
-                                    onChange={(e) => setSelectedCourse({ ...selectedCourse, length_of_class: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
-                                <input
-                                    type="number"
-                                    value={selectedCourse.registration_limit || ''}
-                                    onChange={(e) => setSelectedCourse({ ...selectedCourse, registration_limit: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Cert. Length</label>
-                                <input
-                                    type="number"
-                                    value={selectedCourse.certification_length || ''}
-                                    onChange={(e) => setSelectedCourse({ ...selectedCourse, certification_length: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Graduation Rate (%)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={selectedCourse.graduation_rate ? (selectedCourse.graduation_rate / 100).toFixed(2) : ''}
-                                    onChange={(e) => setSelectedCourse({ ...selectedCourse, graduation_rate: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Price ($)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={selectedCourse.price ? (selectedCourse.price / 100).toFixed(2) : ''}
-                                    onChange={(e) => setSelectedCourse({ ...selectedCourse, price: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Reg. Fee ($)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={selectedCourse.registration_fee ? (selectedCourse.registration_fee / 100).toFixed(2) : ''}
-                                    onChange={(e) => setSelectedCourse({ ...selectedCourse, registration_fee: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Stripe Product ID</label>
-                            <input
-                                type="text"
-                                value={selectedCourse.stripe_product_id || ''}
-                                readOnly
-                                disabled
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm sm:text-sm p-2 bg-gray-100 text-gray-500 cursor-not-allowed"
                             />
                         </div>
 
@@ -462,21 +384,21 @@ function CoursesPageContent() {
                         </div>
                     </form>
                 ) : (
-                    <p className="text-gray-500">Course not found.</p>
+                    <p className="text-gray-500">Program not found.</p>
                 )}
             </DetailSidebar>
         </div>
     );
 }
 
-export default function CoursesPage() {
+export default function ProgramsPage() {
     return (
         <Suspense fallback={
             <div className="space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
-                        <p className="text-sm text-gray-500 mt-1">Manage your course offerings</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Programs</h1>
+                        <p className="text-sm text-gray-500 mt-1">Manage program offerings</p>
                     </div>
                 </div>
                 <div className="flex justify-center py-8">
@@ -484,7 +406,8 @@ export default function CoursesPage() {
                 </div>
             </div>
         }>
-            <CoursesPageContent />
+            <ProgramsPageContent />
         </Suspense>
     );
 }
+

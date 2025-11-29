@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Pencil } from "lucide-react";
 
 interface Column<T> {
     header: string;
@@ -14,6 +14,7 @@ interface DataTableProps<T> {
     data: T[];
     columns: Column<T>[];
     onRowClick?: (item: T) => void;
+    onEditClick?: (item: T, e: React.MouseEvent) => void;
     isLoading?: boolean;
     emptyMessage?: string;
 }
@@ -22,6 +23,7 @@ export function DataTable<T extends { id: string | number }>({
     data,
     columns,
     onRowClick,
+    onEditClick,
     isLoading,
     emptyMessage = "No data available",
 }: DataTableProps<T>) {
@@ -64,11 +66,25 @@ export function DataTable<T extends { id: string | number }>({
                                 </div>
                             ))}
                         </div>
-                        {onRowClick && (
-                            <div className="mt-3 pt-3 border-t border-gray-100 flex justify-end">
-                                <ChevronRight className="h-5 w-5 text-gray-400" />
-                            </div>
-                        )}
+                        <div className="mt-3 pt-3 border-t border-gray-100 flex justify-between items-center">
+                            {onEditClick && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditClick(item, e);
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-50 transition-colors"
+                                    aria-label="Edit"
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </button>
+                            )}
+                            {onRowClick && (
+                                <div className="flex-1 flex justify-end">
+                                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ))}
             </div>
@@ -86,7 +102,7 @@ export function DataTable<T extends { id: string | number }>({
                                     {column.header}
                                 </th>
                             ))}
-                            {onRowClick && <th className="px-6 py-3 w-10"></th>}
+                            {(onRowClick || onEditClick) && <th className="px-6 py-3 w-20 text-right"></th>}
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -109,9 +125,25 @@ export function DataTable<T extends { id: string | number }>({
                                                 : null}
                                     </td>
                                 ))}
-                                {onRowClick && (
+                                {(onRowClick || onEditClick) && (
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
+                                        <div className="flex items-center justify-end gap-2">
+                                            {onEditClick && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onEditClick(item, e);
+                                                    }}
+                                                    className="p-1.5 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+                                                    aria-label="Edit"
+                                                >
+                                                    <Pencil className="h-4 w-4" />
+                                                </button>
+                                            )}
+                                            {onRowClick && (
+                                                <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
+                                            )}
+                                        </div>
                                     </td>
                                 )}
                             </tr>

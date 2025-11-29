@@ -7,6 +7,7 @@ export interface Course {
   id: string;
   course_name: string;
   course_code: string;
+  program_type: string | null;
   length_of_class: string | null;
   certification_length: number | null;
   graduation_rate: number | null;
@@ -64,14 +65,15 @@ export async function getClasses(): Promise<{ classes: Class[] | null; error: st
 }
 
 /**
- * Fetch all courses from the courses table
+ * Fetch all courses from the courses table (where program_type is 'course' or null)
  */
 export async function getCourses(): Promise<{ courses: Course[] | null; error: string | null }> {
   try {
     const supabase = createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .or("program_type.eq.course,program_type.is.null")
       .order("course_code");
 
     if (error) {
@@ -82,6 +84,29 @@ export async function getCourses(): Promise<{ courses: Course[] | null; error: s
   } catch (err) {
     const error = err as PostgrestError;
     return { courses: null, error: error.message || "Failed to fetch courses" };
+  }
+}
+
+/**
+ * Fetch all programs from the courses table (where program_type is 'program')
+ */
+export async function getPrograms(): Promise<{ programs: Course[] | null; error: string | null }> {
+  try {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select("id, course_name, course_code, program_type, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .eq("program_type", "program")
+      .order("course_code");
+
+    if (error) {
+      return { programs: null, error: error.message };
+    }
+
+    return { programs: data as Course[], error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { programs: null, error: error.message || "Failed to fetch programs" };
   }
 }
 
@@ -338,5 +363,93 @@ export async function updateCourse(
   } catch (err) {
     const error = err as PostgrestError;
     return { success: false, error: error.message || "Failed to update course" };
+  }
+}
+
+/**
+ * Create a new course in the courses table
+ */
+export async function createCourse(
+  courseName: string,
+  courseCode: string,
+  lengthOfClass?: string | null,
+  certificationLength?: number | null,
+  graduationRate?: number | null,
+  registrationLimit?: number | null,
+  price?: number | null,
+  registrationFee?: number | null,
+  stripeProductId?: string | null
+): Promise<{ success: boolean; course?: Course; error?: string }> {
+  try {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .insert({
+        course_name: courseName,
+        course_code: courseCode,
+        program_type: "course",
+        length_of_class: lengthOfClass || null,
+        certification_length: certificationLength || null,
+        graduation_rate: graduationRate || null,
+        registration_limit: registrationLimit || null,
+        price: price || null,
+        registration_fee: registrationFee || null,
+        stripe_product_id: stripeProductId || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, course: data as Course };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { success: false, error: error.message || "Failed to create course" };
+  }
+}
+
+/**
+ * Create a new program in the courses table
+ */
+export async function createProgram(
+  courseName: string,
+  courseCode: string,
+  lengthOfClass?: string | null,
+  certificationLength?: number | null,
+  graduationRate?: number | null,
+  registrationLimit?: number | null,
+  price?: number | null,
+  registrationFee?: number | null,
+  stripeProductId?: string | null
+): Promise<{ success: boolean; program?: Course; error?: string }> {
+  try {
+    const supabase = createSupabaseClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .insert({
+        course_name: courseName,
+        course_code: courseCode,
+        program_type: "program",
+        length_of_class: lengthOfClass || null,
+        certification_length: certificationLength || null,
+        graduation_rate: graduationRate || null,
+        registration_limit: registrationLimit || null,
+        price: price || null,
+        registration_fee: registrationFee || null,
+        stripe_product_id: stripeProductId || null,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, program: data as Course };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { success: false, error: error.message || "Failed to create program" };
   }
 }

@@ -4,19 +4,21 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
     BookOpen,
-    Users,
     GraduationCap,
     CheckSquare,
-    LayoutDashboard,
     FileText,
+    FolderOpen,
+    CreditCard,
 } from "lucide-react";
 
+// Order: Courses, Programs, Students, Trainers (Instructors), Payments, Approvals (R to L)
 const navigation = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Courses", href: "/courses", icon: BookOpen },
-    { name: "Classes", href: "/classes", icon: Users },
+    { name: "Programs", href: "/programs", icon: FolderOpen },
     { name: "Students", href: "/students", icon: GraduationCap },
-    { name: "Instructors", href: "/instructors", icon: FileText },
+    { name: "Trainers", href: "/instructors", icon: FileText },
+    { name: "Payments", href: "/payments", icon: CreditCard },
+    { name: "Approvals", href: "/approvals", icon: CheckSquare },
 ];
 
 export function MobileNav() {
