@@ -39,16 +39,45 @@ function ClassesPageContent() {
 
     useEffect(() => {
         loadClasses();
+        loadCourses();
     }, []);
+
+    const loadCourses = async () => {
+        const { courses: fetchedCourses } = await getCourses();
+        if (fetchedCourses) {
+            setCourses(fetchedCourses);
+        }
+    };
 
     // Handle URL params for deep linking
     useEffect(() => {
         const classId = searchParams.get("classId");
+        const mode = searchParams.get("mode");
         if (classId) {
+            setIsAddMode(false);
             loadClassDetail(classId);
+        } else if (mode === "add") {
+            setIsAddMode(true);
+            setSelectedClass(null);
+            setIsSidebarOpen(true);
+            setNewClassData({
+                courseId: "",
+                enrollmentStart: "",
+                enrollmentClose: "",
+                classStartDate: "",
+                classCloseDate: "",
+                isOnline: false,
+                lengthOfClass: "",
+                certificationLength: "",
+                graduationRate: "",
+                registrationLimit: "",
+                price: "",
+                registrationFee: "",
+            });
         } else {
             setIsSidebarOpen(false);
             setSelectedClass(null);
+            setIsAddMode(false);
         }
     }, [searchParams]);
 
@@ -68,6 +97,7 @@ function ClassesPageContent() {
     const loadClassDetail = async (id: string) => {
         setLoadingDetail(true);
         setIsSidebarOpen(true);
+        setIsAddMode(false);
         const { class: fetchedClass, error } = await getClassById(id);
         if (fetchedClass) {
             setSelectedClass(fetchedClass);
@@ -86,7 +116,12 @@ function ClassesPageContent() {
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
+        setIsAddMode(false);
         router.push("/classes");
+    };
+
+    const handleAddClassClick = () => {
+        router.push("/classes?mode=add");
     };
 
     const handleSave = async (e: React.FormEvent) => {
