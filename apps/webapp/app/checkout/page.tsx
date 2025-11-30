@@ -22,9 +22,29 @@ if (typeof window !== 'undefined' && !(window as any).__stripeErrorSuppressed) {
   });
 }
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
-);
+// Stripe will be loaded after we get the config
+let stripePromise: Promise<any> | null = null;
+
+async function getStripePromise() {
+  if (stripePromise) {
+    return stripePromise;
+  }
+  
+  const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  if (key) {
+    stripePromise = Promise.resolve(loadStripe(key));
+    return stripePromise;
+  }
+  
+  // Fetch from API if not available at build time
+  const basePath = typeof window !== 'undefined' 
+    ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+    : '';
+  const response = await fetch(`${basePath}/api/config`);
+  const config = await response.json();
+  stripePromise = Promise.resolve(loadStripe(config.stripePublishableKey || ''));
+  return stripePromise;
+}
 
 interface ProductData {
   id: string;
@@ -49,7 +69,13 @@ function CheckoutPageContent() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stripePromiseValue, setStripePromiseValue] = useState<Promise<any> | null>(null);
   const prevProductIdRef = useRef<string | null>(null);
+
+  // Load Stripe on mount
+  useEffect(() => {
+    getStripePromise().then(setStripePromiseValue);
+  }, []);
 
   useEffect(() => {
     const productIdParam = searchParams.get('productId');
@@ -255,17 +281,19 @@ function CheckoutPageContent() {
         {/* Right Section - Payment Form */}
         <div className="w-[600px] flex items-center justify-center shrink-0">
           <div className="bg-[#f7f6f3] w-[472px] h-[754px] px-10 py-0 flex flex-col gap-6">
-            <Elements 
-              key={clientSecret} 
-              stripe={stripePromise} 
-              options={options}
-            >
+            {stripePromiseValue && (
+              <Elements 
+                key={clientSecret} 
+                stripe={stripePromiseValue} 
+                options={options}
+              >
               <PaymentForm
                 clientSecret={clientSecret}
                 amount={price.formattedAmount}
                 productName={product.name}
               />
-            </Elements>
+              </Elements>
+            )}
           </div>
         </div>
       </div>
@@ -287,3 +315,4 @@ export default function CheckoutPage() {
     </Suspense>
   );
 }
+

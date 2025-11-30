@@ -47,7 +47,7 @@ export interface Class {
  */
 export async function getClasses(): Promise<{ classes: Class[] | null; error: string | null }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("classes")
       .select("*")
@@ -69,7 +69,7 @@ export async function getClasses(): Promise<{ classes: Class[] | null; error: st
  */
 export async function getCourses(): Promise<{ courses: Course[] | null; error: string | null }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
       .select("id, course_name, course_code, program_type, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
@@ -92,7 +92,7 @@ export async function getCourses(): Promise<{ courses: Course[] | null; error: s
  */
 export async function getPrograms(): Promise<{ programs: Course[] | null; error: string | null }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
       .select("id, course_name, course_code, program_type, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
@@ -116,7 +116,7 @@ export async function getPrograms(): Promise<{ programs: Course[] | null; error:
  */
 export async function generateClassId(courseCode: string): Promise<{ classId: string | null; error: string | null }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
 
     // Query all classes with the same course_code
     const { data, error } = await supabase
@@ -194,7 +194,7 @@ export async function createClass(
   productId?: string | null
 ): Promise<ClassResponse> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { error } = await supabase.from("classes").insert({
       course_uuid: courseUuid,
       class_name: className,
@@ -230,7 +230,7 @@ export async function createClass(
  */
 export async function getClassById(id: string): Promise<{ class: Class | null; error: string | null }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("classes")
       .select("*")
@@ -266,7 +266,7 @@ export async function updateClass(
   registrationFee?: number | null
 ): Promise<ClassResponse> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const updateData: any = {};
 
     if (enrollmentStart !== undefined) updateData.enrollment_start = enrollmentStart;
@@ -303,7 +303,7 @@ export async function updateClass(
  */
 export async function getCourseById(id: string): Promise<{ course: Course | null; error: string | null }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
       .select("*")
@@ -337,7 +337,7 @@ export async function updateCourse(
   stripeProductId?: string | null
 ): Promise<ClassResponse> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const updateData: any = {};
 
     if (courseName !== undefined) updateData.course_name = courseName;
@@ -381,7 +381,7 @@ export async function createCourse(
   stripeProductId?: string | null
 ): Promise<{ success: boolean; course?: Course; error?: string }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
       .insert({
@@ -425,7 +425,7 @@ export async function createProgram(
   stripeProductId?: string | null
 ): Promise<{ success: boolean; program?: Course; error?: string }> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
       .insert({

@@ -13,7 +13,7 @@ export interface AuthResponse {
  */
 export async function signInWithOTP(email: string): Promise<AuthResponse> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -40,7 +40,7 @@ export async function verifyOTP(
   token: string
 ): Promise<AuthResponse> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { error } = await supabase.auth.verifyOtp({
       email,
       token,
@@ -71,7 +71,7 @@ export async function resendOTP(email: string): Promise<AuthResponse> {
  */
 export async function signOut(): Promise<AuthResponse> {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const { error } = await supabase.auth.signOut();
 
     if (error) {
@@ -90,7 +90,7 @@ export async function signOut(): Promise<AuthResponse> {
  */
 export async function getSession() {
   try {
-    const supabase = createSupabaseClient();
+    const supabase = await createSupabaseClient();
     const {
       data: { session },
       error,
