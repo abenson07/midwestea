@@ -1,12 +1,22 @@
 import type { NextConfig } from "next";
 
+// Conditionally set basePath: empty string in development (unless BASE_PATH is explicitly set),
+// or use BASE_PATH env var, or default to '/checkout' in production
+const getBasePath = (): string => {
+  if (process.env.BASE_PATH) {
+    return process.env.BASE_PATH;
+  }
+  // In development, serve at root path for easier local development
+  if (process.env.NODE_ENV === 'development') {
+    return '';
+  }
+  // In production, default to '/checkout'
+  return '/checkout';
+};
+
 const nextConfig: NextConfig = {
-  // Configure the base path and asset prefix to reflect the mount path of your environment
-  // For example, if your app is mounted at /checkout, set basePath and assetPrefix to '/checkout'
-  basePath: process.env.BASE_PATH || '/checkout',
-  assetPrefix: process.env.BASE_PATH || '/checkout',
-  
-  // Additional Next.js configuration options can be added here
+  basePath: getBasePath(),
+  assetPrefix: getBasePath(),
   reactStrictMode: true,
 };
 
