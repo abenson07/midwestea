@@ -65,13 +65,13 @@ function ProgramDetailContent() {
     };
 
     const handleEdit = () => {
-        router.push(`/programs/${programId}?edit=true`);
+        router.push(`/dashboard/programs/${programId}?edit=true`);
         setIsSidebarOpen(true);
     };
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
-        router.push(`/programs/${programId}`);
+        router.push(`/dashboard/programs/${programId}`);
     };
 
     const handleClassClick = (classItem: Class) => {

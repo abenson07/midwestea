@@ -86,22 +86,22 @@ function ProgramsPageContent() {
     };
 
     const handleRowClick = (program: Course) => {
-        router.push(`/programs/${program.id}`);
+        router.push(`/dashboard/programs/${program.id}`);
     };
 
     const handleEditClick = (program: Course, e: React.MouseEvent) => {
         e.stopPropagation();
-        router.push(`/programs?programId=${program.id}`);
+        router.push(`/dashboard/programs?programId=${program.id}`);
     };
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
         setIsAddMode(false);
-        router.push("/programs");
+        router.push("/dashboard/programs");
     };
 
     const handleAddProgramClick = () => {
-        router.push("/programs?mode=add");
+        router.push("/dashboard/programs?mode=add");
     };
 
     const handleSave = async (e: React.FormEvent) => {

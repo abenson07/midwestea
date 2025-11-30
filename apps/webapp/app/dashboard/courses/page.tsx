@@ -87,12 +87,12 @@ function CoursesPageContent() {
     };
 
     const handleRowClick = (course: Course) => {
-        router.push(`/courses/${course.id}`);
+        router.push(`/dashboard/courses/${course.id}`);
     };
 
     const handleEditClick = (course: Course, e: React.MouseEvent) => {
         e.stopPropagation();
-        router.push(`/courses?courseId=${course.id}`);
+        router.push(`/dashboard/courses?courseId=${course.id}`);
     };
 
     const handleCloseSidebar = () => {

@@ -65,13 +65,13 @@ function CourseDetailContent() {
     };
 
     const handleEdit = () => {
-        router.push(`/courses/${courseId}?edit=true`);
+        router.push(`/dashboard/courses/${courseId}?edit=true`);
         setIsSidebarOpen(true);
     };
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
-        router.push(`/courses/${courseId}`);
+        router.push(`/dashboard/courses/${courseId}`);
     };
 
     const handleClassClick = (classItem: Class) => {
