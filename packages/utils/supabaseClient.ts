@@ -17,7 +17,7 @@ export const createSupabaseClient = (): SupabaseClient => {
     console.error('Supabase Client Error: Missing environment variables');
     console.error('NEXT_PUBLIC_SUPABASE_URL:', url ? 'Set' : 'Missing');
     console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY:', key ? 'Set' : 'Missing');
-    throw new Error('Missing Supabase URL or ANON key. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
+    throw new Error('Missing Supabase URL or ANON key. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables.');
   }
 
   // Create and cache the client instance
