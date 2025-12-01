@@ -1,12 +1,12 @@
 {
   "cloud": {
     "framework": "nextjs",
-    "project_id": "71ae03ab-cd3e-4a8b-8f49-474f8a70c785"
+    "project_id": "6110995c-917f-419c-a09f-483e161de151"
   },
   "telemetry": {
     "global": {
       "allowTelemetry": true,
-      "lastPrompted": 1764519072024,
+      "lastPrompted": 1764524339215,
       "version": "1.8.49"
     }
   }
