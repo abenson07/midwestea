@@ -67,13 +67,13 @@ function ClassDetailContent() {
     };
 
     const handleEdit = () => {
-        router.push(`/classes/${classId}?edit=true`);
+        router.push(`/dashboard/classes/${classId}?edit=true`);
         setIsSidebarOpen(true);
     };
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
-        router.push(`/classes/${classId}`);
+        router.push(`/dashboard/classes/${classId}`);
     };
 
     const handleStudentClick = (student: Student) => {

@@ -75,7 +75,7 @@ function ProgramDetailContent() {
     };
 
     const handleClassClick = (classItem: Class) => {
-        router.push(`/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}`);
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -210,7 +210,7 @@ function ProgramDetailContent() {
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
                     <Link
-                        href={`/classes/add?programId=${programId}`}
+                        href={`/dashboard/classes/add?programId=${programId}`}
                         className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
                     >
                         Add Class

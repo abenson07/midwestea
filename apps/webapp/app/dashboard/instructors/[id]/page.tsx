@@ -85,7 +85,7 @@ function InstructorDetailContent() {
     };
 
     const handleClassClick = (classItem: Class) => {
-        router.push(`/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}`);
     };
 
     const handleSave = async (e: React.FormEvent) => {

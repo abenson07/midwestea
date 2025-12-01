@@ -173,7 +173,7 @@ function PaymentsPageContent() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Class</label>
                                 <a
-                                    href={`/classes/${selectedPayment.class_name}`}
+                                    href={`/dashboard/classes/${selectedPayment.class_name}`}
                                     className="mt-1 text-sm text-blue-600 hover:text-blue-800"
                                 >
                                     {selectedPayment.class_name} →

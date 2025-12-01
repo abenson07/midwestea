@@ -106,12 +106,12 @@ function ClassesPageContent() {
     };
 
     const handleRowClick = (classItem: Class) => {
-        router.push(`/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}`);
     };
 
     const handleEditClick = (classItem: Class, e: React.MouseEvent) => {
         e.stopPropagation();
-        router.push(`/classes?classId=${classItem.id}`);
+        router.push(`/dashboard/classes?classId=${classItem.id}`);
     };
 
     const handleCloseSidebar = () => {
