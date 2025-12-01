@@ -19,12 +19,19 @@ async function fetchConfig(): Promise<{ supabaseUrl: string; supabaseAnonKey: st
       
       const response = await fetch(`${basePath}/api/config`);
       if (!response.ok) {
-        throw new Error('Failed to fetch config');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || 'Failed to fetch config';
+        throw new Error(errorMessage);
       }
       const config = await response.json();
       
+      // Check if the response contains an error
+      if (config.error) {
+        throw new Error(config.message || config.error);
+      }
+      
       if (!config.supabaseUrl || !config.supabaseAnonKey) {
-        throw new Error('Config missing Supabase credentials');
+        throw new Error('Config missing Supabase credentials. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
       }
       
       return {
