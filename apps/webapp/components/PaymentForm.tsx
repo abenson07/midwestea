@@ -81,68 +81,66 @@ export default function PaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6 flex-1">
-      {/* Stripe PaymentElement - includes Apple Pay, Pay with Link, and Card fields */}
-      <div className="flex flex-col gap-2">
-        <PaymentElement
-          options={{
-            paymentMethodOrder: ['apple_pay', 'link', 'card'],
-            fields: {
-              billingDetails: {
-                email: 'never',
-                name: 'never',
-                address: {
-                  country: 'never',
-                  postalCode: 'never',
+      {/* PaymentElement wrapper - will show express checkout first, then payment methods as tabs */}
+      {/* We'll use CSS to visually reorder email between express checkout and payment methods */}
+      <div className="flex flex-col gap-6">
+        {/* PaymentElement - Express checkout (Link, Apple Pay, Google Pay) appears first, then payment methods as tabs */}
+        <div className="flex flex-col gap-2">
+          <PaymentElement
+            options={{
+              paymentMethodOrder: ['link', 'apple_pay', 'google_pay', 'card'],
+              fields: {
+                billingDetails: {
+                  email: 'never',
+                  name: 'never',
+                  address: {
+                    country: 'never',
+                    postalCode: 'never',
+                  },
                 },
               },
-            },
-            wallets: {
-              applePay: 'auto',
-              googlePay: 'auto',
-            },
-            layout: {
-              type: 'accordion',
-              defaultCollapsed: false,
-              radios: false,
-              spacedAccordionItems: false,
-            },
-          }}
-        />
-      </div>
-
-      {/* Divider */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-px bg-[#969699]"></div>
-        <p 
-          className="text-[16px] text-[#6e6e70] whitespace-nowrap"
-          style={{ fontFamily: "'DM Sans', sans-serif", lineHeight: '1.4' }}
-        >
-          or pay another way
-        </p>
-        <div className="flex-1 h-px bg-[#969699]"></div>
-      </div>
-
-      {/* Email Address */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-start">
-          <label
-            htmlFor="email"
-            className="text-[14px] font-semibold text-[#191920] uppercase"
-            style={{ fontFamily: "'DM Sans', sans-serif", lineHeight: '1.4' }}
-          >
-            Email Address <span className="text-red-500">*</span>
-          </label>
+              wallets: {
+                applePay: 'auto',
+                googlePay: 'auto',
+              },
+              layout: {
+                type: 'tabs',
+                defaultCollapsed: false,
+                radios: false,
+                spacedAccordionItems: false,
+              },
+              business: {
+                name: productName,
+              },
+              terms: {
+                card: 'never',
+              },
+            }}
+          />
         </div>
-        <input
-          type="email"
-          id="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="example@email.com"
-          required
-          className="bg-[#eeede8] border border-[#969699] rounded px-3 py-3 text-[16px] text-[#6e6e70] placeholder:opacity-50 focus:outline-none focus:border-[#191920]"
-          style={{ fontFamily: "'DM Sans', sans-serif", lineHeight: '1.4' }}
-        />
+
+        {/* Email Address - positioned after PaymentElement */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-start">
+            <label
+              htmlFor="email"
+              className="text-[14px] font-semibold text-[#191920] uppercase"
+              style={{ fontFamily: "'DM Sans', sans-serif", lineHeight: '1.4' }}
+            >
+              Email Address <span className="text-red-500">*</span>
+            </label>
+          </div>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="example@email.com"
+            required
+            className="bg-[#eeede8] border border-[#969699] rounded px-3 py-3 text-[16px] text-[#6e6e70] placeholder:opacity-50 focus:outline-none focus:border-[#191920]"
+            style={{ fontFamily: "'DM Sans', sans-serif", lineHeight: '1.4' }}
+          />
+        </div>
       </div>
 
       {/* Name on Card */}

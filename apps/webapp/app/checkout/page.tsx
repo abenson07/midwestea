@@ -160,68 +160,7 @@ function CheckoutPageContent() {
   const options = {
     clientSecret,
     appearance: {
-      theme: 'flat' as const,
-      variables: {
-        colorPrimary: '#ffb452',
-        colorBackground: '#eeede8',
-        colorText: '#191920',
-        colorDanger: '#ef4444',
-        fontFamily: "'DM Sans', sans-serif",
-        spacingUnit: '4px',
-        borderRadius: '4px',
-      },
-      rules: {
-        '.Input': {
-          backgroundColor: '#eeede8',
-          border: '1px solid #969699',
-          borderRadius: '4px',
-          padding: '12px',
-          fontSize: '16px',
-          color: '#191920',
-          fontFamily: "'DM Sans', sans-serif",
-        },
-        '.Input:focus': {
-          borderColor: '#191920',
-          outline: 'none',
-        },
-        '.Label': {
-          fontSize: '14px',
-          fontWeight: '600',
-          textTransform: 'uppercase',
-          color: '#191920',
-          fontFamily: "'DM Sans', sans-serif",
-          marginBottom: '8px',
-        },
-        '.Tab': {
-          backgroundColor: 'transparent',
-          border: 'none',
-          fontSize: '14px',
-          fontWeight: '600',
-          textTransform: 'uppercase',
-          color: '#191920',
-          fontFamily: "'DM Sans', sans-serif",
-        },
-        '.Tab--selected': {
-          color: '#191920',
-        },
-        '.PaymentMethodButton': {
-          borderRadius: '4px',
-          padding: '8px 16px',
-          fontSize: '12px',
-          fontWeight: '600',
-          textTransform: 'uppercase',
-          fontFamily: "'DM Sans', sans-serif",
-          lineHeight: '1.4',
-        },
-        '.PaymentMethodButton--applePay': {
-          backgroundColor: '#11243e',
-          color: '#f7f6f3',
-        },
-        '.PaymentMethodButton--link': {
-          backgroundColor: '#61d37a',
-          color: '#191920',
-        },
-      },
+      theme: 'stripe' as const,
     },
   };
 
@@ -279,8 +218,8 @@ function CheckoutPageContent() {
         </div>
 
         {/* Right Section - Payment Form */}
-        <div className="w-[600px] flex items-center justify-center shrink-0">
-          <div className="bg-[#f7f6f3] w-[472px] h-[754px] px-10 py-0 flex flex-col gap-6">
+        <div className="max-w-[600px] flex-1 flex items-center justify-center">
+          <div className="bg-[#f7f6f3] max-w-[475px] p-10 flex flex-col gap-6">
             {stripePromiseValue && (
               <Elements 
                 key={clientSecret} 
