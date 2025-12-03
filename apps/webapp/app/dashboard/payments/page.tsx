@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { getPayments } from "@/lib/payments";
+import { formatCurrency } from "@midwestea/utils";
 
 // Payment type for UI display
 type Payment = {
@@ -100,9 +101,6 @@ function PaymentsPageContent() {
         return date.toLocaleDateString();
     };
 
-    const formatCurrency = (cents: number) => {
-        return `$${(cents / 100).toFixed(2)}`;
-    };
 
     const columns = [
         { 

@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, type Class } from "@/lib/classes";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { formatCurrency } from "@midwestea/utils";
 
 // Placeholder types - will be replaced when types are defined
 type Student = {
@@ -81,9 +82,6 @@ function StudentClassDetailContent() {
         return date.toLocaleDateString();
     };
 
-    const formatCurrency = (cents: number) => {
-        return `$${(cents / 100).toFixed(2)}`;
-    };
 
     if (loading) {
         return (

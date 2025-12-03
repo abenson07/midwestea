@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { getCourses, getCourseById, updateCourse, createCourse, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { formatCurrency } from "@midwestea/utils";
 
 function CoursesPageContent() {
     const router = useRouter();
@@ -186,12 +187,12 @@ function CoursesPageContent() {
         {
             header: "Price",
             accessorKey: "price" as keyof Course,
-            cell: (item: Course) => item.price ? `$${(item.price / 100).toFixed(2)}` : "—"
+            cell: (item: Course) => formatCurrency(item.price)
         },
         {
             header: "Reg. Fee",
             accessorKey: "registration_fee" as keyof Course,
-            cell: (item: Course) => item.registration_fee ? `$${(item.registration_fee / 100).toFixed(2)}` : "—"
+            cell: (item: Course) => formatCurrency(item.registration_fee)
         },
     ];
 

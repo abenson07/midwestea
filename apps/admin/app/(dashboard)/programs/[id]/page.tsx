@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getClasses, getCourseById, updateCourse, type Class, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { formatCurrency } from "@midwestea/utils";
 
 function ProgramDetailContent() {
     const router = useRouter();
@@ -199,13 +200,13 @@ function ProgramDetailContent() {
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Price</label>
                         <p className="mt-1 text-sm text-gray-900">
-                            {program.price ? `$${(program.price / 100).toFixed(2)}` : "—"}
+                            {formatCurrency(program.price)}
                         </p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Registration Fee</label>
                         <p className="mt-1 text-sm text-gray-900">
-                            {program.registration_fee ? `$${(program.registration_fee / 100).toFixed(2)}` : "—"}
+                            {formatCurrency(program.registration_fee)}
                         </p>
                     </div>
                 </div>

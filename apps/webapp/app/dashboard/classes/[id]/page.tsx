@@ -7,6 +7,7 @@ import { getClassById, updateClass, type Class } from "@/lib/classes";
 import { getStudentsByClassId } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { formatCurrency } from "@midwestea/utils";
 
 // Student type for UI display
 type Student = {
@@ -247,13 +248,13 @@ function ClassDetailContent() {
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Price</label>
                         <p className="mt-1 text-sm text-gray-900">
-                            {classData.price ? `$${(classData.price / 100).toFixed(2)}` : "—"}
+                            {formatCurrency(classData.price)}
                         </p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Registration Fee</label>
                         <p className="mt-1 text-sm text-gray-900">
-                            {classData.registration_fee ? `$${(classData.registration_fee / 100).toFixed(2)}` : "—"}
+                            {formatCurrency(classData.registration_fee)}
                         </p>
                     </div>
                 </div>
