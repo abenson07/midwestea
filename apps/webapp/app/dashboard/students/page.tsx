@@ -80,7 +80,7 @@ function StudentsPageContent() {
     };
 
     const handleRowClick = (student: Student) => {
-        router.push(`/students/${student.id}`);
+        router.push(`/dashboard/students/${student.id}`);
     };
 
     const handleEditClick = (student: Student, e: React.MouseEvent) => {

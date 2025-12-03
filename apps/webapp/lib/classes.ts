@@ -454,3 +454,47 @@ export async function createProgram(
     return { success: false, error: error.message || "Failed to create program" };
   }
 }
+
+/**
+ * Fetch all classes for a specific student (via enrollments)
+ */
+export async function getClassesByStudentId(studentId: string): Promise<{ classes: Class[] | null; error: string | null }> {
+  try {
+    console.log("[getClassesByStudentId] Starting for studentId:", studentId);
+    const supabase = await createSupabaseClient();
+    const { data, error } = await supabase
+      .from("enrollments")
+      .select(`
+        *,
+        classes (*)
+      `)
+      .eq("student_id", studentId)
+      .order("enrolled_at", { ascending: false });
+
+    console.log("[getClassesByStudentId] Query result:", { data, error, dataLength: data?.length });
+
+    if (error) {
+      console.error("[getClassesByStudentId] Error fetching classes for student:", error);
+      return { classes: null, error: error.message };
+    }
+
+    if (!data) {
+      console.log("[getClassesByStudentId] No data returned");
+      return { classes: [], error: null };
+    }
+
+    // Transform enrollments to extract classes
+    const classes: Class[] = data
+      .map((enrollment: any) => {
+        const classRecord = enrollment.classes;
+        if (!classRecord) return null;
+        return classRecord as Class;
+      })
+      .filter((classRecord): classRecord is Class => classRecord !== null);
+
+    return { classes, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { classes: null, error: error.message || "Failed to fetch classes for student" };
+  }
+}

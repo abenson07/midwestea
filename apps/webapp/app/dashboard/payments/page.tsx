@@ -14,6 +14,7 @@ type Payment = {
     status: string;
     date: string;
     student_name: string;
+    student_id?: string;
     class_name: string;
     instructor_name: string;
 };
@@ -67,6 +68,7 @@ function PaymentsPageContent() {
                     status: p.payment_status || "paid",
                     date: p.paid_at || p.created_at || new Date().toISOString(),
                     student_name: p.student_name || "Unknown Student",
+                    student_id: p.student_id,
                     class_name: p.class_name || "Unknown Class",
                     instructor_name: "N/A", // Not available in current schema
                 }));
@@ -191,12 +193,16 @@ function PaymentsPageContent() {
                         <div className="pt-4 border-t border-gray-200 space-y-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Student</label>
-                                <a
-                                    href={`/students/${selectedPayment.student_name}`}
-                                    className="mt-1 text-sm text-blue-600 hover:text-blue-800"
-                                >
-                                    {selectedPayment.student_name} →
-                                </a>
+                                {selectedPayment.student_id ? (
+                                    <a
+                                        href={`/dashboard/students/${selectedPayment.student_id}`}
+                                        className="mt-1 text-sm text-blue-600 hover:text-blue-800"
+                                    >
+                                        {selectedPayment.student_name} →
+                                    </a>
+                                ) : (
+                                    <p className="mt-1 text-sm text-gray-900">{selectedPayment.student_name}</p>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-500">Class</label>

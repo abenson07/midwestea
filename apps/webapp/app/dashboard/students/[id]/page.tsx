@@ -3,17 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getClasses, type Class } from "@/lib/classes";
+import { getClassesByStudentId, type Class } from "@/lib/classes";
+import { getStudentById, updateStudent, type StudentWithEmail } from "@/lib/students";
+import { getPaymentsByStudentId, type PaymentWithDetails } from "@/lib/payments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
-
-// Placeholder type for Student - will be replaced when types are defined
-type Student = {
-    id: string;
-    name: string;
-    email: string;
-    phone: string | null;
-};
+import { formatCurrency } from "@midwestea/utils";
 
 function StudentDetailContent() {
     const router = useRouter();
@@ -21,10 +16,12 @@ function StudentDetailContent() {
     const searchParams = useSearchParams();
     const studentId = params?.id as string;
 
-    const [student, setStudent] = useState<Student | null>(null);
+    const [student, setStudent] = useState<StudentWithEmail | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
+    const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingClasses, setLoadingClasses] = useState(true);
+    const [loadingPayments, setLoadingPayments] = useState(true);
     const [error, setError] = useState("");
 
     // Sidebar state
@@ -35,6 +32,7 @@ function StudentDetailContent() {
         if (studentId) {
             loadStudent();
             loadClasses();
+            loadPayments();
         }
     }, [studentId]);
 
@@ -49,43 +47,57 @@ function StudentDetailContent() {
     const loadStudent = async () => {
         if (!studentId) return;
         setLoading(true);
-        // TODO: Replace with actual API call when students table is implemented
-        // For now, use placeholder
-        setStudent({
-            id: studentId,
-            name: "Student Name",
-            email: "student@example.com",
-            phone: "555-1234"
-        });
+        const { student: fetchedStudent, error: fetchError } = await getStudentById(studentId);
+        if (fetchError) {
+            setError(fetchError);
+        } else if (fetchedStudent) {
+            setStudent(fetchedStudent);
+        }
         setLoading(false);
     };
 
     const loadClasses = async () => {
         if (!studentId) return;
         setLoadingClasses(true);
-        const { classes: fetchedClasses, error: fetchError } = await getClasses();
+        const { classes: fetchedClasses, error: fetchError } = await getClassesByStudentId(studentId);
         if (fetchError) {
             console.error("Error fetching classes:", fetchError);
+            setClasses([]);
         } else if (fetchedClasses) {
-            // TODO: Filter classes for this student when enrollments table is implemented
-            // For now, show empty
+            setClasses(fetchedClasses);
+        } else {
             setClasses([]);
         }
         setLoadingClasses(false);
     };
 
+    const loadPayments = async () => {
+        if (!studentId) return;
+        setLoadingPayments(true);
+        const { payments: fetchedPayments, error: fetchError } = await getPaymentsByStudentId(studentId);
+        if (fetchError) {
+            console.error("Error fetching payments:", fetchError);
+            setPayments([]);
+        } else if (fetchedPayments) {
+            setPayments(fetchedPayments);
+        } else {
+            setPayments([]);
+        }
+        setLoadingPayments(false);
+    };
+
     const handleEdit = () => {
-        router.push(`/students/${studentId}?edit=true`);
+        router.push(`/dashboard/students/${studentId}?edit=true`);
         setIsSidebarOpen(true);
     };
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
-        router.push(`/students/${studentId}`);
+        router.push(`/dashboard/students/${studentId}`);
     };
 
     const handleClassClick = (classItem: Class) => {
-        router.push(`/students/${studentId}/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}`);
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -93,10 +105,23 @@ function StudentDetailContent() {
         if (!student) return;
 
         setSaving(true);
-        // TODO: Implement save when API is ready
-        await new Promise(resolve => setTimeout(resolve, 500));
-        await loadStudent();
-        handleCloseSidebar();
+        const { success, error } = await updateStudent(
+            student.id,
+            student.first_name,
+            student.last_name,
+            student.phone,
+            student.t_shirt_size,
+            student.emergency_contact_name,
+            student.emergency_contact_phone,
+            student.has_required_info
+        );
+
+        if (success) {
+            await loadStudent();
+            handleCloseSidebar();
+        } else {
+            alert(`Failed to save: ${error}`);
+        }
         setSaving(false);
     };
 
@@ -123,6 +148,44 @@ function StudentDetailContent() {
             header: "Online",
             accessorKey: "is_online" as keyof Class,
             cell: (item: Class) => item.is_online ? "Yes" : "No"
+        },
+    ];
+
+    const paymentColumns = [
+        {
+            header: "Amount",
+            accessorKey: "amount_cents" as keyof PaymentWithDetails,
+            cell: (item: PaymentWithDetails) => formatCurrency(item.amount_cents)
+        },
+        {
+            header: "Class",
+            accessorKey: "class_name" as keyof PaymentWithDetails,
+            cell: (item: PaymentWithDetails) => item.class_name || "—"
+        },
+        {
+            header: "Status",
+            accessorKey: "payment_status" as keyof PaymentWithDetails,
+            cell: (item: PaymentWithDetails) => item.payment_status || "—"
+        },
+        {
+            header: "Paid At",
+            accessorKey: "paid_at" as keyof PaymentWithDetails,
+            cell: (item: PaymentWithDetails) => formatDate(item.paid_at)
+        },
+        {
+            header: "Receipt",
+            accessorKey: "stripe_receipt_url" as keyof PaymentWithDetails,
+            cell: (item: PaymentWithDetails) => 
+                item.stripe_receipt_url ? (
+                    <a 
+                        href={item.stripe_receipt_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                        View
+                    </a>
+                ) : "—"
         },
     ];
 
@@ -179,15 +242,35 @@ function StudentDetailContent() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Name</label>
-                        <p className="mt-1 text-sm text-gray-900">{student.name}</p>
+                        <p className="mt-1 text-sm text-gray-900">{student.name || "—"}</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Email</label>
-                        <p className="mt-1 text-sm text-gray-900">{student.email}</p>
+                        <p className="mt-1 text-sm text-gray-900">{student.email || "—"}</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Phone</label>
                         <p className="mt-1 text-sm text-gray-900">{student.phone || "—"}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500">T-Shirt Size</label>
+                        <p className="mt-1 text-sm text-gray-900">{student.t_shirt_size || "—"}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500">Emergency Contact Name</label>
+                        <p className="mt-1 text-sm text-gray-900">{student.emergency_contact_name || "—"}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500">Emergency Contact Phone</label>
+                        <p className="mt-1 text-sm text-gray-900">{student.emergency_contact_phone || "—"}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500">Has Required Info</label>
+                        <p className="mt-1 text-sm text-gray-900">{student.has_required_info ? "Yes" : "No"}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500">Stripe Customer ID</label>
+                        <p className="mt-1 text-sm text-gray-900">{student.stripe_customer_id || "—"}</p>
                     </div>
                 </div>
             </div>
@@ -195,20 +278,24 @@ function StudentDetailContent() {
             {/* Classes Section */}
             <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Classes</h2>
-                {classes.length === 0 && !loadingClasses ? (
-                    <div className="border border-dashed border-gray-300 rounded-lg p-12 text-center bg-white">
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No classes</h3>
-                        <p className="mt-1 text-sm text-gray-500">Classes will be displayed here once the enrollments table is implemented.</p>
-                    </div>
-                ) : (
-                    <DataTable
-                        data={classes}
-                        columns={classColumns}
-                        isLoading={loadingClasses}
-                        onRowClick={handleClassClick}
-                        emptyMessage="No classes found for this student."
-                    />
-                )}
+                <DataTable
+                    data={classes}
+                    columns={classColumns}
+                    isLoading={loadingClasses}
+                    onRowClick={handleClassClick}
+                    emptyMessage="No classes found for this student."
+                />
+            </div>
+
+            {/* Payments Section */}
+            <div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
+                <DataTable
+                    data={payments}
+                    columns={paymentColumns}
+                    isLoading={loadingPayments}
+                    emptyMessage="No payments found for this student."
+                />
             </div>
 
             <DetailSidebar
@@ -219,11 +306,21 @@ function StudentDetailContent() {
                 {student ? (
                     <form onSubmit={handleSave} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Name</label>
+                            <label className="block text-sm font-medium text-gray-700">First Name</label>
                             <input
                                 type="text"
-                                value={student.name}
-                                onChange={(e) => setStudent({ ...student, name: e.target.value })}
+                                value={student.first_name || ''}
+                                onChange={(e) => setStudent({ ...student, first_name: e.target.value })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Last Name</label>
+                            <input
+                                type="text"
+                                value={student.last_name || ''}
+                                onChange={(e) => setStudent({ ...student, last_name: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>
@@ -232,10 +329,12 @@ function StudentDetailContent() {
                             <label className="block text-sm font-medium text-gray-700">Email</label>
                             <input
                                 type="email"
-                                value={student.email}
+                                value={student.email || ''}
                                 onChange={(e) => setStudent({ ...student, email: e.target.value })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                disabled
+                                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2"
                             />
+                            <p className="text-xs text-gray-500 mt-1">Email is managed through authentication</p>
                         </div>
 
                         <div>
@@ -246,6 +345,47 @@ function StudentDetailContent() {
                                 onChange={(e) => setStudent({ ...student, phone: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">T-Shirt Size</label>
+                            <input
+                                type="text"
+                                value={student.t_shirt_size || ''}
+                                onChange={(e) => setStudent({ ...student, t_shirt_size: e.target.value })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Emergency Contact Name</label>
+                            <input
+                                type="text"
+                                value={student.emergency_contact_name || ''}
+                                onChange={(e) => setStudent({ ...student, emergency_contact_name: e.target.value })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Emergency Contact Phone</label>
+                            <input
+                                type="tel"
+                                value={student.emergency_contact_phone || ''}
+                                onChange={(e) => setStudent({ ...student, emergency_contact_phone: e.target.value })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="hasRequiredInfo"
+                                checked={student.has_required_info || false}
+                                onChange={(e) => setStudent({ ...student, has_required_info: e.target.checked })}
+                                className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                            />
+                            <label htmlFor="hasRequiredInfo" className="text-sm font-medium text-gray-700">Has Required Info</label>
                         </div>
 
                         <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">

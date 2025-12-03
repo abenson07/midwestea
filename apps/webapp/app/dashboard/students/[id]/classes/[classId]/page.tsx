@@ -99,7 +99,7 @@ function StudentClassDetailContent() {
                 <div className="flex flex-col gap-4 items-center py-8">
                     <p className="text-red-600">{error || "Student or class not found"}</p>
                     <Link
-                        href={`/students/${studentId}`}
+                        href={`/dashboard/students/${studentId}`}
                         className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800"
                     >
                         Back to Student
@@ -114,7 +114,7 @@ function StudentClassDetailContent() {
             <div className="flex justify-between items-center">
                 <div>
                     <Link
-                        href={`/students/${studentId}`}
+                        href={`/dashboard/students/${studentId}`}
                         className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
                     >
                         ← Back to {student.name}

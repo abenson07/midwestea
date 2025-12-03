@@ -101,7 +101,7 @@ function ClassDetailContent() {
     };
 
     const handleStudentClick = (student: Student) => {
-        router.push(`/students/${student.id}`);
+        router.push(`/dashboard/students/${student.id}`);
     };
 
     const handleSave = async (e: React.FormEvent) => {

@@ -59,6 +59,52 @@ export async function getStudents(): Promise<{ students: StudentWithEmail[] | nu
 }
 
 /**
+ * Fetch a single student by ID
+ */
+export async function getStudentById(id: string): Promise<{ student: StudentWithEmail | null; error: string | null }> {
+  try {
+    console.log("[getStudentById] Starting for id:", id);
+    const supabase = await createSupabaseClient();
+    console.log("[getStudentById] Supabase client created");
+    const { data, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    console.log("[getStudentById] Query result:", { data, error });
+
+    if (error) {
+      console.error("[getStudentById] Error fetching student:", error);
+      return { student: null, error: error.message };
+    }
+
+    if (!data) {
+      console.log("[getStudentById] No data returned");
+      return { student: null, error: null };
+    }
+
+    // Transform student to include formatted name
+    const firstName = data.first_name || "";
+    const lastName = data.last_name || "";
+    const name = firstName || lastName 
+      ? `${firstName} ${lastName}`.trim() 
+      : "Unknown Student";
+
+    const studentWithEmail: StudentWithEmail = {
+      ...data,
+      name,
+      email: null, // Email will need to be fetched separately or via database view
+    };
+
+    return { student: studentWithEmail, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { student: null, error: error.message || "Failed to fetch student" };
+  }
+}
+
+/**
  * Fetch students enrolled in a specific class
  */
 export async function getStudentsByClassId(classId: string): Promise<{ students: StudentWithEmail[] | null; error: string | null }> {
@@ -111,6 +157,47 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
   } catch (err) {
     const error = err as PostgrestError;
     return { students: null, error: error.message || "Failed to fetch students for class" };
+  }
+}
+
+/**
+ * Update a student in the students table
+ */
+export async function updateStudent(
+  id: string,
+  firstName?: string | null,
+  lastName?: string | null,
+  phone?: string | null,
+  tShirtSize?: string | null,
+  emergencyContactName?: string | null,
+  emergencyContactPhone?: string | null,
+  hasRequiredInfo?: boolean | null
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const updateData: any = {};
+
+    if (firstName !== undefined) updateData.first_name = firstName;
+    if (lastName !== undefined) updateData.last_name = lastName;
+    if (phone !== undefined) updateData.phone = phone;
+    if (tShirtSize !== undefined) updateData.t_shirt_size = tShirtSize;
+    if (emergencyContactName !== undefined) updateData.emergency_contact_name = emergencyContactName;
+    if (emergencyContactPhone !== undefined) updateData.emergency_contact_phone = emergencyContactPhone;
+    if (hasRequiredInfo !== undefined) updateData.has_required_info = hasRequiredInfo;
+
+    const { error } = await supabase
+      .from("students")
+      .update(updateData)
+      .eq("id", id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { success: false, error: error.message || "Failed to update student" };
   }
 }
 
