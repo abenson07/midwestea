@@ -4,10 +4,11 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, updateClass, type Class } from "@/lib/classes";
+import { getStudentsByClassId } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 
-// Placeholder type for Student - will be replaced when types are defined
+// Student type for UI display
 type Student = {
     id: string;
     name: string;
@@ -15,6 +16,7 @@ type Student = {
 };
 
 function ClassDetailContent() {
+    console.log("[ClassDetailContent] Component rendering");
     const router = useRouter();
     const params = useParams();
     const searchParams = useSearchParams();
@@ -31,9 +33,12 @@ function ClassDetailContent() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        console.log("[ClassDetailContent] useEffect running, classId:", classId);
         if (classId) {
             loadClass();
             loadStudents();
+        } else {
+            console.log("[ClassDetailContent] No classId provided");
         }
     }, [classId]);
 
@@ -60,10 +65,32 @@ function ClassDetailContent() {
     const loadStudents = async () => {
         if (!classId) return;
         setLoadingStudents(true);
-        // TODO: Replace with actual API call when students/enrollments table is implemented
-        // For now, use placeholder data
-        setStudents([]);
-        setLoadingStudents(false);
+        try {
+            console.log("Loading students for class:", classId);
+            const { students: fetchedStudents, error: fetchError } = await getStudentsByClassId(classId);
+            console.log("Students response for class:", { fetchedStudents, fetchError, classId });
+            if (fetchError) {
+                console.error("Error loading students:", fetchError);
+                setStudents([]);
+            } else if (fetchedStudents) {
+                // Transform to match UI Student type
+                const transformedStudents: Student[] = fetchedStudents.map((s) => ({
+                    id: s.id,
+                    name: s.name || "Unknown Student",
+                    email: s.email || "N/A",
+                }));
+                console.log("Transformed students for class:", transformedStudents);
+                setStudents(transformedStudents);
+            } else {
+                console.log("No students returned for class");
+                setStudents([]);
+            }
+        } catch (err: any) {
+            console.error("Exception loading students:", err);
+            setStudents([]);
+        } finally {
+            setLoadingStudents(false);
+        }
     };
 
     const handleEdit = () => {
@@ -156,8 +183,8 @@ function ClassDetailContent() {
                     >
                         ← Back to Classes
                     </Link>
-                    <h1 className="text-2xl font-bold text-gray-900">{classData.class_name}</h1>
-                    <p className="text-sm text-gray-500 mt-1">{classData.class_id}</p>
+                    <p className="text-sm text-gray-500">{classData.class_name}</p>
+                    <h1 className="text-2xl font-bold text-gray-900 mt-1">{classData.class_id}</h1>
                 </div>
                 <button
                     onClick={handleEdit}
@@ -430,4 +457,5 @@ export default function ClassDetailPage() {
         </Suspense>
     );
 }
+
 

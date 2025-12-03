@@ -172,15 +172,9 @@ function AddClassContent() {
         courseToUse.stripe_product_id || null
       );
 
-      if (result.success) {
-        // Redirect back to the course/program detail page or classes list
-        if (courseId) {
-          router.push(`/courses/${courseId}`);
-        } else if (programId) {
-          router.push(`/programs/${programId}`);
-        } else {
-          router.push("/dashboard/classes");
-        }
+      if (result.success && result.class) {
+        // Redirect to the newly created class detail page
+        router.push(`/dashboard/classes/${result.class.id}`);
       } else {
         setError(result.error || "Failed to create class");
       }

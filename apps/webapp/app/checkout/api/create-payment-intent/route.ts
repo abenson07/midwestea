@@ -5,13 +5,21 @@ import Stripe from 'stripe';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { productId } = body;
+    const { productId, classId } = body;
 
     // Validate product ID format
     if (!productId) {
       console.error('[create-payment-intent] Missing productId in request body');
       return NextResponse.json(
         { error: 'Product ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!classId) {
+      console.error('[create-payment-intent] Missing classId in request body');
+      return NextResponse.json(
+        { error: 'Class ID is required' },
         { status: 400 }
       );
     }
@@ -107,6 +115,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           productId: product.id,
           productName: product.name,
+          classId: classId,
         },
         automatic_payment_methods: {
           enabled: true,

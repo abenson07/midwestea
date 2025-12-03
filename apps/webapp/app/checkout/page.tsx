@@ -79,9 +79,16 @@ function CheckoutPageContent() {
 
   useEffect(() => {
     const productIdParam = searchParams.get('productId');
+    const classIdParam = searchParams.get('classId');
     
     if (!productIdParam) {
       setError('Product ID is required. Please provide a productId in the URL.');
+      setLoading(false);
+      return;
+    }
+
+    if (!classIdParam) {
+      setError('Class ID is required. Please provide a classId in the URL.');
       setLoading(false);
       return;
     }
@@ -96,11 +103,11 @@ function CheckoutPageContent() {
       setProduct(null);
       setPrice(null);
       setClientSecret(null);
-      initializePayment(productIdParam);
+      initializePayment(productIdParam, classIdParam);
     }
   }, [searchParams]);
 
-  const initializePayment = async (prodId: string) => {
+  const initializePayment = async (prodId: string, classId: string) => {
     try {
       // API path with basePath - Next.js will handle the /app prefix automatically
       const apiPath = '/app/checkout/api/create-payment-intent';
@@ -110,7 +117,7 @@ function CheckoutPageContent() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId: prodId }),
+        body: JSON.stringify({ productId: prodId, classId: classId }),
       });
 
       if (!response.ok) {

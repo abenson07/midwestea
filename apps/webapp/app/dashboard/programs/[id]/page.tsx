@@ -26,9 +26,15 @@ function ProgramDetailContent() {
     useEffect(() => {
         if (programId) {
             loadProgram();
-            loadClasses();
         }
     }, [programId]);
+
+    // Load classes after program is loaded so we can filter by course_code
+    useEffect(() => {
+        if (program) {
+            loadClasses();
+        }
+    }, [program]);
 
     // Handle URL params for sidebar
     useEffect(() => {
@@ -51,15 +57,15 @@ function ProgramDetailContent() {
     };
 
     const loadClasses = async () => {
-        if (!programId) return;
+        if (!programId || !program) return;
         setLoadingClasses(true);
         const { classes: fetchedClasses, error: fetchError } = await getClasses();
         if (fetchError) {
             console.error("Error fetching classes:", fetchError);
         } else if (fetchedClasses) {
-            // TODO: Filter classes for this program when join table is implemented
-            // For now, show empty
-            setClasses([]);
+            // Filter classes by matching course_code
+            const programClasses = fetchedClasses.filter(c => c.course_code === program.course_code);
+            setClasses(programClasses);
         }
         setLoadingClasses(false);
     };
@@ -216,20 +222,13 @@ function ProgramDetailContent() {
                         Add Class
                     </Link>
                 </div>
-                {classes.length === 0 && !loadingClasses ? (
-                    <div className="border border-dashed border-gray-300 rounded-lg p-12 text-center bg-white">
-                        <h3 className="mt-2 text-sm font-semibold text-gray-900">No classes</h3>
-                        <p className="mt-1 text-sm text-gray-500">Classes will be displayed here once the program-class join table is implemented.</p>
-                    </div>
-                ) : (
-                    <DataTable
-                        data={classes}
-                        columns={classColumns}
-                        isLoading={loadingClasses}
-                        onRowClick={handleClassClick}
-                        emptyMessage="No classes found for this program."
-                    />
-                )}
+                <DataTable
+                    data={classes}
+                    columns={classColumns}
+                    isLoading={loadingClasses}
+                    onRowClick={handleClassClick}
+                    emptyMessage="No classes found for this program."
+                />
             </div>
 
             <DetailSidebar

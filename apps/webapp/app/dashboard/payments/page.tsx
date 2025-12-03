@@ -4,8 +4,9 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { getPayments } from "@/lib/payments";
 
-// Placeholder type for Payment - will be replaced when types are defined
+// Payment type for UI display
 type Payment = {
     id: string;
     amount: number;
@@ -48,10 +49,39 @@ function PaymentsPageContent() {
 
     const loadPayments = async () => {
         setLoading(true);
-        // TODO: Replace with actual API call when payments table is implemented
-        // For now, use placeholder data
-        setPayments([]);
-        setLoading(false);
+        setError("");
+        try {
+            console.log("[PaymentsPageContent] Loading payments...");
+            const { payments: fetchedPayments, error: fetchError } = await getPayments();
+            console.log("[PaymentsPageContent] Payments response:", { fetchedPayments, fetchError });
+            if (fetchError) {
+                console.error("[PaymentsPageContent] Error loading payments:", fetchError);
+                setError(fetchError);
+                setPayments([]);
+            } else if (fetchedPayments) {
+                // Transform to match UI Payment type
+                const transformedPayments: Payment[] = fetchedPayments.map((p) => ({
+                    id: p.id,
+                    amount: p.amount_cents,
+                    status: p.payment_status || "paid",
+                    date: p.paid_at || p.created_at || new Date().toISOString(),
+                    student_name: p.student_name || "Unknown Student",
+                    class_name: p.class_name || "Unknown Class",
+                    instructor_name: "N/A", // Not available in current schema
+                }));
+                console.log("[PaymentsPageContent] Transformed payments:", transformedPayments);
+                setPayments(transformedPayments);
+            } else {
+                console.log("[PaymentsPageContent] No payments returned");
+                setPayments([]);
+            }
+        } catch (err: any) {
+            console.error("[PaymentsPageContent] Exception loading payments:", err);
+            setError(err.message || "Failed to load payments");
+            setPayments([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleRowClick = (payment: Payment) => {

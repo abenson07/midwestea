@@ -26,9 +26,15 @@ function CourseDetailContent() {
     useEffect(() => {
         if (courseId) {
             loadCourse();
-            loadClasses();
         }
     }, [courseId]);
+
+    // Load classes after course is loaded so we can filter by course_code
+    useEffect(() => {
+        if (course) {
+            loadClasses();
+        }
+    }, [course]);
 
     // Handle URL params for sidebar
     useEffect(() => {
@@ -51,14 +57,14 @@ function CourseDetailContent() {
     };
 
     const loadClasses = async () => {
-        if (!courseId) return;
+        if (!courseId || !course) return;
         setLoadingClasses(true);
         const { classes: fetchedClasses, error: fetchError } = await getClasses();
         if (fetchError) {
             console.error("Error fetching classes:", fetchError);
         } else if (fetchedClasses) {
-            // Filter classes for this course
-            const courseClasses = fetchedClasses.filter(c => c.course_uuid === courseId);
+            // Filter classes by matching course_code
+            const courseClasses = fetchedClasses.filter(c => c.course_code === course.course_code);
             setClasses(courseClasses);
         }
         setLoadingClasses(false);

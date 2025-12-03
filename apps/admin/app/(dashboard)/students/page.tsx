@@ -1,11 +1,14 @@
 "use client";
 
+console.log("[students/page.tsx] Module loaded");
+
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { getStudents } from "@/lib/students";
 
-// Placeholder type for Student - will be replaced when types are defined
+// Student type for UI display
 type Student = {
     id: string;
     name: string;
@@ -14,6 +17,7 @@ type Student = {
 };
 
 function StudentsPageContent() {
+    console.log("[StudentsPageContent] Component rendering");
     const router = useRouter();
     const searchParams = useSearchParams();
     const [students, setStudents] = useState<Student[]>([]);
@@ -26,6 +30,7 @@ function StudentsPageContent() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        console.log("[StudentsPageContent] useEffect running, calling loadStudents");
         loadStudents();
     }, []);
 
@@ -46,10 +51,36 @@ function StudentsPageContent() {
 
     const loadStudents = async () => {
         setLoading(true);
-        // TODO: Replace with actual API call when students table is implemented
-        // For now, use placeholder data
-        setStudents([]);
-        setLoading(false);
+        setError("");
+        try {
+            console.log("Loading students...");
+            const { students: fetchedStudents, error: fetchError } = await getStudents();
+            console.log("Students response:", { fetchedStudents, fetchError });
+            if (fetchError) {
+                console.error("Error loading students:", fetchError);
+                setError(fetchError);
+                setStudents([]);
+            } else if (fetchedStudents) {
+                // Transform to match UI Student type
+                const transformedStudents: Student[] = fetchedStudents.map((s) => ({
+                    id: s.id,
+                    name: s.name || "Unknown Student",
+                    email: s.email || "N/A",
+                    phone: s.phone,
+                }));
+                console.log("Transformed students:", transformedStudents);
+                setStudents(transformedStudents);
+            } else {
+                console.log("No students returned");
+                setStudents([]);
+            }
+        } catch (err: any) {
+            console.error("Exception loading students:", err);
+            setError(err.message || "Failed to load students");
+            setStudents([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleRowClick = (student: Student) => {

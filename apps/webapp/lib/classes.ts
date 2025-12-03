@@ -20,6 +20,7 @@ export interface Course {
 export interface ClassResponse {
   success: boolean;
   error?: string;
+  class?: Class;
 }
 
 export interface Class {
@@ -195,7 +196,7 @@ export async function createClass(
 ): Promise<ClassResponse> {
   try {
     const supabase = await createSupabaseClient();
-    const { error } = await supabase.from("classes").insert({
+    const { data, error } = await supabase.from("classes").insert({
       course_uuid: courseUuid,
       class_name: className,
       course_code: courseCode,
@@ -212,13 +213,13 @@ export async function createClass(
       price: price || null,
       registration_fee: registrationFee || null,
       product_id: productId || null,
-    });
+    }).select().single();
 
     if (error) {
       return { success: false, error: error.message };
     }
 
-    return { success: true };
+    return { success: true, class: data as Class };
   } catch (err) {
     const error = err as PostgrestError;
     return { success: false, error: error.message || "Failed to create class" };

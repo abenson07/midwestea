@@ -53,9 +53,16 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     const productIdParam = searchParams.get('productId');
+    const classIdParam = searchParams.get('classId');
     
     if (!productIdParam) {
       setError('Product ID is required. Please provide a productId in the URL.');
+      setLoading(false);
+      return;
+    }
+
+    if (!classIdParam) {
+      setError('Class ID is required. Please provide a classId in the URL.');
       setLoading(false);
       return;
     }
@@ -70,11 +77,11 @@ export default function CheckoutPage() {
       setProduct(null);
       setPrice(null);
       setClientSecret(null);
-      initializePayment(productIdParam);
+      initializePayment(productIdParam, classIdParam);
     }
   }, [searchParams]);
 
-  const initializePayment = async (prodId: string) => {
+  const initializePayment = async (prodId: string, classId: string) => {
     try {
       // Determine API path - in dev basePath is empty, in prod it's '/checkout'
       const currentPath = window.location.pathname;
@@ -86,7 +93,7 @@ export default function CheckoutPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ productId: prodId }),
+        body: JSON.stringify({ productId: prodId, classId: classId }),
       });
 
       if (!response.ok) {

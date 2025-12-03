@@ -101,10 +101,6 @@ function CoursesPageContent() {
         router.push("/dashboard/courses");
     };
 
-    const handleAddCourseClick = () => {
-        router.push("/dashboard/courses?mode=add");
-    };
-
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         
@@ -206,12 +202,6 @@ function CoursesPageContent() {
                     <h1 className="text-2xl font-bold text-gray-900">Courses</h1>
                     <p className="text-sm text-gray-500 mt-1">Manage your course offerings</p>
                 </div>
-                <button
-                    onClick={handleAddCourseClick}
-                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
-                >
-                    Add Course
-                </button>
             </div>
 
             {error && (

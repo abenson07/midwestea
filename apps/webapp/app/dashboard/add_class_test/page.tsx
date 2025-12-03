@@ -157,9 +157,9 @@ export default function AddClassTestPage() {
         selectedCourse.stripe_product_id || null
       );
 
-      if (result.success) {
-        // Redirect to classes listing page
-        router.push("/dashboard");
+      if (result.success && result.class) {
+        // Redirect to the newly created class detail page
+        router.push(`/dashboard/classes/${result.class.id}`);
       } else {
         setError(result.error || "Failed to create class");
       }
