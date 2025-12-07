@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
             siteId: process.env.WEBFLOW_SITE_ID ? 'SET' : 'MISSING',
             collectionId: course.program_type === 'program' 
               ? (process.env.WEBFLOW_PROGRAMS_COLLECTION_ID ? 'SET' : 'MISSING')
-              : (process.env.WEBFLOW_CLASSES_COLLECTION_ID ? 'SET' : 'MISSING'),
+              : (process.env.WEBFLOW_COURSES_COLLECTION_ID ? 'SET' : 'MISSING'),
           };
           console.error('[API] Webflow config is null. Environment variables:', envStatus);
           webflowError = `Webflow config missing. Check: ${JSON.stringify(envStatus)}`;

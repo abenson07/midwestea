@@ -11,7 +11,8 @@ import * as path from 'path';
 const envPath = path.resolve(__dirname, '../.env.local');
 dotenv.config({ path: envPath });
 
-const COLLECTION_ID = '690686fd233a7d85ab261a9c';
+// Get collection ID from command line argument, env var, or use Programs collection as default
+const COLLECTION_ID = process.argv[2] || process.env.WEBFLOW_CLASSES_COLLECTION_ID || process.env.WEBFLOW_PROGRAMS_COLLECTION_ID || '690686fd233a7d85ab261a9c';
 
 async function checkWebflowFields() {
   const apiToken = process.env.WEBFLOW_API_TOKEN;

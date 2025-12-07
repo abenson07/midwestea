@@ -184,14 +184,14 @@ export function getWebflowConfig(programType: string | null): WebflowConfig | nu
     collectionId = process.env.WEBFLOW_PROGRAMS_COLLECTION_ID;
   } else {
     // program_type === 'course' or null
-    collectionId = process.env.WEBFLOW_CLASSES_COLLECTION_ID;
+    collectionId = process.env.WEBFLOW_COURSES_COLLECTION_ID;
   }
 
   if (!collectionId) {
     console.error('[Webflow] Missing Webflow collection ID for program type:', programType);
     console.error('[Webflow] Expected environment variable:', expectedVarName);
     console.error('[Webflow] WEBFLOW_PROGRAMS_COLLECTION_ID:', process.env.WEBFLOW_PROGRAMS_COLLECTION_ID ? 'SET' : 'MISSING');
-    console.error('[Webflow] WEBFLOW_CLASSES_COLLECTION_ID:', process.env.WEBFLOW_CLASSES_COLLECTION_ID ? 'SET' : 'MISSING');
+    console.error('[Webflow] WEBFLOW_COURSES_COLLECTION_ID:', process.env.WEBFLOW_COURSES_COLLECTION_ID ? 'SET' : 'MISSING');
     return null;
   }
 
