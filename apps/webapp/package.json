@@ -18,14 +18,15 @@
     "@midwestea/ui": "*",
     "@midwestea/utils": "*",
     "@opennextjs/cloudflare": "1.6.5",
-    "@stripe/stripe-js": "^2.4.0",
     "@stripe/react-stripe-js": "^2.4.0",
+    "@stripe/stripe-js": "^2.4.0",
     "@supabase/supabase-js": "^2.84.0",
     "lucide-react": "^0.555.0",
     "next": "^15.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "stripe": "^14.21.0"
+    "stripe": "^14.21.0",
+    "webflow-api": "^3.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -39,5 +40,4 @@
     "wrangler": "^3.0.0"
   }
 }
-
 

@@ -41,6 +41,41 @@ export interface Class {
   price: number | null;
   registration_fee: number | null;
   product_id: string | null;
+  webflow_item_id: string | null;
+  location: string | null;
+}
+
+/**
+ * Maps Supabase/PostgREST errors to user-friendly messages
+ */
+function mapDatabaseError(error: PostgrestError | Error, context: string = ""): string {
+  const errorMessage = error.message?.toLowerCase() || "";
+  const errorCode = (error as PostgrestError).code;
+
+  // Handle "Cannot coerce the result to a single JSON object"
+  if (errorMessage.includes("cannot coerce") || errorMessage.includes("coerce the result")) {
+    if (context.includes("class")) {
+      return "This class doesn't exist or may have been removed.";
+    }
+    if (context.includes("course")) {
+      return "This course doesn't exist or may have been removed.";
+    }
+    return "We couldn't find what you're looking for.";
+  }
+
+  // Handle PGRST116 - No rows returned
+  if (errorCode === "PGRST116" || errorMessage.includes("no rows returned")) {
+    if (context.includes("class")) {
+      return "This class doesn't exist or may have been removed.";
+    }
+    if (context.includes("course")) {
+      return "This course doesn't exist or may have been removed.";
+    }
+    return "We couldn't find what you're looking for.";
+  }
+
+  // Return original message for other errors
+  return error.message || "Something went wrong. Please try again.";
 }
 
 /**
@@ -174,7 +209,8 @@ export async function generateClassId(courseCode: string): Promise<{ classId: st
 }
 
 /**
- * Create a new class in the classes table
+ * Create a new class in the classes table (via server-side API route)
+ * This ensures Webflow sync happens server-side with proper authentication
  */
 export async function createClass(
   courseUuid: string,
@@ -192,37 +228,80 @@ export async function createClass(
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
-  productId?: string | null
+  productId?: string | null,
+  location?: string | null
 ): Promise<ClassResponse> {
   try {
+    console.log('[Client] Starting class creation...');
+    // Get the current session token for authentication
     const supabase = await createSupabaseClient();
-    const { data, error } = await supabase.from("classes").insert({
-      course_uuid: courseUuid,
-      class_name: className,
-      course_code: courseCode,
-      class_id: classId,
-      enrollment_start: enrollmentStart || null,
-      enrollment_close: enrollmentClose || null,
-      class_start_date: classStartDate || null,
-      class_close_date: classCloseDate || null,
-      is_online: isOnline || false,
-      length_of_class: lengthOfClass || null,
-      certification_length: certificationLength || null,
-      graduation_rate: graduationRate || null,
-      registration_limit: registrationLimit || null,
-      price: price || null,
-      registration_fee: registrationFee || null,
-      product_id: productId || null,
-    }).select().single();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (sessionError || !session) {
+      console.error('[Client] Authentication failed:', sessionError);
+      return { success: false, error: 'Not authenticated. Please log in.' };
     }
 
-    return { success: true, class: data as Class };
-  } catch (err) {
-    const error = err as PostgrestError;
-    return { success: false, error: error.message || "Failed to create class" };
+    console.log('[Client] Session found, calling API route...');
+    // Determine base path for API route
+    const basePath = typeof window !== 'undefined' 
+      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+      : '';
+
+    const apiUrl = `${basePath}/api/classes/create`;
+    console.log('[Client] Calling API:', apiUrl);
+
+    // Call the server-side API route
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        courseUuid,
+        className,
+        courseCode,
+        classId,
+        enrollmentStart,
+        enrollmentClose,
+        classStartDate,
+        classCloseDate,
+        isOnline,
+        lengthOfClass,
+        certificationLength,
+        graduationRate,
+        registrationLimit,
+        price,
+        registrationFee,
+        productId,
+        location,
+      }),
+    });
+
+    console.log('[Client] API response status:', response.status);
+    const result = await response.json();
+    console.log('[Client] API response:', result);
+
+    if (!response.ok) {
+      console.error('[Client] API error:', result.error);
+      return { success: false, error: result.error || 'Failed to create class' };
+    }
+
+    // Log Webflow sync status
+    if (result.webflowSync) {
+      if (result.webflowSync.success) {
+        console.log('[Client] Webflow sync successful, item ID:', result.webflowSync.webflowItemId);
+      } else {
+        console.error('[Client] Webflow sync failed:', result.webflowSync.error);
+      }
+    }
+
+    console.log('[Client] Class created successfully, webflow_item_id:', result.class?.webflow_item_id);
+    return { success: true, class: result.class as Class };
+  } catch (err: any) {
+    console.error('[Client] Exception creating class:', err);
+    return { success: false, error: err.message || "Failed to create class" };
   }
 }
 
@@ -239,13 +318,13 @@ export async function getClassById(id: string): Promise<{ class: Class | null; e
       .single();
 
     if (error) {
-      return { class: null, error: error.message };
+      return { class: null, error: mapDatabaseError(error, "class") };
     }
 
     return { class: data as Class, error: null };
   } catch (err) {
     const error = err as PostgrestError;
-    return { class: null, error: error.message || "Failed to fetch class" };
+    return { class: null, error: mapDatabaseError(error, "class") };
   }
 }
 
@@ -264,10 +343,23 @@ export async function updateClass(
   graduationRate?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
-  registrationFee?: number | null
+  registrationFee?: number | null,
+  location?: string | null
 ): Promise<ClassResponse> {
   try {
     const supabase = await createSupabaseClient();
+    
+    // First, get the current class to check for webflow_item_id
+    const { data: currentClass, error: fetchError } = await supabase
+      .from("classes")
+      .select("webflow_item_id, course_uuid")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      return { success: false, error: fetchError.message };
+    }
+
     const updateData: any = {};
 
     if (enrollmentStart !== undefined) updateData.enrollment_start = enrollmentStart;
@@ -281,6 +373,7 @@ export async function updateClass(
     if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
     if (price !== undefined) updateData.price = price;
     if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
+    if (location !== undefined) updateData.location = location;
 
     const { error } = await supabase
       .from("classes")
@@ -290,6 +383,10 @@ export async function updateClass(
     if (error) {
       return { success: false, error: error.message };
     }
+
+    // TODO: Webflow sync for updates should be moved to a server-side API route
+    // For now, updates only happen in Supabase
+    // The webflow_item_id is preserved, but Webflow won't be updated until we add an update API route
 
     return { success: true };
   } catch (err) {
@@ -312,13 +409,13 @@ export async function getCourseById(id: string): Promise<{ course: Course | null
       .single();
 
     if (error) {
-      return { course: null, error: error.message };
+      return { course: null, error: mapDatabaseError(error, "course") };
     }
 
     return { course: data as Course, error: null };
   } catch (err) {
     const error = err as PostgrestError;
-    return { course: null, error: error.message || "Failed to fetch course" };
+    return { course: null, error: mapDatabaseError(error, "course") };
   }
 }
 

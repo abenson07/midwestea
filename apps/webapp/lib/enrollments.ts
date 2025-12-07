@@ -243,10 +243,24 @@ export async function createPayment(
 ): Promise<Payment> {
   const supabase = createSupabaseAdminClient();
 
-  // Get receipt URL from charges if available
+  // Get receipt URL from latest charge if available
   let receiptUrl: string | null = null;
-  if (paymentIntent.charges?.data && paymentIntent.charges.data.length > 0) {
-    receiptUrl = paymentIntent.charges.data[0].receipt_url || null;
+  if (paymentIntent.latest_charge) {
+    try {
+      const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+      if (stripeSecretKey) {
+        const stripe = getStripeClient(stripeSecretKey);
+        const chargeId = typeof paymentIntent.latest_charge === 'string' 
+          ? paymentIntent.latest_charge 
+          : paymentIntent.latest_charge.id;
+        
+        const charge = await stripe.charges.retrieve(chargeId);
+        receiptUrl = charge.receipt_url || null;
+      }
+    } catch (error) {
+      // If we can't retrieve the charge, receipt URL will remain null
+      console.warn('Failed to retrieve charge for receipt URL:', error);
+    }
   }
 
   const { data: payment, error: insertError } = await supabase

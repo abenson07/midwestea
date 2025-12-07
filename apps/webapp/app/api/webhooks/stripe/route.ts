@@ -90,14 +90,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Fallback to receipt_email or billing details
+      // Fallback to receipt_email
       if (!email) {
         email = paymentIntent.receipt_email || undefined;
-      }
-
-      if (!email && paymentIntent.charges?.data && paymentIntent.charges.data.length > 0) {
-        const charge = paymentIntent.charges.data[0];
-        email = charge.billing_details?.email || charge.receipt_email || undefined;
       }
 
       if (!email) {
