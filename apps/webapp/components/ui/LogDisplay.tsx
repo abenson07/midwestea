@@ -126,40 +126,46 @@ export function LogDisplay({ referenceId, referenceType, additionalFilters }: Lo
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity Log</h2>
-        <p className="text-sm text-gray-500">Loading logs...</p>
+      <div>
+        <p className="text-[10px] text-gray-500">Loading logs...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity Log</h2>
-        <p className="text-sm text-red-600">Error loading logs: {error}</p>
+      <div>
+        <p className="text-[10px] text-red-600">Error loading logs: {error}</p>
       </div>
     );
   }
 
   if (logs.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity Log</h2>
-        <p className="text-sm text-gray-500">No activity logged yet.</p>
+      <div>
+        <p className="text-[10px] text-gray-500">No activity logged yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Activity Log</h2>
-      <div className="space-y-3">
-        {logs.map((log) => (
-          <div key={log.id} className="border-b border-gray-100 pb-3 last:border-b-0 last:pb-0">
-            <p className="text-sm text-gray-900">{formatLogMessage(log)}</p>
-          </div>
-        ))}
+    <div>
+      <div className="space-y-1">
+        {logs.map((log) => {
+          const formattedMessage = formatLogMessage(log);
+          // Split on " – " to separate timestamp from message
+          const parts = formattedMessage.split(" – ");
+          const message = parts.slice(0, -1).join(" – ");
+          const timestamp = parts[parts.length - 1];
+          
+          return (
+            <div key={log.id} className="border-b border-gray-100 pb-1 last:border-b-0 last:pb-0">
+              <p className="text-[10px] text-gray-900">
+                <span className="opacity-60">{timestamp}</span> <span className="opacity-40">•</span> {message}
+              </p>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
