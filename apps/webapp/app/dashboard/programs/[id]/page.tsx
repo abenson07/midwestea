@@ -6,7 +6,9 @@ import Link from "next/link";
 import { getClasses, getCourseById, updateCourse, type Class, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { LogDisplay } from "@/components/ui/LogDisplay";
 import { formatCurrency } from "@midwestea/utils";
+import { createSupabaseClient } from "@midwestea/utils";
 
 function ProgramDetailContent() {
     const router = useRouter();
@@ -15,6 +17,7 @@ function ProgramDetailContent() {
     const programId = params?.id as string;
 
     const [program, setProgram] = useState<Course | null>(null);
+    const [originalProgram, setOriginalProgram] = useState<Course | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingClasses, setLoadingClasses] = useState(true);
@@ -53,6 +56,8 @@ function ProgramDetailContent() {
             setError(fetchError);
         } else if (fetchedProgram) {
             setProgram(fetchedProgram);
+            // Store original values for comparison when saving
+            setOriginalProgram({ ...fetchedProgram });
         }
         setLoading(false);
     };
@@ -87,9 +92,26 @@ function ProgramDetailContent() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!program) return;
+        if (!program || !originalProgram) return;
 
         setSaving(true);
+
+        // Use original values for comparison (from when data was loaded)
+        const oldValues = {
+            course_name: originalProgram.course_name,
+            course_code: originalProgram.course_code,
+            length_of_class: originalProgram.length_of_class,
+            certification_length: originalProgram.certification_length,
+            graduation_rate: originalProgram.graduation_rate,
+            registration_limit: originalProgram.registration_limit,
+            price: originalProgram.price,
+            registration_fee: originalProgram.registration_fee,
+        };
+
+        // Generate batch_id for this save operation
+        const batchId = crypto.randomUUID();
+
+        // Perform update
         const { success, error } = await updateCourse(
             program.id,
             program.course_name,
@@ -104,8 +126,115 @@ function ProgramDetailContent() {
         );
 
         if (success) {
+            // Log field changes - compare against original values
+            const fieldChanges: Array<{ field_name: string; old_value: string | null; new_value: string | null }> = [];
+
+            // Compare name (maps to "name" in FIELD_LABELS)
+            if (oldValues.course_name !== program.course_name) {
+                fieldChanges.push({
+                    field_name: "name",
+                    old_value: oldValues.course_name || null,
+                    new_value: program.course_name || null,
+                });
+            }
+
+            // Note: course_code is not editable (read-only) to prevent foreign key constraint violations
+            // So we don't need to track changes to it
+
+            // Compare length_of_class
+            if (oldValues.length_of_class !== program.length_of_class) {
+                fieldChanges.push({
+                    field_name: "length_of_class",
+                    old_value: oldValues.length_of_class || null,
+                    new_value: program.length_of_class || null,
+                });
+            }
+
+            // Compare certification_length
+            if (oldValues.certification_length !== program.certification_length) {
+                fieldChanges.push({
+                    field_name: "certification_length",
+                    old_value: oldValues.certification_length ? String(oldValues.certification_length) : null,
+                    new_value: program.certification_length ? String(program.certification_length) : null,
+                });
+            }
+
+            // Compare graduation_rate
+            if (oldValues.graduation_rate !== program.graduation_rate) {
+                fieldChanges.push({
+                    field_name: "graduation_rate",
+                    old_value: oldValues.graduation_rate ? String(oldValues.graduation_rate) : null,
+                    new_value: program.graduation_rate ? String(program.graduation_rate) : null,
+                });
+            }
+
+            // Compare registration_limit
+            if (oldValues.registration_limit !== program.registration_limit) {
+                fieldChanges.push({
+                    field_name: "registration_limit",
+                    old_value: oldValues.registration_limit ? String(oldValues.registration_limit) : null,
+                    new_value: program.registration_limit ? String(program.registration_limit) : null,
+                });
+            }
+
+            // Compare price (stored in cents)
+            if (oldValues.price !== program.price) {
+                fieldChanges.push({
+                    field_name: "price",
+                    old_value: oldValues.price ? String(oldValues.price) : null,
+                    new_value: program.price ? String(program.price) : null,
+                });
+            }
+
+            // Compare registration_fee (stored in cents)
+            if (oldValues.registration_fee !== program.registration_fee) {
+                fieldChanges.push({
+                    field_name: "registration_fee",
+                    old_value: oldValues.registration_fee ? String(oldValues.registration_fee) : null,
+                    new_value: program.registration_fee ? String(program.registration_fee) : null,
+                });
+            }
+
+            // Log changes if any
+            if (fieldChanges.length > 0) {
+                try {
+                    const supabase = await createSupabaseClient();
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session) {
+                        const basePath = typeof window !== 'undefined' 
+                            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                            : '';
+                        const logResponse = await fetch(`${basePath}/api/logs/detail-update`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session.access_token}`,
+                            },
+                            body: JSON.stringify({
+                                reference_id: program.id,
+                                reference_type: 'program',
+                                field_changes: fieldChanges,
+                                batch_id: batchId,
+                            }),
+                        });
+                        
+                        if (!logResponse.ok) {
+                            const logError = await logResponse.json();
+                            console.error('Failed to log changes:', logError);
+                        }
+                    }
+                } catch (logError) {
+                    console.error('Failed to log changes:', logError);
+                    // Don't fail the save if logging fails
+                }
+            }
+
+            // Reload program data and update original
             await loadProgram();
-            handleCloseSidebar();
+            // Small delay to show success before closing
+            setTimeout(() => {
+                handleCloseSidebar();
+            }, 300);
         } else {
             alert(`Failed to save: ${error}`);
         }
@@ -232,6 +361,9 @@ function ProgramDetailContent() {
                 />
             </div>
 
+            {/* Activity Log Section */}
+            <LogDisplay referenceId={program.id} referenceType="program" />
+
             <DetailSidebar
                 isOpen={isSidebarOpen}
                 onClose={handleCloseSidebar}
@@ -254,9 +386,11 @@ function ProgramDetailContent() {
                             <input
                                 type="text"
                                 value={program.course_code}
-                                onChange={(e) => setProgram({ ...program, course_code: e.target.value })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                disabled
+                                readOnly
+                                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2 cursor-not-allowed"
                             />
+                            <p className="text-xs text-gray-500 mt-1">Program code cannot be changed (classes depend on it)</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

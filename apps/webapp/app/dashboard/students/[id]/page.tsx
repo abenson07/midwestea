@@ -8,7 +8,9 @@ import { getStudentById, updateStudent, type StudentWithEmail } from "@/lib/stud
 import { getPaymentsByStudentId, type PaymentWithDetails } from "@/lib/payments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
-import { formatCurrency } from "@midwestea/utils";
+import { LogDisplay } from "@/components/ui/LogDisplay";
+import { formatCurrency, formatPhone } from "@midwestea/utils";
+import { createSupabaseClient } from "@midwestea/utils";
 
 function StudentDetailContent() {
     const router = useRouter();
@@ -17,6 +19,7 @@ function StudentDetailContent() {
     const studentId = params?.id as string;
 
     const [student, setStudent] = useState<StudentWithEmail | null>(null);
+    const [originalStudent, setOriginalStudent] = useState<StudentWithEmail | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
     const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,6 +55,7 @@ function StudentDetailContent() {
             setError(fetchError);
         } else if (fetchedStudent) {
             setStudent(fetchedStudent);
+            setOriginalStudent(fetchedStudent); // Store original for comparison
         }
         setLoading(false);
     };
@@ -102,9 +106,14 @@ function StudentDetailContent() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!student) return;
+        if (!student || !originalStudent) return;
 
         setSaving(true);
+
+        // Generate batch_id for this save operation
+        const batchId = crypto.randomUUID();
+
+        // Perform update
         const { success, error } = await updateStudent(
             student.id,
             student.first_name,
@@ -113,12 +122,94 @@ function StudentDetailContent() {
             student.t_shirt_size,
             student.emergency_contact_name,
             student.emergency_contact_phone,
-            student.has_required_info
+            student.has_required_info,
+            student.email
         );
 
         if (success) {
+            // Log field changes
+            const fieldChanges: Array<{ field_name: string; old_value: string | null; new_value: string | null }> = [];
+
+            // Compare all editable fields
+            const fieldsToCompare = [
+                { key: "first_name", label: "first_name" },
+                { key: "last_name", label: "last_name" },
+                { key: "email", label: "email" },
+                { key: "phone", label: "phone" },
+                { key: "t_shirt_size", label: "t_shirt_size" },
+                { key: "emergency_contact_name", label: "emergency_contact_name" },
+                { key: "emergency_contact_phone", label: "emergency_contact_phone" },
+                { key: "has_required_info", label: "has_required_info" },
+            ];
+
+            fieldsToCompare.forEach(({ key, label }) => {
+                const oldVal = originalStudent[key as keyof StudentWithEmail];
+                const newVal = student[key as keyof StudentWithEmail];
+                
+                // Handle different types
+                let oldValue: string | null = null;
+                let newValue: string | null = null;
+                
+                if (oldVal !== null && oldVal !== undefined) {
+                    if (typeof oldVal === 'boolean') {
+                        oldValue = oldVal ? 'true' : 'false';
+                    } else {
+                        oldValue = String(oldVal);
+                    }
+                }
+                
+                if (newVal !== null && newVal !== undefined) {
+                    if (typeof newVal === 'boolean') {
+                        newValue = newVal ? 'true' : 'false';
+                    } else {
+                        newValue = String(newVal);
+                    }
+                }
+
+                if (oldValue !== newValue) {
+                    fieldChanges.push({
+                        field_name: label,
+                        old_value: oldValue,
+                        new_value: newValue,
+                    });
+                }
+            });
+
+            // Log changes if any
+            if (fieldChanges.length > 0) {
+                try {
+                    const supabase = await createSupabaseClient();
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session) {
+                        const basePath = typeof window !== 'undefined' 
+                            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                            : '';
+                        await fetch(`${basePath}/api/logs/detail-update`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session.access_token}`,
+                            },
+                            body: JSON.stringify({
+                                reference_id: student.id,
+                                reference_type: 'student',
+                                field_changes: fieldChanges,
+                                batch_id: batchId,
+                            }),
+                        });
+                    }
+                } catch (logError) {
+                    console.error('Failed to log changes:', logError);
+                    // Don't fail the save if logging fails
+                }
+            }
+
+            // Reload student data and update original
             await loadStudent();
-            handleCloseSidebar();
+            // Small delay to show success before closing
+            setTimeout(() => {
+                handleCloseSidebar();
+            }, 300);
         } else {
             alert(`Failed to save: ${error}`);
         }
@@ -298,6 +389,13 @@ function StudentDetailContent() {
                 />
             </div>
 
+            {/* Activity Log Section */}
+            <LogDisplay 
+                referenceId={student.id} 
+                referenceType="student" 
+                additionalFilters={{ studentId: student.id }}
+            />
+
             <DetailSidebar
                 isOpen={isSidebarOpen}
                 onClose={handleCloseSidebar}
@@ -331,10 +429,8 @@ function StudentDetailContent() {
                                 type="email"
                                 value={student.email || ''}
                                 onChange={(e) => setStudent({ ...student, email: e.target.value })}
-                                disabled
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2"
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Email is managed through authentication</p>
                         </div>
 
                         <div>
@@ -342,7 +438,7 @@ function StudentDetailContent() {
                             <input
                                 type="tel"
                                 value={student.phone || ''}
-                                onChange={(e) => setStudent({ ...student, phone: e.target.value })}
+                                onChange={(e) => setStudent({ ...student, phone: formatPhone(e.target.value) })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>
@@ -372,7 +468,7 @@ function StudentDetailContent() {
                             <input
                                 type="tel"
                                 value={student.emergency_contact_phone || ''}
-                                onChange={(e) => setStudent({ ...student, emergency_contact_phone: e.target.value })}
+                                onChange={(e) => setStudent({ ...student, emergency_contact_phone: formatPhone(e.target.value) })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>

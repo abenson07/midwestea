@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { createWebflowClassItem, getWebflowConfig } from '@/lib/webflow';
+import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
@@ -201,6 +202,22 @@ export async function POST(request: NextRequest) {
       console.error('[API] Exception during Webflow sync:', webflowErr);
       console.error('[API] Error stack:', webflowErr.stack);
       webflowError = `Exception: ${webflowErr.message}`;
+    }
+
+    // Log class creation
+    try {
+      const { admin } = await getCurrentAdmin(user.id);
+      if (admin) {
+        await insertLog({
+          admin_user_id: admin.id,
+          reference_id: classData.id,
+          reference_type: 'class',
+          action_type: 'class_created',
+        });
+      }
+    } catch (logError: any) {
+      // Log error but don't fail class creation
+      console.error('[API] Failed to log class creation:', logError);
     }
 
     return NextResponse.json({

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getPrograms, getCourseById, updateCourse, createProgram, type Course } from "@/lib/classes";
+import { getPrograms, createProgram, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { formatCurrency } from "@midwestea/utils";
@@ -15,9 +15,7 @@ function ProgramsPageContent() {
     const [error, setError] = useState("");
 
     // Sidebar state
-    const [selectedProgram, setSelectedProgram] = useState<Course | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [loadingDetail, setLoadingDetail] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isAddMode, setIsAddMode] = useState(false);
     
@@ -39,14 +37,9 @@ function ProgramsPageContent() {
 
     // Handle URL params for deep linking
     useEffect(() => {
-        const programId = searchParams.get("programId");
         const mode = searchParams.get("mode");
-        if (programId) {
-            setIsAddMode(false);
-            loadProgramDetail(programId);
-        } else if (mode === "add") {
+        if (mode === "add") {
             setIsAddMode(true);
-            setSelectedProgram(null);
             setIsSidebarOpen(true);
             setNewProgramData({
                 programName: "",
@@ -60,20 +53,9 @@ function ProgramsPageContent() {
             });
         } else {
             setIsSidebarOpen(false);
-            setSelectedProgram(null);
             setIsAddMode(false);
         }
     }, [searchParams]);
-
-    const loadProgramDetail = async (id: string) => {
-        setLoadingDetail(true);
-        setIsSidebarOpen(true);
-        const { course: fetchedProgram, error } = await getCourseById(id);
-        if (fetchedProgram) {
-            setSelectedProgram(fetchedProgram);
-        }
-        setLoadingDetail(false);
-    };
 
     const loadPrograms = async () => {
         setLoading(true);
@@ -90,11 +72,6 @@ function ProgramsPageContent() {
         router.push(`/dashboard/programs/${program.id}`);
     };
 
-    const handleEditClick = (program: Course, e: React.MouseEvent) => {
-        e.stopPropagation();
-        router.push(`/dashboard/programs?programId=${program.id}`);
-    };
-
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
         setIsAddMode(false);
@@ -103,12 +80,7 @@ function ProgramsPageContent() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        if (isAddMode) {
-            await handleCreateProgram();
-        } else {
-            await handleUpdateProgram();
-        }
+        await handleCreateProgram();
     };
 
     const handleCreateProgram = async () => {
@@ -154,31 +126,6 @@ function ProgramsPageContent() {
         setSaving(false);
     };
 
-    const handleUpdateProgram = async () => {
-        if (!selectedProgram) return;
-
-        setSaving(true);
-        const { success, error } = await updateCourse(
-            selectedProgram.id,
-            selectedProgram.course_name,
-            selectedProgram.course_code,
-            selectedProgram.length_of_class,
-            selectedProgram.certification_length,
-            selectedProgram.graduation_rate,
-            selectedProgram.registration_limit,
-            selectedProgram.price,
-            selectedProgram.registration_fee,
-            selectedProgram.stripe_product_id
-        );
-
-        if (success) {
-            await loadPrograms(); // Refresh list
-            handleCloseSidebar();
-        } else {
-            alert(`Failed to save: ${error}`);
-        }
-        setSaving(false);
-    };
 
     const columns = [
         { header: "Course Code", accessorKey: "course_code" as keyof Course, className: "font-medium" },
@@ -215,20 +162,15 @@ function ProgramsPageContent() {
                 columns={columns}
                 isLoading={loading}
                 onRowClick={handleRowClick}
-                onEditClick={handleEditClick}
                 emptyMessage="No programs found."
             />
 
             <DetailSidebar
                 isOpen={isSidebarOpen}
                 onClose={handleCloseSidebar}
-                title={isAddMode ? "Add New Program" : selectedProgram ? `Edit ${selectedProgram.course_code}` : "Program Details"}
+                title="Add New Program"
             >
-                {loadingDetail ? (
-                    <div className="flex justify-center py-8">
-                        <p className="text-gray-500">Loading details...</p>
-                    </div>
-                ) : isAddMode ? (
+                {isAddMode ? (
                     <form onSubmit={handleSave} className="space-y-6">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Program Name*</label>
@@ -335,48 +277,7 @@ function ProgramsPageContent() {
                             </button>
                         </div>
                     </form>
-                ) : selectedProgram ? (
-                    <form onSubmit={handleSave} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Program Name</label>
-                            <input
-                                type="text"
-                                value={selectedProgram.course_name}
-                                onChange={(e) => setSelectedProgram({ ...selectedProgram, course_name: e.target.value })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Program Code</label>
-                            <input
-                                type="text"
-                                value={selectedProgram.course_code}
-                                onChange={(e) => setSelectedProgram({ ...selectedProgram, course_code: e.target.value })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                            />
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={handleCloseSidebar}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
-                            >
-                                {saving ? "Saving..." : "Save Changes"}
-                            </button>
-                        </div>
-                    </form>
-                ) : (
-                    <p className="text-gray-500">Program not found.</p>
-                )}
+                ) : null}
             </DetailSidebar>
         </div>
     );

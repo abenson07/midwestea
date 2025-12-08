@@ -4,10 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, updateClass, type Class } from "@/lib/classes";
-import { getStudentsByClassId } from "@/lib/students";
+import { getStudentsByClassId, getStudents } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { LogDisplay } from "@/components/ui/LogDisplay";
 import { formatCurrency } from "@midwestea/utils";
+import { createSupabaseClient } from "@midwestea/utils";
 
 // Student type for UI display
 type Student = {
@@ -23,6 +25,7 @@ function ClassDetailContent() {
     const classId = params?.id as string;
 
     const [classData, setClassData] = useState<Class | null>(null);
+    const [originalClassData, setOriginalClassData] = useState<Class | null>(null);
     const [students, setStudents] = useState<Student[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingStudents, setLoadingStudents] = useState(true);
@@ -31,6 +34,10 @@ function ClassDetailContent() {
     // Sidebar state
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+    const [allStudents, setAllStudents] = useState<Student[]>([]);
+    const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+    const [addingStudent, setAddingStudent] = useState(false);
 
     useEffect(() => {
         if (classId) {
@@ -55,6 +62,7 @@ function ClassDetailContent() {
             setError(fetchError);
         } else if (fetchedClass) {
             setClassData(fetchedClass);
+            setOriginalClassData(fetchedClass); // Store original for comparison
         }
         setLoading(false);
     };
@@ -90,6 +98,115 @@ function ClassDetailContent() {
         }
     };
 
+    const loadAllStudents = async () => {
+        const { students: fetchedStudents } = await getStudents();
+        if (fetchedStudents) {
+            setAllStudents(fetchedStudents.map((s) => ({
+                id: s.id,
+                name: s.name || "Unknown Student",
+                email: s.email || "N/A",
+            })));
+        }
+    };
+
+    const handleAddStudent = async () => {
+        if (!selectedStudentId || !classId) return;
+        setAddingStudent(true);
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Not authenticated");
+                return;
+            }
+
+            // Create enrollment
+            const { error: enrollError } = await supabase
+                .from("enrollments")
+                .insert({
+                    student_id: selectedStudentId,
+                    class_id: classId,
+                    enrollment_status: "registered",
+                });
+
+            if (enrollError) {
+                alert(`Failed to add student: ${enrollError.message}`);
+                return;
+            }
+
+            // Log the action
+            const basePath = typeof window !== 'undefined' 
+                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                : '';
+            await fetch(`${basePath}/api/logs/student-enrollment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    student_id: selectedStudentId,
+                    class_id: classId,
+                    action: 'add',
+                }),
+            });
+
+            await loadStudents();
+            setIsAddStudentOpen(false);
+            setSelectedStudentId("");
+        } catch (err: any) {
+            alert(`Failed to add student: ${err.message}`);
+        } finally {
+            setAddingStudent(false);
+        }
+    };
+
+    const handleRemoveStudent = async (studentId: string) => {
+        if (!confirm("Are you sure you want to remove this student from the class?")) return;
+        
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Not authenticated");
+                return;
+            }
+
+            // Remove enrollment
+            const { error: removeError } = await supabase
+                .from("enrollments")
+                .delete()
+                .eq("student_id", studentId)
+                .eq("class_id", classId);
+
+            if (removeError) {
+                alert(`Failed to remove student: ${removeError.message}`);
+                return;
+            }
+
+            // Log the action
+            const basePath = typeof window !== 'undefined' 
+                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                : '';
+            await fetch(`${basePath}/api/logs/student-enrollment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    class_id: classId,
+                    action: 'remove',
+                }),
+            });
+
+            await loadStudents();
+        } catch (err: any) {
+            alert(`Failed to remove student: ${err.message}`);
+        }
+    };
+
     const handleEdit = () => {
         router.push(`/dashboard/classes/${classId}?edit=true`);
         setIsSidebarOpen(true);
@@ -106,9 +223,14 @@ function ClassDetailContent() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!classData) return;
+        if (!classData || !originalClassData) return;
 
         setSaving(true);
+
+        // Generate batch_id for this save operation
+        const batchId = crypto.randomUUID();
+
+        // Perform update
         const { success, error } = await updateClass(
             classData.id,
             classData.enrollment_start,
@@ -121,12 +243,100 @@ function ClassDetailContent() {
             classData.graduation_rate,
             classData.registration_limit,
             classData.price,
-            classData.registration_fee
+            classData.registration_fee,
+            classData.location,
+            classData.class_name
         );
 
         if (success) {
+            // Log field changes
+            const fieldChanges: Array<{ field_name: string; old_value: string | null; new_value: string | null }> = [];
+
+            // Compare all editable fields
+            const fieldsToCompare = [
+                { key: "class_name", label: "name" },
+                { key: "enrollment_start", label: "enrollment_start" },
+                { key: "enrollment_close", label: "enrollment_close" },
+                { key: "class_start_date", label: "start_date" },
+                { key: "class_close_date", label: "end_date" },
+                { key: "is_online", label: "is_online" },
+                { key: "length_of_class", label: "length_of_class" },
+                { key: "certification_length", label: "certification_length" },
+                { key: "graduation_rate", label: "graduation_rate" },
+                { key: "registration_limit", label: "registration_limit" },
+                { key: "price", label: "price" },
+                { key: "registration_fee", label: "registration_fee" },
+                { key: "location", label: "location" },
+            ];
+
+            fieldsToCompare.forEach(({ key, label }) => {
+                const oldVal = originalClassData[key as keyof Class];
+                const newVal = classData[key as keyof Class];
+                
+                // Handle different types
+                let oldValue: string | null = null;
+                let newValue: string | null = null;
+                
+                if (oldVal !== null && oldVal !== undefined) {
+                    if (typeof oldVal === 'boolean') {
+                        oldValue = oldVal ? 'true' : 'false';
+                    } else {
+                        oldValue = String(oldVal);
+                    }
+                }
+                
+                if (newVal !== null && newVal !== undefined) {
+                    if (typeof newVal === 'boolean') {
+                        newValue = newVal ? 'true' : 'false';
+                    } else {
+                        newValue = String(newVal);
+                    }
+                }
+
+                if (oldValue !== newValue) {
+                    fieldChanges.push({
+                        field_name: label,
+                        old_value: oldValue,
+                        new_value: newValue,
+                    });
+                }
+            });
+
+            // Log changes if any
+            if (fieldChanges.length > 0) {
+                try {
+                    const supabase = await createSupabaseClient();
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session) {
+                        const basePath = typeof window !== 'undefined' 
+                            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                            : '';
+                        await fetch(`${basePath}/api/logs/detail-update`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${session.access_token}`,
+                            },
+                            body: JSON.stringify({
+                                reference_id: classData.id,
+                                reference_type: 'class',
+                                field_changes: fieldChanges,
+                                batch_id: batchId,
+                            }),
+                        });
+                    }
+                } catch (logError) {
+                    console.error('Failed to log changes:', logError);
+                    // Don't fail the save if logging fails
+                }
+            }
+
+            // Reload class data and update original
             await loadClass();
-            handleCloseSidebar();
+            // Small delay to show success before closing
+            setTimeout(() => {
+                handleCloseSidebar();
+            }, 300);
         } else {
             alert(`Failed to save: ${error}`);
         }
@@ -142,6 +352,21 @@ function ClassDetailContent() {
     const studentColumns = [
         { header: "Name", accessorKey: "name" as keyof Student, className: "font-medium" },
         { header: "Email", accessorKey: "email" as keyof Student },
+        {
+            header: "Actions",
+            accessorKey: "id" as keyof Student,
+            cell: (item: Student) => (
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveStudent(item.id);
+                    }}
+                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                >
+                    Remove
+                </button>
+            ),
+        },
     ];
 
     if (loading) {
@@ -262,7 +487,15 @@ function ClassDetailContent() {
 
             {/* Students Section */}
             <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Students</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Students</h2>
+                    <button
+                        onClick={() => setIsAddStudentOpen(true)}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
+                    >
+                        Add Student
+                    </button>
+                </div>
                 {students.length === 0 && !loadingStudents ? (
                     <div className="border border-dashed border-gray-300 rounded-lg p-12 text-center bg-white">
                         <h3 className="mt-2 text-sm font-semibold text-gray-900">No students enrolled</h3>
@@ -279,6 +512,60 @@ function ClassDetailContent() {
                 )}
             </div>
 
+            {/* Activity Log Section */}
+            <LogDisplay referenceId={classData.id} referenceType="class" />
+
+            {/* Add Student Sidebar */}
+            <DetailSidebar
+                isOpen={isAddStudentOpen}
+                onClose={() => {
+                    setIsAddStudentOpen(false);
+                    setSelectedStudentId("");
+                }}
+                title="Add Student to Class"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
+                        <select
+                            value={selectedStudentId}
+                            onChange={(e) => setSelectedStudentId(e.target.value)}
+                            onFocus={loadAllStudents}
+                            className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                        >
+                            <option value="">-- Select a student --</option>
+                            {allStudents
+                                .filter(s => !students.find(es => es.id === s.id))
+                                .map((student) => (
+                                    <option key={student.id} value={student.id}>
+                                        {student.name} ({student.email})
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                    <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsAddStudentOpen(false);
+                                setSelectedStudentId("");
+                            }}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleAddStudent}
+                            disabled={!selectedStudentId || addingStudent}
+                            className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
+                        >
+                            {addingStudent ? "Adding..." : "Add Student"}
+                        </button>
+                    </div>
+                </div>
+            </DetailSidebar>
+
             <DetailSidebar
                 isOpen={isSidebarOpen}
                 onClose={handleCloseSidebar}
@@ -290,11 +577,10 @@ function ClassDetailContent() {
                             <label className="block text-sm font-medium text-gray-700">Class Name</label>
                             <input
                                 type="text"
-                                value={classData.class_name}
-                                disabled
-                                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm sm:text-sm p-2"
+                                value={classData.class_name || ''}
+                                onChange={(e) => setClassData({ ...classData, class_name: e.target.value })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Inherited from Course</p>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

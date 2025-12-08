@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { formatPhone } from "@midwestea/utils";
 
 // Placeholder type for Instructor - will be replaced when types are defined
 type Instructor = {
@@ -147,7 +148,7 @@ function InstructorsPageContent() {
                             <input
                                 type="tel"
                                 value={selectedInstructor.phone || ''}
-                                onChange={(e) => setSelectedInstructor({ ...selectedInstructor, phone: e.target.value })}
+                                onChange={(e) => setSelectedInstructor({ ...selectedInstructor, phone: formatPhone(e.target.value) })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>

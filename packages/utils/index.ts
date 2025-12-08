@@ -3,6 +3,7 @@
 
 export * from './supabaseClient';
 export * from './formatCurrency';
+export * from './formatPhone';
 
 
 

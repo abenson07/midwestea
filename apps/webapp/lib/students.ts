@@ -91,10 +91,38 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
       ? `${firstName} ${lastName}`.trim() 
       : "Unknown Student";
 
+    // Fetch email from auth via API route
+    let email: string | null = null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const basePath = typeof window !== 'undefined' 
+          ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+          : '';
+        
+        const emailResponse = await fetch(`${basePath}/api/students/${id}/email`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (emailResponse.ok) {
+          const emailResult = await emailResponse.json();
+          if (emailResult.success) {
+            email = emailResult.email;
+          }
+        }
+      }
+    } catch (emailError) {
+      console.warn("[getStudentById] Failed to fetch email:", emailError);
+      // Don't fail the whole request if email fetch fails
+    }
+
     const studentWithEmail: StudentWithEmail = {
       ...data,
       name,
-      email: null, // Email will need to be fetched separately or via database view
+      email,
     };
 
     return { student: studentWithEmail, error: null };
@@ -171,10 +199,56 @@ export async function updateStudent(
   tShirtSize?: string | null,
   emergencyContactName?: string | null,
   emergencyContactPhone?: string | null,
-  hasRequiredInfo?: boolean | null
+  hasRequiredInfo?: boolean | null,
+  email?: string | null
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     const supabase = await createSupabaseClient();
+    
+    // If email is provided and not null/empty, update it via API route (requires admin access)
+    if (email !== undefined && email !== null && email.trim() !== '') {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          return { success: false, error: "Not authenticated" };
+        }
+
+        const basePath = typeof window !== 'undefined' 
+          ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+          : '';
+        
+        const emailResponse = await fetch(`${basePath}/api/students/${id}/update-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ email: email.trim() }),
+        });
+
+        if (!emailResponse.ok) {
+          let errorMessage = `HTTP ${emailResponse.status}: Failed to update email`;
+          try {
+            const errorData = await emailResponse.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch (parseError) {
+            // If JSON parsing fails, use the status text
+            errorMessage = emailResponse.statusText || errorMessage;
+          }
+          return { success: false, error: errorMessage };
+        }
+
+        const emailResult = await emailResponse.json();
+        if (!emailResult.success) {
+          return { success: false, error: emailResult.error || "Failed to update email" };
+        }
+      } catch (emailError: any) {
+        console.error('Error updating email:', emailError);
+        return { success: false, error: emailError.message || "Failed to update email" };
+      }
+    }
+
+    // Update student table fields
     const updateData: any = {};
 
     if (firstName !== undefined) updateData.first_name = firstName;

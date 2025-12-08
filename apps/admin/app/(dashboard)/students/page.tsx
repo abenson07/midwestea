@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { getStudents } from "@/lib/students";
+import { formatPhone } from "@midwestea/utils";
 
 // Student type for UI display
 type Student = {
@@ -178,7 +179,7 @@ function StudentsPageContent() {
                             <input
                                 type="tel"
                                 value={selectedStudent.phone || ''}
-                                onChange={(e) => setSelectedStudent({ ...selectedStudent, phone: e.target.value })}
+                                onChange={(e) => setSelectedStudent({ ...selectedStudent, phone: formatPhone(e.target.value) })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>

@@ -344,7 +344,8 @@ export async function updateClass(
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
-  location?: string | null
+  location?: string | null,
+  className?: string | null
 ): Promise<ClassResponse> {
   try {
     const supabase = await createSupabaseClient();
@@ -374,6 +375,7 @@ export async function updateClass(
     if (price !== undefined) updateData.price = price;
     if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
     if (location !== undefined) updateData.location = location;
+    if (className !== undefined) updateData.class_name = className;
 
     const { error } = await supabase
       .from("classes")

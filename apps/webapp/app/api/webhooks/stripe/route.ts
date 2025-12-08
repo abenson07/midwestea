@@ -8,6 +8,7 @@ import {
   createEnrollment,
   createPayment,
 } from '@/lib/enrollments';
+import { insertLog } from '@/lib/logging';
 
 export const runtime = 'nodejs';
 
@@ -125,6 +126,37 @@ export async function POST(request: NextRequest) {
       const amountCents = paymentIntent.amount;
       const payment = await createPayment(enrollment.id, paymentIntent, amountCents);
       console.log('[webhook] Payment created:', payment.id);
+
+      // Step 6: Log student registration (admin_user_id is null for Stripe actions)
+      try {
+        await insertLog({
+          admin_user_id: null,
+          reference_id: classRecord.id,
+          reference_type: 'class',
+          action_type: 'student_registered',
+          student_id: student.id,
+          class_id: classRecord.id,
+        });
+      } catch (logError: any) {
+        console.error('[webhook] Failed to log student registration:', logError);
+        // Don't fail the webhook if logging fails
+      }
+
+      // Step 7: Log payment success (admin_user_id is null for Stripe actions)
+      try {
+        await insertLog({
+          admin_user_id: null,
+          reference_id: classRecord.id,
+          reference_type: 'class',
+          action_type: 'payment_success',
+          student_id: student.id,
+          class_id: classRecord.id,
+          amount: amountCents,
+        });
+      } catch (logError: any) {
+        console.error('[webhook] Failed to log payment success:', logError);
+        // Don't fail the webhook if logging fails
+      }
 
       return NextResponse.json({
         success: true,

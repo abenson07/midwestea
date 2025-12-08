@@ -6,6 +6,7 @@ import Link from "next/link";
 import { getClasses, type Class } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { formatPhone } from "@midwestea/utils";
 
 // Placeholder type for Instructor - will be replaced when types are defined
 type Instructor = {
@@ -243,7 +244,7 @@ function InstructorDetailContent() {
                             <input
                                 type="tel"
                                 value={instructor.phone || ''}
-                                onChange={(e) => setInstructor({ ...instructor, phone: e.target.value })}
+                                onChange={(e) => setInstructor({ ...instructor, phone: formatPhone(e.target.value) })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>
