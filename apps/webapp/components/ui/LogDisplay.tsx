@@ -99,6 +99,18 @@ export function LogDisplay({ referenceId, referenceType, additionalFilters }: Lo
             enriched.students = null;
           }
 
+          // Fetch class data if class_id exists (for class_created logs on course detail pages)
+          if (log.class_id) {
+            const { data: classData } = await supabase
+              .from("classes")
+              .select("class_id")
+              .eq("id", log.class_id)
+              .single();
+            enriched.classes = classData || null;
+          } else {
+            enriched.classes = null;
+          }
+
           return enriched;
         })
       );

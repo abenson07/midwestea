@@ -597,3 +597,39 @@ export async function getClassesByStudentId(studentId: string): Promise<{ classe
     return { classes: null, error: error.message || "Failed to fetch classes for student" };
   }
 }
+
+/**
+ * Delete a class from the classes table (via server-side API route)
+ */
+export async function deleteClass(classId: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return { success: false, error: 'Not authenticated. Please log in.' };
+    }
+
+    const basePath = typeof window !== 'undefined' 
+      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+      : '';
+
+    const response = await fetch(`${basePath}/api/classes/${classId}/delete`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      return { success: false, error: result.error || 'Failed to delete class' };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || 'Failed to delete class' };
+  }
+}

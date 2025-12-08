@@ -22,6 +22,9 @@ export interface LogRecord {
     last_name: string | null;
     email: string | null;
   } | null;
+  classes?: {
+    class_id: string | null;
+  } | null;
 }
 
 /**
@@ -79,6 +82,10 @@ export function formatLogMessage(log: LogRecord): string {
       return formatDetailUpdate(log, adminName, timestamp);
 
     case "class_created":
+      // On course/program detail pages, show class_id; on class detail page, show "this class"
+      if ((log.reference_type === "course" || log.reference_type === "program") && log.classes?.class_id) {
+        return `${adminName} created Class ID ${log.classes.class_id} – ${timestamp}`;
+      }
       return `${adminName} created this class – ${timestamp}`;
 
     case "class_deleted":

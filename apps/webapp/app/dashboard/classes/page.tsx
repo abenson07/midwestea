@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getClasses, getClassById, updateClass, createClass, generateClassId, getCourses, type Class, type Course } from "@/lib/classes";
+import { getClasses, getClassById, updateClass, deleteClass, createClass, generateClassId, getCourses, type Class, type Course } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 
@@ -18,6 +18,8 @@ function ClassesPageContent() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [loadingDetail, setLoadingDetail] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isAddMode, setIsAddMode] = useState(false);
     const [courses, setCourses] = useState<Course[]>([]);
     
@@ -232,6 +234,22 @@ function ClassesPageContent() {
             alert(`Failed to save: ${error}`);
         }
         setSaving(false);
+    };
+
+    const handleDelete = async () => {
+        if (!selectedClass) return;
+
+        setDeleting(true);
+        const result = await deleteClass(selectedClass.id);
+
+        if (result.success) {
+            await loadClasses(); // Refresh list
+            handleCloseSidebar();
+        } else {
+            alert(`Failed to delete: ${result.error}`);
+        }
+        setDeleting(false);
+        setShowDeleteConfirm(false);
     };
 
     const formatDate = (dateString: string | null) => {
@@ -612,27 +630,68 @@ function ClassesPageContent() {
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={handleCloseSidebar}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
-                            >
-                                {saving ? "Saving..." : "Save Changes"}
-                            </button>
+                        <div className="pt-4 border-t border-gray-200 space-y-3">
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleCloseSidebar}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={saving || deleting}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
+                                >
+                                    {saving ? "Saving..." : "Save Changes"}
+                                </button>
+                            </div>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowDeleteConfirm(true)}
+                                    disabled={saving || deleting}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    Delete Class
+                                </button>
+                            </div>
                         </div>
                     </form>
                 ) : (
                     <p className="text-gray-500">Class not found.</p>
                 )}
             </DetailSidebar>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && selectedClass && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h2 className="text-xl font-bold text-black mb-4">Delete Class</h2>
+                        <p className="text-gray-700 mb-6">
+                            Are you sure you want to delete <strong>{selectedClass.class_name}</strong> ({selectedClass.class_id})? 
+                            This action cannot be undone.
+                        </p>
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={deleting}
+                                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {deleting ? "Deleting..." : "Delete"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

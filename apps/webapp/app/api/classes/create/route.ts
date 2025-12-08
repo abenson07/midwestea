@@ -132,6 +132,7 @@ export async function POST(request: NextRequest) {
     // Sync to Webflow
     let webflowItemId: string | null = null;
     let webflowError: string | null = null;
+    let courseProgramType: string | null = null;
     console.log('[API] Starting Webflow sync for class:', classData.id);
     try {
       // Look up the course/program to determine program_type
@@ -140,6 +141,8 @@ export async function POST(request: NextRequest) {
         .select('program_type')
         .eq('id', courseUuid)
         .single();
+      
+      courseProgramType = course?.program_type || null;
 
       if (courseError) {
         console.error('[API] Error fetching course:', courseError);
@@ -204,16 +207,40 @@ export async function POST(request: NextRequest) {
       webflowError = `Exception: ${webflowErr.message}`;
     }
 
-    // Log class creation
+    // Log class creation (for class detail page, course detail page, and program detail page)
     try {
       const { admin } = await getCurrentAdmin(user.id);
       if (admin) {
+        // Log for class detail page
         await insertLog({
           admin_user_id: admin.id,
           reference_id: classData.id,
           reference_type: 'class',
           action_type: 'class_created',
+          class_id: classData.id,
         });
+        
+        // Also log for course/program detail page
+        // Use the program_type we already fetched
+        if (courseProgramType === 'program') {
+          // Log for program detail page
+          await insertLog({
+            admin_user_id: admin.id,
+            reference_id: courseUuid,
+            reference_type: 'program',
+            action_type: 'class_created',
+            class_id: classData.id,
+          });
+        } else {
+          // Log for course detail page
+          await insertLog({
+            admin_user_id: admin.id,
+            reference_id: courseUuid,
+            reference_type: 'course',
+            action_type: 'class_created',
+            class_id: classData.id,
+          });
+        }
       }
     } catch (logError: any) {
       // Log error but don't fail class creation

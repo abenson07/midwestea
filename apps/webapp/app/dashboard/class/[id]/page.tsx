@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { getClassById, updateClass, getCourses, type Class, type Course } from "@/lib/classes";
+import { getClassById, updateClass, deleteClass, getCourses, type Class, type Course } from "@/lib/classes";
 import { Logo } from "@midwestea/ui";
 
 type Tab = "details" | "students";
@@ -57,6 +57,8 @@ export default function ClassDetailPage() {
   };
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState("");
 
   // Check if authenticated, redirect if not
@@ -167,6 +169,33 @@ export default function ClassDetailPage() {
       setError("An unexpected error occurred");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!classId) {
+      setError("Class ID is missing");
+      return;
+    }
+
+    setDeleting(true);
+    setError("");
+
+    try {
+      const result = await deleteClass(classId);
+
+      if (result.success) {
+        // Redirect to classes list after successful deletion
+        router.push("/dashboard");
+      } else {
+        setError(result.error || "Failed to delete class");
+        setShowDeleteConfirm(false);
+      }
+    } catch (err) {
+      setError("An unexpected error occurred");
+      setShowDeleteConfirm(false);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -492,11 +521,22 @@ export default function ClassDetailPage() {
                 <div className="flex flex-col gap-4 items-start relative shrink-0 w-full">
                   <button
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || deleting}
                     className="bg-black border border-black border-solid box-border flex gap-2 items-center justify-center px-6 py-3 relative shrink-0 w-full text-white text-[16px] font-normal leading-[1.5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors rounded-lg"
                   >
                     {saving ? "Saving..." : "Save Changes"}
                   </button>
+                  
+                  {/* Delete Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    disabled={saving || deleting}
+                    className="bg-red-600 border border-red-600 border-solid box-border flex gap-2 items-center justify-center px-6 py-3 relative shrink-0 w-full text-white text-[16px] font-normal leading-[1.5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-700 transition-colors rounded-lg"
+                  >
+                    Delete Class
+                  </button>
+                  
                   <Link
                     href="/dashboard"
                     className="text-center text-black text-[16px] font-normal leading-[1.5] hover:underline w-full"
@@ -533,6 +573,35 @@ export default function ClassDetailPage() {
       <div className="grow h-full min-h-0 min-w-0 relative shrink-0 bg-white">
         <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100" />
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-black mb-4">Delete Class</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <strong>{classData.class_name}</strong> ({classData.class_id})? 
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={deleting}
+                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
