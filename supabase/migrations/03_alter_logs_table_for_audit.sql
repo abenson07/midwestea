@@ -78,3 +78,4 @@ CREATE POLICY "Authenticated users can insert logs"
   TO authenticated
   WITH CHECK (true);
 
+

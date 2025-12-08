@@ -217,6 +217,8 @@ export async function updateStudent(
           ? (window.location.pathname.startsWith('/app') ? '/app' : '')
           : '';
         
+        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${email.trim()}`);
+        
         const emailResponse = await fetch(`${basePath}/api/students/${id}/update-email`, {
           method: 'POST',
           headers: {
@@ -226,24 +228,34 @@ export async function updateStudent(
           body: JSON.stringify({ email: email.trim() }),
         });
 
+        console.log(`[updateStudent] Email API response status: ${emailResponse.status}`);
+
         if (!emailResponse.ok) {
           let errorMessage = `HTTP ${emailResponse.status}: Failed to update email`;
           try {
-            const errorData = await emailResponse.json();
-            errorMessage = errorData.error || errorMessage;
+            const errorText = await emailResponse.text();
+            console.error(`[updateStudent] Email API error response:`, errorText);
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMessage = errorData.error || errorMessage;
+            } catch {
+              errorMessage = errorText || errorMessage;
+            }
           } catch (parseError) {
-            // If JSON parsing fails, use the status text
+            console.error('[updateStudent] Error parsing error response:', parseError);
             errorMessage = emailResponse.statusText || errorMessage;
           }
           return { success: false, error: errorMessage };
         }
 
         const emailResult = await emailResponse.json();
+        console.log(`[updateStudent] Email API result:`, emailResult);
+        
         if (!emailResult.success) {
           return { success: false, error: emailResult.error || "Failed to update email" };
         }
       } catch (emailError: any) {
-        console.error('Error updating email:', emailError);
+        console.error('[updateStudent] Exception updating email:', emailError);
         return { success: false, error: emailError.message || "Failed to update email" };
       }
     }
