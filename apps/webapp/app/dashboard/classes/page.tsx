@@ -92,7 +92,7 @@ function ClassesPageContent() {
     };
 
     const handleRowClick = (classItem: Class) => {
-        router.push(`/dashboard/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}?from=classes`);
     };
 
     const handleEditClick = (classItem: Class, e: React.MouseEvent) => {

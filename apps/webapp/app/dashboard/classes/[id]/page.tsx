@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getClassById, updateClass, getPrograms, getCourses, type Class } from "@/lib/classes";
+import { getClassById, updateClass, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
 import { getStudentsByClassId, getStudents } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
@@ -34,6 +34,7 @@ function ClassDetailContent() {
 
     // Sidebar state
     const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>("");
@@ -43,6 +44,10 @@ function ClassDetailContent() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [programs, setPrograms] = useState<any[]>([]);
     const [courses, setCourses] = useState<any[]>([]);
+    
+    // Navigation context
+    const [fromContext, setFromContext] = useState<'course' | 'program' | 'classes' | null>(null);
+    const [parentEntity, setParentEntity] = useState<Course | null>(null);
 
     useEffect(() => {
         if (classId) {
@@ -52,6 +57,30 @@ function ClassDetailContent() {
         loadPrograms();
         loadCourses();
     }, [classId]);
+
+    // Load navigation context from query params
+    useEffect(() => {
+        const from = searchParams.get("from");
+        const courseId = searchParams.get("courseId");
+        const programId = searchParams.get("programId");
+        
+        if (from === 'course' && courseId) {
+            setFromContext('course');
+            loadParentEntity(courseId);
+        } else if (from === 'program' && programId) {
+            setFromContext('program');
+            loadParentEntity(programId);
+        } else {
+            setFromContext('classes');
+        }
+    }, [searchParams]);
+
+    const loadParentEntity = async (id: string) => {
+        const { course } = await getCourseById(id);
+        if (course) {
+            setParentEntity(course);
+        }
+    };
 
     const loadPrograms = async () => {
         const { programs: fetchedPrograms } = await getPrograms();
@@ -232,6 +261,28 @@ function ClassDetailContent() {
         setIsEditModalOpen(true);
     };
 
+    const handleDelete = async () => {
+        if (!classData) return;
+
+        setDeleting(true);
+        setIsEditModalOpen(false);
+        const result = await deleteClass(classData.id);
+
+        if (result.success) {
+            // Navigate back based on context
+            if (fromContext === 'course' && parentEntity) {
+                router.push(`/dashboard/courses/${parentEntity.id}`);
+            } else if (fromContext === 'program' && parentEntity) {
+                router.push(`/dashboard/programs/${parentEntity.id}`);
+            } else {
+                router.push('/dashboard/classes');
+            }
+        } else {
+            alert(`Failed to delete class: ${result.error}`);
+            setDeleting(false);
+        }
+    };
+
     const handleStudentClick = (student: Student) => {
         router.push(`/dashboard/students/${student.id}`);
     };
@@ -341,14 +392,30 @@ function ClassDetailContent() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <Link
-                        href="/dashboard/classes"
-                        className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
-                    >
-                        ← Back to Classes
-                    </Link>
-                    <p className="text-sm text-gray-500">{classData.class_name}</p>
-                    <h1 className="text-2xl font-bold text-gray-900 mt-1">{classData.class_id}</h1>
+                    {fromContext === 'course' && parentEntity ? (
+                        <Link
+                            href={`/dashboard/courses/${parentEntity.id}`}
+                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+                        >
+                            ← Back to {parentEntity.course_name}
+                        </Link>
+                    ) : fromContext === 'program' && parentEntity ? (
+                        <Link
+                            href={`/dashboard/programs/${parentEntity.id}`}
+                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+                        >
+                            ← Back to {parentEntity.course_name}
+                        </Link>
+                    ) : (
+                        <Link
+                            href="/dashboard/classes"
+                            className="text-sm text-gray-500 hover:text-gray-700 mb-2 inline-block"
+                        >
+                            ← Back to Classes
+                        </Link>
+                    )}
+                    <h1 className="text-2xl font-bold text-gray-900">{classData.class_id}</h1>
+                    <p className="text-sm text-gray-500 mt-1">{classData.class_name}</p>
                 </div>
                 <button
                     onClick={handleEdit}
@@ -514,6 +581,7 @@ function ClassDetailContent() {
                     isOpen={isEditModalOpen}
                     onClose={() => setIsEditModalOpen(false)}
                     onSubmit={handleUpdateClass}
+                    onDelete={handleDelete}
                     context="classes"
                     editingClass={classData}
                     programs={programs}

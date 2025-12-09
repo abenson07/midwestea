@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileHeader } from "@/components/MobileHeader";
 import { MobileNav } from "@/components/MobileNav";
@@ -10,7 +11,9 @@ export default function DashboardLayout({
     return (
         <div className="flex h-screen bg-gray-50">
             <MobileHeader />
-            <Sidebar />
+            <Suspense fallback={<div className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white h-screen" />}>
+                <Sidebar />
+            </Suspense>
             <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
                 <div className="max-w-7xl mx-auto px-4 py-4 md:px-8 md:py-8">
                     {children}

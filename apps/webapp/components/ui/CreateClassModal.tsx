@@ -8,6 +8,7 @@ interface CreateClassModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onSubmit?: (data: ClassFormData) => void;
+  onDelete?: () => void;
   context?: 'program' | 'course' | 'classes';
   preselectedProgramId?: string;
   preselectedCourseId?: string;
@@ -34,6 +35,7 @@ export function CreateClassModal({
   isOpen = true, 
   onClose = () => {}, 
   onSubmit = () => {},
+  onDelete,
   context = 'classes',
   preselectedProgramId,
   preselectedCourseId,
@@ -63,6 +65,7 @@ export function CreateClassModal({
   const [isGraduationRateEditing, setIsGraduationRateEditing] = useState(false);
   const [isCertificateLengthEditing, setIsCertificateLengthEditing] = useState(false);
   const [isRegistrationLimitEditing, setIsRegistrationLimitEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const registrationFeeInputRef = useRef<HTMLInputElement>(null);
@@ -569,13 +572,12 @@ export function CreateClassModal({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Enrollment Open Date <span className="text-red-500">*</span>
+                    Enrollment Open Date
                   </label>
                   <input
                     type="date"
                     value={formData.enrollmentOpenDate}
                     onChange={(e) => updateField('enrollmentOpenDate', e.target.value)}
-                    required
                     disabled={isOnline}
                     className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
                       isOnline
@@ -586,13 +588,12 @@ export function CreateClassModal({
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Enrollment Close Date <span className="text-red-500">*</span>
+                    Enrollment Close Date
                   </label>
                   <input
                     type="date"
                     value={formData.enrollmentCloseDate}
                     onChange={(e) => updateField('enrollmentCloseDate', e.target.value)}
-                    required
                     disabled={isOnline}
                     className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
                       isOnline
@@ -603,13 +604,12 @@ export function CreateClassModal({
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Class Start Date <span className="text-red-500">*</span>
+                    Class Start Date
                   </label>
                   <input
                     type="date"
                     value={formData.classStartDate}
                     onChange={(e) => updateField('classStartDate', e.target.value)}
-                    required
                     disabled={isOnline}
                     className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
                       isOnline
@@ -620,13 +620,12 @@ export function CreateClassModal({
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Class End Date <span className="text-red-500">*</span>
+                    Class End Date
                   </label>
                   <input
                     type="date"
                     value={formData.classEndDate}
                     onChange={(e) => updateField('classEndDate', e.target.value)}
-                    required
                     disabled={isOnline}
                     className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
                       isOnline
@@ -640,23 +639,66 @@ export function CreateClassModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors"
-            >
-              {isEditMode ? 'Save Changes' : 'Create Class'}
-            </button>
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div>
+              {isEditMode && onDelete && (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors"
+              >
+                {isEditMode ? 'Save Changes' : 'Create Class'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && editingClass && onDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-black mb-4">Delete Class</h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete <strong>{editingClass.class_name}</strong> ({editingClass.class_id})? 
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDelete();
+                  setShowDeleteConfirm(false);
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

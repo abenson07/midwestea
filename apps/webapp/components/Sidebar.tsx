@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Logo } from "@midwestea/ui";
 import {
   BookOpen,
@@ -28,6 +28,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string>("");
 
@@ -52,7 +53,28 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4">
         <ul className="space-y-1 px-3">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            // Check if we're on class detail page with a 'from' parameter
+            const isClassDetailPage = pathname.startsWith('/dashboard/classes/') && pathname !== '/dashboard/classes';
+            const fromParam = isClassDetailPage ? searchParams?.get('from') : null;
+            
+            let isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            
+            // Override active state if we're on class detail page and have a 'from' parameter
+            if (isClassDetailPage && fromParam) {
+              if (fromParam === 'course' && item.name === 'Courses') {
+                isActive = true;
+              } else if (fromParam === 'program' && item.name === 'Programs') {
+                isActive = true;
+              } else if (fromParam === 'classes' && item.name === 'Classes') {
+                isActive = true;
+              } else if (!fromParam && item.name === 'Classes') {
+                // Default to Classes if no from param
+                isActive = true;
+              } else {
+                isActive = false;
+              }
+            }
+            
             return (
               <li key={item.name}>
                 <Link

@@ -109,7 +109,7 @@ function CourseDetailContent() {
     };
 
     const handleClassClick = (classItem: Class) => {
-        router.push(`/dashboard/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}?from=course&courseId=${courseId}`);
     };
 
     const handleCreateClass = async (formData: ClassFormData) => {

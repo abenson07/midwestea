@@ -109,7 +109,7 @@ function ProgramDetailContent() {
     };
 
     const handleClassClick = (classItem: Class) => {
-        router.push(`/dashboard/classes/${classItem.id}`);
+        router.push(`/dashboard/classes/${classItem.id}?from=program&programId=${programId}`);
     };
 
     const handleCreateClass = async (formData: ClassFormData) => {
