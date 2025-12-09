@@ -3,10 +3,11 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getCourseById, updateCourse, getClasses, type Course, type Class } from "@/lib/classes";
+import { getCourseById, updateCourse, getClasses, createClass, generateClassId, getPrograms, getCourses, type Course, type Class } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { formatCurrency } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 
@@ -19,6 +20,8 @@ function CourseDetailContent() {
     const [course, setCourse] = useState<Course | null>(null);
     const [originalCourse, setOriginalCourse] = useState<Course | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
+    const [programs, setPrograms] = useState<Course[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingClasses, setLoadingClasses] = useState(true);
     const [error, setError] = useState("");
@@ -26,12 +29,31 @@ function CourseDetailContent() {
     // Sidebar state
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    
+    // Modal state
+    const [isCreateClassModalOpen, setIsCreateClassModalOpen] = useState(false);
 
     useEffect(() => {
         if (courseId) {
             loadCourse();
         }
+        loadPrograms();
+        loadCourses();
     }, [courseId]);
+
+    const loadPrograms = async () => {
+        const { programs: fetchedPrograms } = await getPrograms();
+        if (fetchedPrograms) {
+            setPrograms(fetchedPrograms);
+        }
+    };
+
+    const loadCourses = async () => {
+        const { courses: fetchedCourses } = await getCourses();
+        if (fetchedCourses) {
+            setCourses(fetchedCourses);
+        }
+    };
 
     // Load classes after course is loaded so we can filter by course_code
     useEffect(() => {
@@ -88,6 +110,79 @@ function CourseDetailContent() {
 
     const handleClassClick = (classItem: Class) => {
         router.push(`/dashboard/classes/${classItem.id}`);
+    };
+
+    const handleCreateClass = async (formData: ClassFormData) => {
+        if (!formData.courseId) {
+            alert("Please select a program or course");
+            return;
+        }
+
+        // Find the selected program/course
+        const selectedCourse = [...programs, ...courses].find(c => c.id === formData.courseId);
+        if (!selectedCourse) {
+            alert("Selected program/course not found");
+            return;
+        }
+
+        setSaving(true);
+
+        try {
+            // Generate class_id
+            const { classId, error: classIdError } = await generateClassId(selectedCourse.course_code);
+            
+            if (classIdError || !classId) {
+                alert(classIdError || "Failed to generate class ID");
+                setSaving(false);
+                return;
+            }
+
+            // Helper functions for parsing
+            const parseDollars = (value: string): number | null => {
+                if (!value) return null;
+                const dollars = parseFloat(value);
+                if (isNaN(dollars)) return null;
+                return Math.round(dollars * 100);
+            };
+
+            const parsePercentage = (value: string): number | null => {
+                if (!value) return null;
+                const percent = parseFloat(value);
+                if (isNaN(percent)) return null;
+                return Math.round(percent * 100);
+            };
+
+            // Create the class
+            const result = await createClass(
+                formData.courseId,
+                selectedCourse.course_name,
+                selectedCourse.course_code,
+                classId,
+                formData.enrollmentOpenDate || null,
+                formData.enrollmentCloseDate || null,
+                formData.classStartDate || null,
+                formData.classEndDate || null,
+                formData.classType === 'online',
+                null, // length_of_class
+                formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
+                parsePercentage(formData.graduationRate),
+                formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
+                parseDollars(formData.price),
+                parseDollars(formData.registrationFee),
+                selectedCourse.stripe_product_id || null
+            );
+
+            if (result.success) {
+                await loadClasses(); // Refresh list
+                setIsCreateClassModalOpen(false);
+            } else {
+                alert(`Failed to create class: ${result.error}`);
+            }
+        } catch (err) {
+            alert("An unexpected error occurred");
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -363,12 +458,12 @@ function CourseDetailContent() {
             <div>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
-                    <Link
-                        href={`/dashboard/classes/add?courseId=${courseId}`}
+                    <button
+                        onClick={() => setIsCreateClassModalOpen(true)}
                         className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
                     >
                         Add Class
-                    </Link>
+                    </button>
                 </div>
                 <DataTable
                     data={classes}
@@ -509,6 +604,19 @@ function CourseDetailContent() {
                     <p className="text-gray-500">Course not found.</p>
                 )}
             </DetailSidebar>
+
+            {/* Create Class Modal */}
+            {isCreateClassModalOpen && course && (
+                <CreateClassModal
+                    isOpen={isCreateClassModalOpen}
+                    onClose={() => setIsCreateClassModalOpen(false)}
+                    onSubmit={handleCreateClass}
+                    context="classes"
+                    preselectedCourseId={course.id}
+                    programs={programs}
+                    courses={courses}
+                />
+            )}
         </div>
     );
 }

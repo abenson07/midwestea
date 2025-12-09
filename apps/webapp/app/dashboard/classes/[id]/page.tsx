@@ -3,11 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getClassById, updateClass, type Class } from "@/lib/classes";
+import { getClassById, updateClass, getPrograms, getCourses, type Class } from "@/lib/classes";
 import { getStudentsByClassId, getStudents } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { formatCurrency } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 
@@ -32,25 +33,45 @@ function ClassDetailContent() {
     const [error, setError] = useState("");
 
     // Sidebar state
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>("");
     const [addingStudent, setAddingStudent] = useState(false);
+    
+    // Modal state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [programs, setPrograms] = useState<any[]>([]);
+    const [courses, setCourses] = useState<any[]>([]);
 
     useEffect(() => {
         if (classId) {
             loadClass();
             loadStudents();
         }
+        loadPrograms();
+        loadCourses();
     }, [classId]);
 
-    // Handle URL params for sidebar
+    const loadPrograms = async () => {
+        const { programs: fetchedPrograms } = await getPrograms();
+        if (fetchedPrograms) {
+            setPrograms(fetchedPrograms);
+        }
+    };
+
+    const loadCourses = async () => {
+        const { courses: fetchedCourses } = await getCourses();
+        if (fetchedCourses) {
+            setCourses(fetchedCourses);
+        }
+    };
+
+    // Handle URL params for modal
     useEffect(() => {
         const editParam = searchParams.get("edit");
         if (editParam === "true" && classData) {
-            setIsSidebarOpen(true);
+            setIsEditModalOpen(true);
         }
     }, [searchParams, classData]);
 
@@ -208,21 +229,14 @@ function ClassDetailContent() {
     };
 
     const handleEdit = () => {
-        router.push(`/dashboard/classes/${classId}?edit=true`);
-        setIsSidebarOpen(true);
-    };
-
-    const handleCloseSidebar = () => {
-        setIsSidebarOpen(false);
-        router.push(`/dashboard/classes/${classId}`);
+        setIsEditModalOpen(true);
     };
 
     const handleStudentClick = (student: Student) => {
         router.push(`/dashboard/students/${student.id}`);
     };
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleUpdateClass = async (formData: ClassFormData) => {
         if (!classData || !originalClassData) return;
 
         setSaving(true);
@@ -230,113 +244,41 @@ function ClassDetailContent() {
         // Generate batch_id for this save operation
         const batchId = crypto.randomUUID();
 
+        // Helper functions for parsing
+        const parseDollars = (value: string): number | null => {
+            if (!value) return null;
+            const dollars = parseFloat(value);
+            if (isNaN(dollars)) return null;
+            return Math.round(dollars * 100);
+        };
+
+        const parsePercentage = (value: string): number | null => {
+            if (!value) return null;
+            const percent = parseFloat(value);
+            if (isNaN(percent)) return null;
+            return Math.round(percent * 100);
+        };
+
         // Perform update
         const { success, error } = await updateClass(
             classData.id,
-            classData.enrollment_start,
-            classData.enrollment_close,
-            classData.class_start_date,
-            classData.class_close_date,
-            classData.is_online,
-            classData.length_of_class,
-            classData.certification_length,
-            classData.graduation_rate,
-            classData.registration_limit,
-            classData.price,
-            classData.registration_fee,
-            classData.location,
-            classData.class_name
+            formData.enrollmentOpenDate || null,
+            formData.enrollmentCloseDate || null,
+            formData.classStartDate || null,
+            formData.classEndDate || null,
+            formData.classType === 'online',
+            null, // length_of_class
+            formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
+            parsePercentage(formData.graduationRate),
+            formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
+            parseDollars(formData.price),
+            parseDollars(formData.registrationFee)
         );
 
         if (success) {
-            // Log field changes
-            const fieldChanges: Array<{ field_name: string; old_value: string | null; new_value: string | null }> = [];
-
-            // Compare all editable fields
-            const fieldsToCompare = [
-                { key: "class_name", label: "name" },
-                { key: "enrollment_start", label: "enrollment_start" },
-                { key: "enrollment_close", label: "enrollment_close" },
-                { key: "class_start_date", label: "start_date" },
-                { key: "class_close_date", label: "end_date" },
-                { key: "is_online", label: "is_online" },
-                { key: "length_of_class", label: "length_of_class" },
-                { key: "certification_length", label: "certification_length" },
-                { key: "graduation_rate", label: "graduation_rate" },
-                { key: "registration_limit", label: "registration_limit" },
-                { key: "price", label: "price" },
-                { key: "registration_fee", label: "registration_fee" },
-                { key: "location", label: "location" },
-            ];
-
-            fieldsToCompare.forEach(({ key, label }) => {
-                const oldVal = originalClassData[key as keyof Class];
-                const newVal = classData[key as keyof Class];
-                
-                // Handle different types
-                let oldValue: string | null = null;
-                let newValue: string | null = null;
-                
-                if (oldVal !== null && oldVal !== undefined) {
-                    if (typeof oldVal === 'boolean') {
-                        oldValue = oldVal ? 'true' : 'false';
-                    } else {
-                        oldValue = String(oldVal);
-                    }
-                }
-                
-                if (newVal !== null && newVal !== undefined) {
-                    if (typeof newVal === 'boolean') {
-                        newValue = newVal ? 'true' : 'false';
-                    } else {
-                        newValue = String(newVal);
-                    }
-                }
-
-                if (oldValue !== newValue) {
-                    fieldChanges.push({
-                        field_name: label,
-                        old_value: oldValue,
-                        new_value: newValue,
-                    });
-                }
-            });
-
-            // Log changes if any
-            if (fieldChanges.length > 0) {
-                try {
-                    const supabase = await createSupabaseClient();
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session) {
-                        const basePath = typeof window !== 'undefined' 
-                            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-                            : '';
-                        await fetch(`${basePath}/api/logs/detail-update`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${session.access_token}`,
-                            },
-                            body: JSON.stringify({
-                                reference_id: classData.id,
-                                reference_type: 'class',
-                                field_changes: fieldChanges,
-                                batch_id: batchId,
-                            }),
-                        });
-                    }
-                } catch (logError) {
-                    console.error('Failed to log changes:', logError);
-                    // Don't fail the save if logging fails
-                }
-            }
-
-            // Reload class data and update original
+            // Reload class data
             await loadClass();
-            // Small delay to show success before closing
-            setTimeout(() => {
-                handleCloseSidebar();
-            }, 300);
+            setIsEditModalOpen(false);
         } else {
             alert(`Failed to save: ${error}`);
         }
@@ -566,163 +508,18 @@ function ClassDetailContent() {
                 </div>
             </DetailSidebar>
 
-            <DetailSidebar
-                isOpen={isSidebarOpen}
-                onClose={handleCloseSidebar}
-                title={classData ? `Edit ${classData.class_id}` : "Class Details"}
-            >
-                {classData ? (
-                    <form onSubmit={handleSave} className="space-y-6">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Class Name</label>
-                            <input
-                                type="text"
-                                value={classData.class_name || ''}
-                                onChange={(e) => setClassData({ ...classData, class_name: e.target.value })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Enrollment Start</label>
-                                <input
-                                    type="date"
-                                    value={classData.enrollment_start ? new Date(classData.enrollment_start).toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setClassData({ ...classData, enrollment_start: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Enrollment Close</label>
-                                <input
-                                    type="date"
-                                    value={classData.enrollment_close ? new Date(classData.enrollment_close).toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setClassData({ ...classData, enrollment_close: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Class Start</label>
-                                <input
-                                    type="date"
-                                    value={classData.class_start_date ? new Date(classData.class_start_date).toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setClassData({ ...classData, class_start_date: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Class End</label>
-                                <input
-                                    type="date"
-                                    value={classData.class_close_date ? new Date(classData.class_close_date).toISOString().split('T')[0] : ''}
-                                    onChange={(e) => setClassData({ ...classData, class_close_date: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                id="isOnline"
-                                checked={classData.is_online}
-                                onChange={(e) => setClassData({ ...classData, is_online: e.target.checked })}
-                                className="h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
-                            />
-                            <label htmlFor="isOnline" className="text-sm font-medium text-gray-700">Online Class</label>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Length of Class</label>
-                                <input
-                                    type="text"
-                                    value={classData.length_of_class || ''}
-                                    onChange={(e) => setClassData({ ...classData, length_of_class: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
-                                <input
-                                    type="number"
-                                    value={classData.registration_limit || ''}
-                                    onChange={(e) => setClassData({ ...classData, registration_limit: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Cert. Length</label>
-                                <input
-                                    type="number"
-                                    value={classData.certification_length || ''}
-                                    onChange={(e) => setClassData({ ...classData, certification_length: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Graduation Rate (%)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={classData.graduation_rate ? (classData.graduation_rate / 100).toFixed(2) : ''}
-                                    onChange={(e) => setClassData({ ...classData, graduation_rate: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Price ($)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={classData.price ? (classData.price / 100).toFixed(2) : ''}
-                                    onChange={(e) => setClassData({ ...classData, price: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Reg. Fee ($)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={classData.registration_fee ? (classData.registration_fee / 100).toFixed(2) : ''}
-                                    onChange={(e) => setClassData({ ...classData, registration_fee: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={handleCloseSidebar}
-                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={saving}
-                                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
-                            >
-                                {saving ? "Saving..." : "Save Changes"}
-                            </button>
-                        </div>
-                    </form>
-                ) : (
-                    <p className="text-gray-500">Class not found.</p>
-                )}
-            </DetailSidebar>
+            {/* Edit Class Modal */}
+            {isEditModalOpen && classData && (
+                <CreateClassModal
+                    isOpen={isEditModalOpen}
+                    onClose={() => setIsEditModalOpen(false)}
+                    onSubmit={handleUpdateClass}
+                    context="classes"
+                    editingClass={classData}
+                    programs={programs}
+                    courses={courses}
+                />
+            )}
         </div>
     );
 }

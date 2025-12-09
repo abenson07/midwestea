@@ -2,15 +2,22 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { X, ChevronDown, Monitor, Users, Building2, DollarSign, Percent, Award, UserCheck } from 'lucide-react';
+import { getPrograms, getCourses, type Course, type Class } from '@/lib/classes';
 
 interface CreateClassModalProps {
   isOpen?: boolean;
   onClose?: () => void;
   onSubmit?: (data: ClassFormData) => void;
+  context?: 'program' | 'course' | 'classes';
+  preselectedProgramId?: string;
+  preselectedCourseId?: string;
+  editingClass?: Class;
+  programs?: Course[];
+  courses?: Course[];
 }
 
 export interface ClassFormData {
-  course: string;
+  courseId: string;
   enrollmentOpenDate: string;
   enrollmentCloseDate: string;
   classStartDate: string;
@@ -23,22 +30,19 @@ export interface ClassFormData {
   registrationLimit: string;
 }
 
-const courses = [
-  'Web Development Bootcamp',
-  'Data Science Fundamentals',
-  'UX/UI Design Masterclass',
-  'Machine Learning Advanced',
-  'Mobile App Development',
-  'Cloud Computing Essentials',
-  'Cybersecurity Professional',
-  'Digital Marketing Strategy',
-  'Product Management',
-  'DevOps Engineering'
-];
-
-export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit = () => {} }: CreateClassModalProps) {
+export function CreateClassModal({ 
+  isOpen = true, 
+  onClose = () => {}, 
+  onSubmit = () => {},
+  context = 'classes',
+  preselectedProgramId,
+  preselectedCourseId,
+  editingClass,
+  programs: providedPrograms,
+  courses: providedCourses
+}: CreateClassModalProps) {
   const [formData, setFormData] = useState<ClassFormData>({
-    course: '',
+    courseId: '',
     enrollmentOpenDate: '',
     enrollmentCloseDate: '',
     classStartDate: '',
@@ -50,6 +54,9 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
     certificateLength: '',
     registrationLimit: ''
   });
+  const [programs, setPrograms] = useState<Course[]>(providedPrograms || []);
+  const [courses, setCourses] = useState<Course[]>(providedCourses || []);
+  const [loadingData, setLoadingData] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [isRegistrationFeeEditing, setIsRegistrationFeeEditing] = useState(false);
@@ -116,6 +123,118 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
     }
   }, [isRegistrationLimitEditing]);
 
+  // Fetch programs/courses if not provided
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!isOpen) return;
+      
+      setLoadingData(true);
+      try {
+        if (context === 'program' || context === 'classes') {
+          if (!providedPrograms) {
+            const { programs: fetchedPrograms } = await getPrograms();
+            if (fetchedPrograms) setPrograms(fetchedPrograms);
+          }
+        }
+        if (context === 'course' || context === 'classes') {
+          if (!providedCourses) {
+            const { courses: fetchedCourses } = await getCourses();
+            if (fetchedCourses) setCourses(fetchedCourses);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching programs/courses:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchData();
+  }, [isOpen, context, providedPrograms, providedCourses]);
+
+  // Initialize form data for edit mode or pre-selected values
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (editingClass) {
+      // Edit mode: pre-fill from class data
+      const selectedCourse = [...programs, ...courses].find(
+        c => c.id === editingClass.course_uuid
+      );
+      
+      setFormData({
+        courseId: editingClass.course_uuid,
+        enrollmentOpenDate: editingClass.enrollment_start 
+          ? new Date(editingClass.enrollment_start).toISOString().split('T')[0] 
+          : '',
+        enrollmentCloseDate: editingClass.enrollment_close 
+          ? new Date(editingClass.enrollment_close).toISOString().split('T')[0] 
+          : '',
+        classStartDate: editingClass.class_start_date 
+          ? new Date(editingClass.class_start_date).toISOString().split('T')[0] 
+          : '',
+        classEndDate: editingClass.class_close_date 
+          ? new Date(editingClass.class_close_date).toISOString().split('T')[0] 
+          : '',
+        classType: editingClass.is_online ? 'online' : 'in-person',
+        price: editingClass.price ? (editingClass.price / 100).toFixed(2) : '',
+        registrationFee: editingClass.registration_fee ? (editingClass.registration_fee / 100).toFixed(2) : '',
+        graduationRate: editingClass.graduation_rate ? (editingClass.graduation_rate / 100).toFixed(2) : '',
+        certificateLength: editingClass.certification_length?.toString() || '',
+        registrationLimit: editingClass.registration_limit?.toString() || '',
+      });
+    } else {
+      // Create mode: initialize with defaults
+      const today = new Date().toISOString().split('T')[0];
+      const preselectedId = preselectedProgramId || preselectedCourseId || '';
+      
+      setFormData({
+        courseId: preselectedId,
+        enrollmentOpenDate: today,
+        enrollmentCloseDate: '',
+        classStartDate: '',
+        classEndDate: '',
+        classType: 'in-person',
+        price: '',
+        registrationFee: '',
+        graduationRate: '',
+        certificateLength: '',
+        registrationLimit: '',
+      });
+
+      // If pre-selected, inherit fields
+      if (preselectedId) {
+        const selected = [...programs, ...courses].find(c => c.id === preselectedId);
+        if (selected) {
+          inheritFieldsFromCourse(selected);
+        }
+      }
+    }
+  }, [isOpen, editingClass, preselectedProgramId, preselectedCourseId, programs, courses]);
+
+  // Auto-set enrollment close date when class start date is set
+  useEffect(() => {
+    if (formData.classStartDate && !formData.enrollmentCloseDate && !editingClass) {
+      const startDate = new Date(formData.classStartDate);
+      const closeDate = new Date(startDate);
+      closeDate.setDate(closeDate.getDate() - 21); // 3 weeks before
+      const closeDateStr = closeDate.toISOString().split('T')[0];
+      setFormData(prev => ({ ...prev, enrollmentCloseDate: closeDateStr }));
+    }
+  }, [formData.classStartDate, editingClass]);
+
+  // Helper function to inherit fields from course/program
+  const inheritFieldsFromCourse = (course: Course) => {
+    setFormData(prev => ({
+      ...prev,
+      price: course.price ? (course.price / 100).toFixed(2) : prev.price,
+      registrationFee: course.registration_fee ? (course.registration_fee / 100).toFixed(2) : prev.registrationFee,
+      graduationRate: course.graduation_rate ? (course.graduation_rate / 100).toFixed(2) : prev.graduationRate,
+      certificateLength: course.certification_length?.toString() || prev.certificateLength,
+      registrationLimit: course.registration_limit?.toString() || prev.registrationLimit,
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
@@ -123,6 +242,14 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
 
   const updateField = (field: keyof ClassFormData, value: string | boolean | 'online' | 'in-person' | 'hybrid') => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCourseChange = (courseId: string) => {
+    updateField('courseId', courseId);
+    const selected = [...programs, ...courses].find(c => c.id === courseId);
+    if (selected) {
+      inheritFieldsFromCourse(selected);
+    }
   };
 
   const classTypeOptions = [
@@ -134,12 +261,21 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
   const currentOption = classTypeOptions.find(opt => opt.value === formData.classType) || classTypeOptions[1];
   const CurrentIcon = currentOption.icon;
 
+  // Determine label and options for dropdown
+  const isEditMode = !!editingClass;
+  const labelText = context === 'program' ? 'Program' : 'Course';
+  const isOnline = formData.classType === 'online';
+
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Create New Class</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {isEditMode ? 'Edit Class' : 'Create New Class'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -152,22 +288,56 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
           <div className="px-6 py-6 space-y-6">
-            {/* Course Selection - Primary Field */}
+            {/* Course/Program Selection - Primary Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Course <span className="text-red-500">*</span>
+                {labelText} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
-                  value={formData.course}
-                  onChange={(e) => updateField('course', e.target.value)}
+                  value={formData.courseId}
+                  onChange={(e) => handleCourseChange(e.target.value)}
                   required
-                  className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm appearance-none cursor-pointer hover:border-gray-400 focus:outline-none focus:border-black focus:ring-black transition-colors"
+                  disabled={isEditMode || loadingData}
+                  className={`w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm appearance-none transition-colors ${
+                    isEditMode || loadingData
+                      ? 'cursor-not-allowed bg-gray-100'
+                      : 'cursor-pointer hover:border-gray-400 focus:outline-none focus:border-black focus:ring-black'
+                  }`}
                 >
-                  <option value="">Select a course...</option>
-                  {courses.map((course) => (
-                    <option key={course} value={course}>
-                      {course}
+                  <option value="">
+                    {loadingData 
+                      ? 'Loading...' 
+                      : context === 'classes' 
+                        ? 'Select a program or course...' 
+                        : `Select a ${labelText.toLowerCase()}...`}
+                  </option>
+                  {context === 'classes' && programs.length > 0 && (
+                    <optgroup label="Programs">
+                      {programs.map((program) => (
+                        <option key={program.id} value={program.id}>
+                          {program.course_code} - {program.course_name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {context === 'classes' && courses.length > 0 && (
+                    <optgroup label="Courses">
+                      {courses.map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {course.course_code} - {course.course_name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {context === 'program' && programs.map((program) => (
+                    <option key={program.id} value={program.id}>
+                      {program.course_code} - {program.course_name}
+                    </option>
+                  ))}
+                  {context === 'course' && courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.course_code} - {course.course_name}
                     </option>
                   ))}
                 </select>
@@ -177,11 +347,11 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
 
             {/* Class Type Badge Dropdown and Price Badge */}
             <div className="flex items-center gap-2">
-              <div className="relative" ref={dropdownRef}>
+              <div className="relative flex-1" ref={dropdownRef}>
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
                 >
                   <CurrentIcon size={12} className="text-gray-700" />
                   <span className="text-[11px] font-medium text-gray-700">{currentOption.label}</span>
@@ -224,9 +394,9 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
               </div>
 
               {/* Price Badge Input */}
-              <div className="relative">
+              <div className="relative flex-1">
                 {isPriceEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-[80px]">
+                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
                     <DollarSign size={12} className="text-gray-700" />
                     <input
                       ref={priceInputRef}
@@ -247,7 +417,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                   <button
                     type="button"
                     onClick={() => setIsPriceEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-[80px]"
+                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
                   >
                     <DollarSign size={12} className="text-gray-700" />
                     <span className="text-[11px] font-medium text-gray-700 truncate">
@@ -258,9 +428,9 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
               </div>
 
               {/* Registration Fee Badge Input */}
-              <div className="relative">
+              <div className="relative flex-1">
                 {isRegistrationFeeEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-[80px]">
+                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
                     <DollarSign size={12} className="text-gray-700" />
                     <input
                       ref={registrationFeeInputRef}
@@ -281,7 +451,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                   <button
                     type="button"
                     onClick={() => setIsRegistrationFeeEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-[80px]"
+                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
                   >
                     <DollarSign size={12} className="text-gray-700" />
                     <span className="text-[11px] font-medium text-gray-700 truncate">
@@ -292,9 +462,9 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
               </div>
 
               {/* Graduation Rate Badge Input */}
-              <div className="relative">
+              <div className="relative flex-1">
                 {isGraduationRateEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-[80px]">
+                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
                     <Percent size={12} className="text-gray-700" />
                     <input
                       ref={graduationRateInputRef}
@@ -315,7 +485,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                   <button
                     type="button"
                     onClick={() => setIsGraduationRateEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-[80px]"
+                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
                   >
                     <Percent size={12} className="text-gray-700" />
                     <span className="text-[11px] font-medium text-gray-700 truncate">
@@ -326,9 +496,9 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
               </div>
 
               {/* Certificate Length Badge Input */}
-              <div className="relative">
+              <div className="relative flex-1">
                 {isCertificateLengthEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-[80px]">
+                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
                     <Award size={12} className="text-gray-700" />
                     <input
                       ref={certificateLengthInputRef}
@@ -349,7 +519,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                   <button
                     type="button"
                     onClick={() => setIsCertificateLengthEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-[80px]"
+                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
                   >
                     <Award size={12} className="text-gray-700" />
                     <span className="text-[11px] font-medium text-gray-700 truncate">
@@ -360,9 +530,9 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
               </div>
 
               {/* Registration Limit Badge Input */}
-              <div className="relative">
+              <div className="relative flex-1">
                 {isRegistrationLimitEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-[80px]">
+                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
                     <UserCheck size={12} className="text-gray-700" />
                     <input
                       ref={registrationLimitInputRef}
@@ -383,7 +553,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                   <button
                     type="button"
                     onClick={() => setIsRegistrationLimitEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-[80px]"
+                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
                   >
                     <UserCheck size={12} className="text-gray-700" />
                     <span className="text-[11px] font-medium text-gray-700 truncate">
@@ -398,7 +568,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
                     Enrollment Open Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -406,11 +576,16 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                     value={formData.enrollmentOpenDate}
                     onChange={(e) => updateField('enrollmentOpenDate', e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-black focus:ring-black transition-colors"
+                    disabled={isOnline}
+                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
+                      isOnline
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
+                    }`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
                     Enrollment Close Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -418,11 +593,16 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                     value={formData.enrollmentCloseDate}
                     onChange={(e) => updateField('enrollmentCloseDate', e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-black focus:ring-black transition-colors"
+                    disabled={isOnline}
+                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
+                      isOnline
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
+                    }`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
                     Class Start Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -430,11 +610,16 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                     value={formData.classStartDate}
                     onChange={(e) => updateField('classStartDate', e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-black focus:ring-black transition-colors"
+                    disabled={isOnline}
+                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
+                      isOnline
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
+                    }`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
                     Class End Date <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -442,7 +627,12 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
                     value={formData.classEndDate}
                     onChange={(e) => updateField('classEndDate', e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-black focus:ring-black transition-colors"
+                    disabled={isOnline}
+                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
+                      isOnline
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
+                    }`}
                   />
                 </div>
               </div>
@@ -462,7 +652,7 @@ export function CreateClassModal({ isOpen = true, onClose = () => {}, onSubmit =
               type="submit"
               className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors"
             >
-              Create Class
+              {isEditMode ? 'Save Changes' : 'Create Class'}
             </button>
           </div>
         </form>
