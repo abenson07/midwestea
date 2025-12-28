@@ -15,6 +15,7 @@ function CheckoutDetailsContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [activeVariant, setActiveVariant] = useState<'online' | 'in-person'>('online');
 
   useEffect(() => {
     const classIDParam = searchParams.get('classID');
@@ -46,6 +47,8 @@ function CheckoutDetailsContent() {
         const fetchedClass = classResult.class;
         setClassData(fetchedClass);
         setSelectedClassId(fetchedClass.class_id);
+        // Set initial active variant based on class data
+        setActiveVariant(fetchedClass.is_online ? 'online' : 'in-person');
 
         // If class has a course_code, check for other available classes
         if (fetchedClass.course_code) {
@@ -117,10 +120,17 @@ function CheckoutDetailsContent() {
       onBackClick={() => router.back()}
       classesContent={
         <>
-          <CheckoutClassCard variant="online" state="default" />
-          <CheckoutClassCard variant="online" state="active" />
-          <CheckoutClassCard variant="in-person" state="default" />
-          <CheckoutClassCard variant="in-person" state="active" />
+          <CheckoutClassCard 
+            variant="online" 
+            state={activeVariant === 'online' ? 'active' : 'default'}
+            onClick={() => setActiveVariant('online')}
+          />
+          <CheckoutClassCard 
+            variant="in-person" 
+            state={activeVariant === 'in-person' ? 'active' : 'default'}
+            location={classData.location || undefined}
+            onClick={() => setActiveVariant('in-person')}
+          />
         </>
       }
     >
