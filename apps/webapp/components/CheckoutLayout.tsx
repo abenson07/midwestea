@@ -75,7 +75,8 @@ export default function CheckoutLayout({
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: '2rem 1rem',
-          overflowY: 'auto'
+          overflowY: 'auto',
+          backgroundColor: '#F7F6F3'
         }}
       >
         {/* Top Section */}
@@ -204,17 +205,38 @@ export default function CheckoutLayout({
               className="checkout-button"
               style={{
                 width: '100%',
-                padding: '0.75rem 1.5rem',
-                fontSize: '1rem',
-                fontWeight: '600',
-                border: 'none',
-                borderRadius: '0.5rem',
+                padding: '16px',
+                fontSize: '14px',
+                fontWeight: 600,
+                fontFamily: '"DM Sans", sans-serif',
+                lineHeight: 1.4,
+                border: '1px solid var(--buttons-primary-button-background, #ffb452)',
+                borderRadius: '4px',
                 cursor: 'pointer',
-                backgroundColor: '#000',
-                color: '#fff'
+                backgroundColor: 'var(--buttons-primary-button-background, #ffb452)',
+                color: '#000',
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                whiteSpace: 'nowrap'
               }}
             >
-              {buttonText}
+              <span>{buttonText}</span>
+              {/* Arrow icon */}
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ flexShrink: 0 }}
+              >
+                <path
+                  d="M16.01 11H4v2h12.01v3L20 12l-3.99-4v3z"
+                  fill="#000"
+                />
+              </svg>
             </button>
           )}
         </div>
