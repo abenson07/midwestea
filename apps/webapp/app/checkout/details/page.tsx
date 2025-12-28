@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import type { Class } from '@midwestea/types';
 import CheckoutLayout from '@/components/CheckoutLayout';
 import CheckoutClassDescription from '@/components/CheckoutClassDescription';
+import CheckoutClassCard from '@/components/CheckoutClassCard';
 
 function CheckoutDetailsContent() {
   const searchParams = useSearchParams();
@@ -114,6 +115,14 @@ function CheckoutDetailsContent() {
       buttonText="Continue to Payment"
       onButtonClick={handleContinue}
       onBackClick={() => router.back()}
+      classesContent={
+        <>
+          <CheckoutClassCard variant="online" state="default" />
+          <CheckoutClassCard variant="online" state="active" />
+          <CheckoutClassCard variant="in-person" state="default" />
+          <CheckoutClassCard variant="in-person" state="active" />
+        </>
+      }
     >
       {/* Online Variant */}
       <CheckoutClassDescription

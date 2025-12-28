@@ -12,6 +12,7 @@ interface CheckoutLayoutProps {
   onButtonClick?: () => void;
   onBackClick?: () => void;
   logoUrl?: string;
+  classesContent?: ReactNode;
 }
 
 export default function CheckoutLayout({ 
@@ -23,7 +24,8 @@ export default function CheckoutLayout({
   buttonText = 'Continue',
   onButtonClick,
   onBackClick,
-  logoUrl = 'https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/69519dfb03c5fd3b91b0c2f2_Company%20Logo.svg'
+  logoUrl = 'https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/69519dfb03c5fd3b91b0c2f2_Company%20Logo.svg',
+  classesContent
 }: CheckoutLayoutProps) {
   // Calculate display price: registration fee if exists, otherwise price
   const displayPrice = registrationFee || price || 0;
@@ -180,10 +182,11 @@ export default function CheckoutLayout({
             className="checkout-classes-wrapper"
             style={{
               display: 'flex',
-              flexDirection: 'column'
+              flexDirection: 'column',
+              gap: '8px'
             }}
           >
-            {/* Will be filled in later */}
+            {classesContent}
           </div>
 
           {/* Details Wrapper */}
