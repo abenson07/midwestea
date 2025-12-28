@@ -134,21 +134,22 @@ function CheckoutDetailsContent() {
         </>
       }
     >
-      {/* Online Variant */}
-      <CheckoutClassDescription
-        variant="online"
-        description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
-      />
-      
-      {/* In-Person Variant */}
-      <CheckoutClassDescription
-        variant="in-person"
-        description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
-        startDate={classData.class_start_date || undefined}
-        endDate={classData.class_close_date || undefined}
-        location={classData.location || undefined}
-        frequency={classData.length_of_class || undefined}
-      />
+      {/* Show description based on is_online boolean */}
+      {classData.is_online ? (
+        <CheckoutClassDescription
+          variant="online"
+          description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+        />
+      ) : (
+        <CheckoutClassDescription
+          variant="in-person"
+          description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+          startDate={classData.class_start_date || undefined}
+          endDate={classData.class_close_date || undefined}
+          location={classData.location || undefined}
+          frequency={classData.length_of_class || undefined}
+        />
+      )}
     </CheckoutLayout>
   );
 }
