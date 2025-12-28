@@ -144,15 +144,20 @@ export default function CheckoutClassCard({
                   height: '24px'
                 }}
               >
-                {/* Clock icon placeholder */}
-                <div
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    backgroundColor: 'var(--color-neutral-dark, #6e6e70)',
-                    borderRadius: '50%'
-                  }}
-                />
+                {/* Clock icon - nest_clock_farsight_analog */}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ flexShrink: 0 }}
+                >
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"
+                    fill="var(--color-neutral-dark, #6e6e70)"
+                  />
+                </svg>
                 <p
                   style={{
                     fontFamily: '"DM Sans", sans-serif',
@@ -177,15 +182,20 @@ export default function CheckoutClassCard({
                   height: '24px'
                 }}
               >
-                {/* Calendar icon placeholder */}
-                <div
-                  style={{
-                    width: '16px',
-                    height: '16px',
-                    backgroundColor: 'var(--color-neutral-dark, #6e6e70)',
-                    borderRadius: '2px'
-                  }}
-                />
+                {/* Calendar icon */}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  style={{ flexShrink: 0 }}
+                >
+                  <path
+                    d="M20 3h-1V1h-2v2H7V1H5v2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 18H4V8h16v13z"
+                    fill="var(--color-neutral-dark, #6e6e70)"
+                  />
+                </svg>
                 <p
                   style={{
                     fontFamily: '"DM Sans", sans-serif',
