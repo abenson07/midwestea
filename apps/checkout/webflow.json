@@ -3,6 +3,12 @@
     "framework": "nextjs",
     "project_id": "71ae03ab-cd3e-4a8b-8f49-474f8a70c785"
   },
+  "devlink": {
+    "host": "https://api.webflow.com",
+    "rootDir": "./devlink",
+    "cssModules": true,
+    "relativeHrefRoot": "/checkout"
+  },
   "telemetry": {
     "global": {
       "allowTelemetry": true,
@@ -11,6 +17,8 @@
     }
   }
 }
+
+
 
 
 

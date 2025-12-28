@@ -12,7 +12,8 @@
     "webflow:auth:login": "webflow auth login",
     "webflow:cloud:init": "webflow cloud init",
     "webflow:cloud:deploy": "webflow cloud deploy",
-    "webflow:cloud:list": "webflow cloud list"
+    "webflow:cloud:list": "webflow cloud list",
+    "webflow:devlink:sync": "webflow devlink sync"
   },
   "dependencies": {
     "next": "^15.0.0",

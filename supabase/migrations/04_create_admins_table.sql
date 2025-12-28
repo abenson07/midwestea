@@ -35,3 +35,5 @@ CREATE POLICY "Service role can manage admins"
   WITH CHECK (true);
 
 
+
+
