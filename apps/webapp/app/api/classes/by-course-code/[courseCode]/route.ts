@@ -7,7 +7,7 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ courseCode: string }> | { courseCode: string } }
+  { params }: { params: Promise<{ courseCode: string }> }
 ) {
   // Set CORS headers for Webflow access
   const headers = {
@@ -22,8 +22,8 @@ export async function GET(
   }
 
   try {
-    // Handle Next.js 15 async params
-    const resolvedParams = params instanceof Promise ? await params : params;
+    // Next.js 15 requires params to be a Promise
+    const resolvedParams = await params;
     const courseCode = resolvedParams.courseCode;
 
     if (!courseCode) {

@@ -6,11 +6,11 @@ export const runtime = 'nodejs';
 
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Handle both Next.js 14 and 15 param formats
-    const params = await Promise.resolve(context.params);
+    // Next.js 15 requires params to be a Promise
+    const params = await context.params;
     const studentId = params.id;
 
     // Get the authorization header (Bearer token from Supabase session)

@@ -25,6 +25,7 @@ interface QuickBooksCustomer {
   };
   GivenName?: string;
   FamilyName?: string;
+  DisplayName?: string;
 }
 
 interface QuickBooksItem {
@@ -218,7 +219,7 @@ async function apiRequest<T>(
     try {
       const errorData: QuickBooksError = JSON.parse(errorText);
       // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:275',message:'Parsed error response',data:{errorData:JSON.stringify(errorData),errorCode:errorData.Fault?.Error?.[0]?.code,errorMessage:errorData.Fault?.Error?.[0]?.Message,errorDetail:errorData.Fault?.Error?.[0]?.Detail,errorElement:errorData.Fault?.Error?.[0]?.element},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:275',message:'Parsed error response',data:{errorData:JSON.stringify(errorData),errorCode:errorData.Fault?.Error?.[0]?.code,errorMessage:errorData.Fault?.Error?.[0]?.Message,errorDetail:errorData.Fault?.Error?.[0]?.Detail},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
       // #endregion
       if (errorData.Fault?.Error?.[0]) {
         errorMessage = `QuickBooks API error: ${errorData.Fault.Error[0].Message} (${errorData.Fault.Error[0].code})`;

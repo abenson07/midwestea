@@ -7,7 +7,7 @@ import { createSupabaseAdminClient, formatCurrency } from '@midwestea/utils';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Set CORS headers for Webflow access
   const headers = {
@@ -22,7 +22,9 @@ export async function GET(
   }
 
   try {
-    const classId = params.id;
+    // Next.js 15 requires params to be a Promise
+    const resolvedParams = await params;
+    const classId = resolvedParams.id;
 
     if (!classId) {
       return NextResponse.json(

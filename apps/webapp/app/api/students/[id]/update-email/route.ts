@@ -6,22 +6,13 @@ export const runtime = 'nodejs';
 
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     console.log('[update-email] Route called');
     
-    // Handle both Next.js 14 and 15 param formats
-    let params: { id: string };
-    try {
-      params = await Promise.resolve(context.params);
-    } catch (paramsError: any) {
-      console.error('[update-email] Error resolving params:', paramsError);
-      return NextResponse.json(
-        { success: false, error: 'Invalid route parameters' },
-        { status: 400 }
-      );
-    }
+    // Next.js 15 requires params to be a Promise
+    const params = await context.params;
     
     const studentId = params.id;
     console.log('[update-email] Student ID:', studentId);

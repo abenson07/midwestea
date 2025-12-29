@@ -144,7 +144,7 @@ async function handlePaymentEvent(paymentId: string, paymentEntity: any) {
       (field: any) => field.Name === 'ClassID' || field.name === 'ClassID'
     );
     if (classIdField) {
-      classId = classIdField.StringValue || classIdField.stringValue;
+      classId = classIdField.StringValue;
     }
   }
 

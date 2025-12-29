@@ -6,11 +6,11 @@ export const runtime = 'nodejs';
 
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> | { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Handle both Next.js 14 and 15 param formats
-    const params = await Promise.resolve(context.params);
+    // Next.js 15 requires params to be a Promise
+    const params = await context.params;
     const classId = params.id;
 
     // Get the authorization header (Bearer token from Supabase session)
