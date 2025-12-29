@@ -206,12 +206,21 @@ export async function POST(request: NextRequest) {
       }
 
       // Step 8: Create invoice record for CSV export on successful payment
+      let invoiceErrorDetails: any = null;
       try {
         const paymentDate = new Date();
         // #region agent log
         fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:163',message:'About to call createRegistrationFeeInvoices (checkout.session)',data:{paymentId:payment.id,classId:classRecord.id,classIdText:classRecord.class_id,email,paymentDate:paymentDate.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         console.log('[webhook] Creating invoice record for payment:', payment.id);
+        console.log('[webhook] Class details:', {
+          id: classRecord.id,
+          class_id: classRecord.class_id,
+          class_name: classRecord.class_name,
+          course_code: classRecord.course_code,
+          price: classRecord.price,
+          registration_fee: classRecord.registration_fee,
+        });
         const invoices = await createRegistrationFeeInvoices(
           payment.id,
           classRecord,
@@ -222,16 +231,24 @@ export async function POST(request: NextRequest) {
         fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:172',message:'createRegistrationFeeInvoices returned successfully (checkout.session)',data:{invoiceCount:invoices.length,invoiceNumbers:invoices.map(i=>i.invoice_number)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
         // #endregion
         console.log('[webhook] Successfully created invoice records for CSV export:', invoices.length, 'invoices');
+        console.log('[webhook] Invoice numbers:', invoices.map(i => i.invoice_number));
       } catch (invoiceError: any) {
         // #region agent log
         fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:175',message:'createRegistrationFeeInvoices threw error (checkout.session)',data:{error:invoiceError.message,errorStack:invoiceError.stack,classId:classRecord.class_id,paymentId:payment.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'C'})}).catch(()=>{});
         // #endregion
-        console.error('[webhook] Failed to create invoice records:', {
+        invoiceErrorDetails = {
           error: invoiceError.message,
           stack: invoiceError.stack,
+          code: invoiceError.code,
+          details: invoiceError.details,
+          hint: invoiceError.hint,
           classId: classRecord.class_id,
           paymentId: payment.id,
-        });
+        };
+        console.error('[webhook] Failed to create invoice records:', invoiceErrorDetails);
+        // Log the full error object for debugging
+        console.error('[webhook] Full invoice error:', JSON.stringify(invoiceErrorDetails, null, 2));
+        // Don't fail the webhook if invoice creation fails, but include error in response
       }
 
       return NextResponse.json({
@@ -240,6 +257,11 @@ export async function POST(request: NextRequest) {
         enrollment_id: enrollment.id,
         payment_id: payment.id,
         class_id: classRecord.id,
+        invoice_error: invoiceErrorDetails ? {
+          message: invoiceErrorDetails.error,
+          code: invoiceErrorDetails.code,
+          details: invoiceErrorDetails.details,
+        } : null,
       });
     } catch (error: any) {
       console.error('[webhook] Error processing checkout.session.completed:', {
@@ -263,148 +285,96 @@ export async function POST(request: NextRequest) {
     try {
       const paymentIntent = event.data.object as Stripe.PaymentIntent;
       
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:65',message:'Processing payment_intent.succeeded',data:{paymentIntentId:paymentIntent.id,amount:paymentIntent.amount,metadata:paymentIntent.metadata},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      console.log('[webhook] Processing payment_intent.succeeded:', paymentIntent.id);
+      console.log('[webhook] Processing payment_intent.succeeded (TEST MODE):', paymentIntent.id);
+      console.log('[webhook] Payment intent amount:', paymentIntent.amount);
+      console.log('[webhook] Payment intent metadata:', paymentIntent.metadata);
 
-      // Extract classId from metadata
-      const classId = paymentIntent.metadata?.classId;
-      if (!classId) {
-        console.error('[webhook] Missing classId in payment intent metadata');
-        return NextResponse.json(
-          { error: 'Missing classId in payment intent metadata' },
-          { status: 400 }
-        );
+      // Get Supabase client
+      const supabase = createSupabaseAdminClient();
+
+      // Get the next invoice number
+      const { data: maxInvoice, error: maxError } = await supabase
+        .from('invoices_to_import')
+        .select('invoice_number')
+        .order('invoice_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      let nextInvoiceNumber = 100001;
+      if (!maxError && maxInvoice?.invoice_number) {
+        nextInvoiceNumber = maxInvoice.invoice_number + 1;
       }
 
-      // Extract email from payment intent
-      // Try customer email first, then billing details
-      let email: string | undefined;
-      
-      if (paymentIntent.customer) {
-        const stripe = getStripeClient(stripeSecretKey);
-        let customer: Stripe.Customer | Stripe.DeletedCustomer;
-        
-        if (typeof paymentIntent.customer === 'string') {
-          customer = await stripe.customers.retrieve(paymentIntent.customer);
-        } else {
-          customer = paymentIntent.customer;
-        }
-        
-        if (!customer.deleted && customer.email) {
-          email = customer.email;
-        }
-      }
+      console.log('[webhook] Next invoice number:', nextInvoiceNumber);
 
-      // Fallback to receipt_email
-      if (!email) {
-        email = paymentIntent.receipt_email || undefined;
-      }
+      // Extract email from payment intent (or use test email)
+      let email = paymentIntent.receipt_email || 
+                  paymentIntent.metadata?.email || 
+                  'test@example.com';
 
-      if (!email) {
-        console.error('[webhook] Could not extract email from payment intent');
-        return NextResponse.json(
-          { error: 'Could not extract email from payment intent' },
-          { status: 400 }
-        );
-      }
+      // Extract amount (or use test amount)
+      const amountCents = paymentIntent.amount || 10000; // Default to $100.00
 
-      console.log('[webhook] Extracted email:', email, 'classId:', classId);
+      // Create test invoice data
+      const paymentDate = new Date();
+      const invoiceDate = paymentDate.toISOString().split('T')[0];
+      const dueDate = new Date(paymentDate);
+      dueDate.setDate(dueDate.getDate() + 30);
+      const dueDateStr = dueDate.toISOString().split('T')[0];
 
-      // Step 1: Find or create student
-      const student = await findOrCreateStudent(email);
-      console.log('[webhook] Student found/created:', student.id);
+      const testInvoice = {
+        invoice_number: nextInvoiceNumber,
+        customer_email: email,
+        invoice_date: invoiceDate,
+        due_date: dueDateStr,
+        item: paymentIntent.metadata?.classId 
+          ? `TEST:${paymentIntent.metadata.classId}:registration`
+          : 'TEST:registration',
+        memo: `Test invoice from payment intent ${paymentIntent.id}`,
+        item_amount: amountCents,
+        item_quantity: 1,
+        item_rate: 0.5,
+        payment_id: null, // Can be null for test
+        class_id: null, // Can be null for test
+        invoice_sequence: 1,
+        category: paymentIntent.metadata?.courseCode || null,
+        subcategory: paymentIntent.metadata?.classId || null,
+      };
 
-      // Step 2: Get or create Stripe customer
-      await getOrCreateStripeCustomer(student, email, paymentIntent);
-      console.log('[webhook] Stripe customer ensured for student:', student.id);
+      console.log('[webhook] Inserting test invoice:', testInvoice);
 
-      // Step 3: Find class by class_id
-      const classRecord = await findClassByClassId(classId);
-      console.log('[webhook] Class found:', classRecord.id, 'class_id:', classRecord.class_id);
+      // Insert into invoices_to_import table
+      const { data: insertedInvoice, error: insertError } = await supabase
+        .from('invoices_to_import')
+        .insert([testInvoice])
+        .select()
+        .single();
 
-      // Step 4: Create enrollment
-      const enrollment = await createEnrollment(student.id, classRecord.id);
-      console.log('[webhook] Enrollment created/found:', enrollment.id);
-
-      // Step 5: Create payment record
-      const amountCents = paymentIntent.amount;
-      const payment = await createPayment(enrollment.id, paymentIntent, amountCents);
-      console.log('[webhook] Payment created:', payment.id);
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:129',message:'Payment record created, about to create invoices',data:{paymentId:payment.id,enrollmentId:enrollment.id,classId:classRecord.id,classIdText:classRecord.class_id,hasPrice:!!classRecord.price,price:classRecord.price,hasRegistrationFee:!!classRecord.registration_fee,registrationFee:classRecord.registration_fee},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
-
-      // Step 6: Log student registration (admin_user_id is null for Stripe actions)
-      try {
-        await insertLog({
-          admin_user_id: null,
-          reference_id: classRecord.id,
-          reference_type: 'class',
-          action_type: 'student_registered',
-          student_id: student.id,
-          class_id: classRecord.id,
+      if (insertError) {
+        console.error('[webhook] Failed to insert invoice:', {
+          error: insertError.message,
+          code: insertError.code,
+          details: insertError.details,
+          hint: insertError.hint,
         });
-      } catch (logError: any) {
-        console.error('[webhook] Failed to log student registration:', logError);
-        // Don't fail the webhook if logging fails
+        throw new Error(`Failed to insert invoice: ${insertError.message} (code: ${insertError.code})`);
       }
 
-      // Step 7: Log payment success (admin_user_id is null for Stripe actions)
-      try {
-        await insertLog({
-          admin_user_id: null,
-          reference_id: classRecord.id,
-          reference_type: 'class',
-          action_type: 'payment_success',
-          student_id: student.id,
-          class_id: classRecord.id,
-          amount: amountCents,
-        });
-      } catch (logError: any) {
-        console.error('[webhook] Failed to log payment success:', logError);
-        // Don't fail the webhook if logging fails
-      }
-
-      // Step 8: Create invoice record for CSV export on successful payment
-      try {
-        const paymentDate = new Date();
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:163',message:'About to call createRegistrationFeeInvoices',data:{paymentId:payment.id,classId:classRecord.id,classIdText:classRecord.class_id,email,paymentDate:paymentDate.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        console.log('[webhook] Creating invoice record for payment:', payment.id);
-        const invoices = await createRegistrationFeeInvoices(
-          payment.id,
-          classRecord,
-          email,
-          paymentDate
-        );
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:172',message:'createRegistrationFeeInvoices returned successfully',data:{invoiceCount:invoices.length,invoiceNumbers:invoices.map(i=>i.invoice_number)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        console.log('[webhook] Successfully created invoice records for CSV export:', invoices.length, 'invoices');
-      } catch (invoiceError: any) {
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:175',message:'createRegistrationFeeInvoices threw error',data:{error:invoiceError.message,errorStack:invoiceError.stack,classId:classRecord.class_id,paymentId:payment.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        console.error('[webhook] Failed to create invoice records:', {
-          error: invoiceError.message,
-          stack: invoiceError.stack,
-          classId: classRecord.class_id,
-          paymentId: payment.id,
-        });
-        // Don't fail the webhook if invoice creation fails
-      }
+      console.log('[webhook] ✅ Successfully inserted test invoice:', {
+        id: insertedInvoice.id,
+        invoice_number: insertedInvoice.invoice_number,
+        customer_email: insertedInvoice.customer_email,
+      });
 
       return NextResponse.json({
         success: true,
-        student_id: student.id,
-        enrollment_id: enrollment.id,
-        payment_id: payment.id,
-        class_id: classRecord.id,
+        message: 'Test invoice created successfully',
+        invoice: {
+          id: insertedInvoice.id,
+          invoice_number: insertedInvoice.invoice_number,
+          customer_email: insertedInvoice.customer_email,
+        },
+        payment_intent_id: paymentIntent.id,
       });
     } catch (error: any) {
       console.error('[webhook] Error processing payment_intent.succeeded:', {

@@ -91,6 +91,14 @@ export async function createRegistrationFeeInvoices(
   // Use price or registration_fee, default to 0 if neither is set
   const priceCents = classRecord.price || classRecord.registration_fee || 0;
 
+  if (priceCents === 0) {
+    console.warn('[invoices] Warning: Class has zero price/registration_fee:', {
+      classId: classRecord.class_id,
+      price: classRecord.price,
+      registration_fee: classRecord.registration_fee,
+    });
+  }
+
   // Get the base invoice number (we'll create 2 separate invoices)
   const baseInvoiceNumber = await getNextInvoiceNumber();
 
@@ -180,12 +188,21 @@ export async function createRegistrationFeeInvoices(
   // #endregion
 
   if (error) {
-    console.error('[invoices] Database error:', {
+    const errorDetails = {
       error: error.message,
       code: error.code,
       details: error.details,
       hint: error.hint,
-    });
+      invoicesToInsert: invoicesToInsert.map(inv => ({
+        invoice_number: inv.invoice_number,
+        customer_email: inv.customer_email,
+        item_amount: inv.item_amount,
+        payment_id: inv.payment_id,
+        class_id: inv.class_id,
+      })),
+    };
+    console.error('[invoices] Database error:', errorDetails);
+    console.error('[invoices] Full error object:', JSON.stringify(errorDetails, null, 2));
     throw new Error(`Failed to create invoice records: ${error.message} (code: ${error.code})`);
   }
 
