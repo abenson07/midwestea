@@ -263,7 +263,7 @@ function CheckoutConfirmContent() {
       }
       buttonText={isSubmitting ? 'Processing...' : 'Proceed to QuickBooks Checkout'}
       onButtonClick={handleCheckout}
-      onBackClick={() => router.back()}
+      onBackClick={() => router.push(`/checkout/details?classID=${searchParams.get('classID')}`)}
       wrapperClassName="checkout-payment-schedule-wrapper"
     >
       <CheckoutPaymentSchedule
