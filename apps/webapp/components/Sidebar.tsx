@@ -12,6 +12,8 @@ import {
   LogOut,
   FolderOpen,
   CreditCard,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
@@ -31,6 +33,7 @@ export function Sidebar() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     getSession().then(({ session }) => {
@@ -43,6 +46,57 @@ export function Sidebar() {
   const handleSignOut = async () => {
     await signOut();
     router.push("/dashboard/login");
+  };
+
+  const handleDownloadInvoices = async () => {
+    setIsDownloading(true);
+    try {
+      // Step 1: Sync Stripe transactions
+      console.log('[Sidebar] Syncing Stripe invoices...');
+      const basePath = '/app';
+      const syncResponse = await fetch(`${basePath}/api/sync-stripe-invoices`, {
+        method: 'GET',
+      });
+
+      if (!syncResponse.ok) {
+        const errorData = await syncResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Sync failed: ${syncResponse.status}`);
+      }
+
+      const syncResult = await syncResponse.json();
+      console.log('[Sidebar] Sync result:', syncResult);
+
+      // Step 2: Export CSV
+      console.log('[Sidebar] Exporting CSV...');
+      const csvResponse = await fetch(`${basePath}/api/export-invoices-csv`, {
+        method: 'GET',
+      });
+
+      if (!csvResponse.ok) {
+        const errorData = await csvResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `CSV export failed: ${csvResponse.status}`);
+      }
+
+      // Get the CSV blob
+      const csvBlob = await csvResponse.blob();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(csvBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoices_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      console.log('[Sidebar] ✅ Invoice download complete');
+    } catch (error: any) {
+      console.error('[Sidebar] Error downloading invoices:', error);
+      alert(`Failed to download invoices: ${error.message}`);
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return (
@@ -91,6 +145,29 @@ export function Sidebar() {
             );
           })}
         </ul>
+        <div className="px-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={handleDownloadInvoices}
+            disabled={isDownloading}
+            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors w-full ${
+              isDownloading
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+                <span>Downloading...</span>
+              </>
+            ) : (
+              <>
+                <Download className="h-5 w-5 text-gray-400" />
+                <span>Download Invoices</span>
+              </>
+            )}
+          </button>
+        </div>
       </nav>
       <div className="p-4 border-t border-gray-200">
         <div className="flex items-center gap-3 mb-3">
