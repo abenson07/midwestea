@@ -81,13 +81,11 @@ export default function CheckoutLayout({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: '2rem 1rem',
-          overflowY: 'auto',
           backgroundColor: '#F7F6F3'
         }}
       >
         {/* Top Section */}
-        <div className="checkout-details-top" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div className="checkout-details-top" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', flexGrow: 1, overflowY: 'auto', minHeight: 0, padding: '2rem 1rem 2rem 1rem' }}>
           {/* Header Wrapper */}
           <div 
             className="checkout-header-wrapper"
@@ -206,7 +204,7 @@ export default function CheckoutLayout({
         </div>
 
         {/* Bottom Section */}
-        <div className="checkout-details-bottom">
+        <div className="checkout-details-bottom" style={{ padding: '0 1rem 2rem 1rem' }}>
           {/* Button */}
           {buttonText && (
             <button 
