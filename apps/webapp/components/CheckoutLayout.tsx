@@ -30,6 +30,8 @@ export default function CheckoutLayout({
   // Calculate display price: registration fee if exists, otherwise price
   const displayPrice = registrationFee || price || 0;
   const formattedPrice = `$${(displayPrice / 100).toFixed(2)}`;
+  
+  const backgroundImageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : {};
   return (
     <div className="checkout-section" style={{ width: '100%', height: '100vh', display: 'flex' }}>
       {/* Image Container */}
@@ -37,30 +39,17 @@ export default function CheckoutLayout({
         className="checkout-image-container" 
         style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}
       >
-        {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt="Checkout" 
-            className="checkout-image"
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              objectFit: 'cover',
-              objectPosition: 'center'
-            }}
-          />
-        ) : (
-          <div 
-            className="checkout-image"
-            style={{ 
-              width: '100%', 
-              height: '100%', 
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundColor: '#f0f0f0'
-            }}
-          />
-        )}
+        <div 
+          className="checkout-image"
+          style={{ 
+            width: '100%', 
+            height: '100%', 
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundColor: '#f0f0f0',
+            ...backgroundImageStyle
+          }}
+        />
       </div>
 
       {/* Details Container */}
@@ -178,17 +167,19 @@ export default function CheckoutLayout({
             )}
           </div>
 
-          {/* Classes Wrapper */}
-          <div 
-            className="checkout-classes-wrapper"
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '8px'
-            }}
-          >
-            {classesContent}
-          </div>
+          {/* Classes Wrapper - only show if there are multiple classes */}
+          {classesContent && (
+            <div 
+              className="checkout-classes-wrapper"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}
+            >
+              {classesContent}
+            </div>
+          )}
 
           {/* Details Wrapper */}
           <div className="checkout-details-wrapper">
