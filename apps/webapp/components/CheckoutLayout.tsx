@@ -6,6 +6,7 @@ interface CheckoutLayoutProps {
   children: ReactNode;
   imageUrl?: string;
   title?: string;
+  titleContent?: ReactNode;
   price?: number; // Price in cents
   registrationFee?: number; // Registration fee in cents
   buttonText?: string;
@@ -13,19 +14,24 @@ interface CheckoutLayoutProps {
   onBackClick?: () => void;
   logoUrl?: string;
   classesContent?: ReactNode;
+  emailField?: ReactNode;
+  wrapperClassName?: string; // Custom className for checkout-details-wrapper
 }
 
 export default function CheckoutLayout({ 
   children, 
   imageUrl,
   title = 'Checkout',
+  titleContent,
   price,
   registrationFee,
   buttonText = 'Continue',
   onButtonClick,
   onBackClick,
   logoUrl = 'https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/69519dfb03c5fd3b91b0c2f2_Company%20Logo.svg',
-  classesContent
+  classesContent,
+  emailField,
+  wrapperClassName = 'checkout-details-wrapper'
 }: CheckoutLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
 
@@ -142,46 +148,58 @@ export default function CheckoutLayout({
           </div>
 
           {/* Title Wrapper */}
-          <div className="checkout-title-wrapper">
-            {title && (
-              <h1 
-                className="checkout-title" 
-                style={{ 
-                  margin: 0,
-                  display: 'block',
-                  color: 'var(--Color-Scheme-1-Text, #191920)',
-                  fontFamily: '"PP Neue Corp"',
-                  fontSize: 'var(--Text-Sizes-Heading-4, 32px)',
-                  fontStyle: 'normal',
-                  fontWeight: 700,
-                  lineHeight: '90%',
-                  textTransform: 'uppercase'
-                }}
-              >
-                {title}
-              </h1>
-            )}
-            {displayPrice > 0 && (
-              <p 
-                className="checkout-price"
-                style={{
-                  display: 'block',
-                  marginTop: '0.5rem',
-                  fontFamily: '"PP Neue Corp", sans-serif',
-                  fontSize: '20px',
-                  fontWeight: 700,
-                  lineHeight: '0.9',
-                  letterSpacing: 0,
-                  color: 'var(--color-scheme-1-text, #191920)',
-                  textTransform: 'uppercase',
-                  margin: 0,
-                  padding: 0
-                }}
-              >
-                {formattedPrice}
-              </p>
+          <div className="checkout-title-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {titleContent ? (
+              titleContent
+            ) : (
+              <>
+                {title && (
+                  <h1 
+                    className="checkout-title" 
+                    style={{ 
+                      margin: 0,
+                      display: 'block',
+                      color: 'var(--Color-Scheme-1-Text, #191920)',
+                      fontFamily: '"PP Neue Corp"',
+                      fontSize: 'var(--Text-Sizes-Heading-4, 32px)',
+                      fontStyle: 'normal',
+                      fontWeight: 700,
+                      lineHeight: '90%',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {title}
+                  </h1>
+                )}
+                {displayPrice > 0 && (
+                  <p 
+                    className="checkout-price"
+                    style={{
+                      display: 'block',
+                      margin: 0,
+                      padding: 0,
+                      fontFamily: '"PP Neue Corp", sans-serif',
+                      fontSize: '20px',
+                      fontWeight: 700,
+                      lineHeight: '0.9',
+                      letterSpacing: 0,
+                      color: 'var(--color-scheme-1-text, #191920)',
+                      textTransform: 'uppercase'
+                    }}
+                  >
+                    {formattedPrice}
+                  </p>
+                )}
+              </>
             )}
           </div>
+
+          {/* Email Wrapper */}
+          {emailField && (
+            <div className="checkout-email-wrapper">
+              {emailField}
+            </div>
+          )}
 
           {/* Classes Wrapper - only show if there are multiple classes */}
           {classesContent && (
@@ -198,7 +216,7 @@ export default function CheckoutLayout({
           )}
 
           {/* Details Wrapper */}
-          <div className="checkout-details-wrapper">
+          <div className={wrapperClassName}>
             {children}
           </div>
         </div>

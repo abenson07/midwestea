@@ -67,6 +67,12 @@
   color: #191920;
 }
 
+/* Checkout email input placeholder styling */
+.checkout-email-input::placeholder {
+  color: #6e6e70;
+  opacity: 0.5;
+}
+
 
 
 
