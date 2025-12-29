@@ -266,20 +266,13 @@ function CheckoutConfirmContent() {
       onBackClick={() => router.back()}
       wrapperClassName="checkout-payment-schedule-wrapper"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
-        {/* Show both variants for review */}
-        <CheckoutPaymentSchedule
-          hasRegistrationFee={true}
-          registrationFee={classData.registration_fee || undefined}
-          price={classData.price || undefined}
-          invoice1DueDate={invoice1DueDate}
-          invoice2DueDate={invoice2DueDate}
-        />
-        <CheckoutPaymentSchedule
-          hasRegistrationFee={false}
-          price={classData.price || undefined}
-        />
-      </div>
+      <CheckoutPaymentSchedule
+        hasRegistrationFee={hasRegistrationFee}
+        registrationFee={hasRegistrationFee ? classData.registration_fee || undefined : undefined}
+        price={classData.price || undefined}
+        invoice1DueDate={hasRegistrationFee ? invoice1DueDate : undefined}
+        invoice2DueDate={hasRegistrationFee ? invoice2DueDate : undefined}
+      />
     </CheckoutLayout>
   );
 }
