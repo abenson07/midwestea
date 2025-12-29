@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 
 interface CheckoutLayoutProps {
   children: ReactNode;
@@ -27,18 +27,35 @@ export default function CheckoutLayout({
   logoUrl = 'https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/69519dfb03c5fd3b91b0c2f2_Company%20Logo.svg',
   classesContent
 }: CheckoutLayoutProps) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 700);
+    };
+    
+    // Check on mount
+    checkMobile();
+    
+    // Listen for resize events
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Calculate display price: registration fee if exists, otherwise price
   const displayPrice = registrationFee || price || 0;
   const formattedPrice = `$${(displayPrice / 100).toFixed(2)}`;
   
   const backgroundImageStyle = imageUrl ? { backgroundImage: `url(${imageUrl})` } : {};
   return (
-    <div className="checkout-section" style={{ width: '100%', height: '100vh', display: 'flex' }}>
+    <div className="checkout-section" style={{ width: '100%', height: '100vh', display: isMobile ? 'block' : 'flex' }}>
       {/* Image Container */}
-      <div 
-        className="checkout-image-container" 
-        style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}
-      >
+      {!isMobile && (
+        <div 
+          className="checkout-image-container" 
+          style={{ flexGrow: 1, position: 'relative', overflow: 'hidden' }}
+        >
         <div 
           className="checkout-image"
           style={{ 
@@ -50,16 +67,17 @@ export default function CheckoutLayout({
             ...backgroundImageStyle
           }}
         />
-      </div>
+        </div>
+      )}
 
       {/* Details Container */}
       <div 
         className="checkout-details-container"
         style={{
           height: '100%',
-          width: '33%',
-          maxWidth: '500px',
-          minWidth: '350px',
+          width: isMobile ? '100%' : '33%',
+          maxWidth: isMobile ? '100%' : '500px',
+          minWidth: isMobile ? '100%' : '350px',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
