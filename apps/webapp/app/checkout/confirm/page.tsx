@@ -110,6 +110,24 @@ function CheckoutConfirmContent() {
     setEmailError('');
 
     try {
+      // Ensure user exists in auth.users
+      const basePath = typeof window !== 'undefined' 
+        ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+        : '';
+      
+      const ensureUserResponse = await fetch(`${basePath}/api/checkout/ensure-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!ensureUserResponse.ok) {
+        const errorData = await ensureUserResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to ensure user exists');
+      }
+
+      const ensureUserResult = await ensureUserResponse.json();
+
       // TODO: Integrate with QuickBooks checkout
       // Placeholder for QuickBooks integration
       // const checkoutResponse = await fetch('/api/checkout/create-quickbooks-session', {
