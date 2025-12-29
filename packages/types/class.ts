@@ -23,6 +23,7 @@ export type Class = {
   stripe_product_id: string | null;
   price: number | null;
   registration_fee: number | null;
+  stripe_payment_link: string | null;
 };
 
 

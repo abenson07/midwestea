@@ -128,23 +128,22 @@ function CheckoutConfirmContent() {
 
       const ensureUserResult = await ensureUserResponse.json();
 
-      // Create QuickBooks invoice and get payment URL
+      // Get Stripe payment link for the class
       if (!classData?.class_id) {
         throw new Error('Class data is missing');
       }
 
-      const checkoutResponse = await fetch(`${basePath}/api/checkout/create-invoice`, {
+      const checkoutResponse = await fetch(`${basePath}/api/checkout/get-payment-link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
           classId: classData.class_id,
         }),
       });
 
       if (!checkoutResponse.ok) {
         const errorData = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to create invoice');
+        throw new Error(errorData.error || 'Failed to get payment link');
       }
 
       const { paymentUrl } = await checkoutResponse.json();
@@ -153,7 +152,7 @@ function CheckoutConfirmContent() {
         throw new Error('Payment URL not received from server');
       }
 
-      // Redirect to QuickBooks payment page
+      // Redirect to Stripe payment link
       window.location.href = paymentUrl;
     } catch (err: any) {
       setEmailError(err.message || 'Failed to initiate checkout');
@@ -293,7 +292,7 @@ function CheckoutConfirmContent() {
           )}
         </div>
       }
-      buttonText={isSubmitting ? 'Processing...' : 'Proceed to QuickBooks Checkout'}
+      buttonText={isSubmitting ? 'Processing...' : 'Proceed to Payment'}
       onButtonClick={handleCheckout}
       onBackClick={() => router.push(`/checkout/details?classID=${searchParams.get('classID')}`)}
       wrapperClassName="checkout-payment-schedule-wrapper"
