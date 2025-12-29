@@ -37,8 +37,9 @@ interface QuickBooksItem {
   };
 }
 
-interface QuickBooksInvoice {
+export interface QuickBooksInvoice {
   Id?: string;
+  SyncToken?: string;
   DocNumber?: string;
   CustomerRef: {
     value: string;
@@ -65,6 +66,9 @@ interface QuickBooksInvoice {
   PrivateNote?: string;
   InvoiceLink?: string;
   PaymentLink?: string;
+  AllowOnlinePayment?: boolean;
+  AllowOnlineCreditCardPayment?: boolean;
+  AllowOnlineACHPayment?: boolean;
 }
 
 interface QuickBooksQueryResponse<T> {
@@ -207,8 +211,15 @@ async function apiRequest<T>(
     const errorText = await response.text();
     let errorMessage = `QuickBooks API error: ${response.status}`;
     
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:268',message:'API request failed',data:{status:response.status,statusText:response.statusText,errorText,url,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
     try {
       const errorData: QuickBooksError = JSON.parse(errorText);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:275',message:'Parsed error response',data:{errorData:JSON.stringify(errorData),errorCode:errorData.Fault?.Error?.[0]?.code,errorMessage:errorData.Fault?.Error?.[0]?.Message,errorDetail:errorData.Fault?.Error?.[0]?.Detail,errorElement:errorData.Fault?.Error?.[0]?.element},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       if (errorData.Fault?.Error?.[0]) {
         errorMessage = `QuickBooks API error: ${errorData.Fault.Error[0].Message} (${errorData.Fault.Error[0].code})`;
       }
@@ -480,12 +491,9 @@ async function createInvoiceWithQuantity(
     };
   }
 
-  // Add Department (subcategory) if available
-  if (departmentId) {
-    lineItem.SalesItemLineDetail.DepartmentRef = {
-      value: departmentId,
-    };
-  }
+  // Note: DepartmentRef is NOT supported in SalesItemLineDetail by QuickBooks API
+  // QuickBooks only supports ClassRef for line item categorization
+  // DepartmentRef cannot be used in invoice line items - it's not a valid property
 
   const invoiceData: Partial<QuickBooksInvoice> = {
     CustomerRef: {
@@ -549,18 +557,20 @@ export async function createInvoice(
     };
   }
 
-  // Add Department (subcategory) if available
-  if (departmentId) {
-    lineItem.SalesItemLineDetail.DepartmentRef = {
-      value: departmentId,
-    };
-  }
+  // Note: DepartmentRef is NOT supported in SalesItemLineDetail by QuickBooks API
+  // QuickBooks only supports ClassRef for line item categorization
+  // DepartmentRef cannot be used in invoice line items - it's not a valid property
+  // If we need subcategory tracking, we should use custom fields instead
 
   const invoiceData: Partial<QuickBooksInvoice> = {
     CustomerRef: {
       value: customerId,
     },
     Line: [lineItem],
+    // Enable online payments to allow customer payment
+    AllowOnlinePayment: true,
+    AllowOnlineCreditCardPayment: true,
+    AllowOnlineACHPayment: true,
   };
 
   // Add custom fields if provided
@@ -572,6 +582,10 @@ export async function createInvoice(
     }));
   }
 
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:583',message:'Before createInvoice API request',data:{invoiceData:JSON.stringify(invoiceData),hasDepartmentRef:false,hasClassRef:!!lineItem.SalesItemLineDetail?.ClassRef,customFieldsCount:customFields?.length || 0},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
   const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(
     '/invoice',
     {
@@ -580,17 +594,130 @@ export async function createInvoice(
     }
   );
 
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:595',message:'After createInvoice API request',data:{hasInvoice:!!response.Invoice,invoiceId:response.Invoice?.Id,hasSyncToken:!!response.Invoice?.SyncToken},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
+
+  return response.Invoice;
+}
+
+/**
+ * Save an invoice (ensures it's not in draft state)
+ * Updates the invoice with its current SyncToken to save it
+ */
+export async function saveInvoice(invoice: QuickBooksInvoice): Promise<QuickBooksInvoice> {
+  if (!invoice.Id || !invoice.SyncToken) {
+    throw new Error('Invoice must have Id and SyncToken to save');
+  }
+
+  // Update invoice to save it (this ensures it appears in invoice list)
+  const updateData = {
+    Id: invoice.Id,
+    SyncToken: invoice.SyncToken,
+  };
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:597',message:'Before saveInvoice API request',data:{updateData:JSON.stringify(updateData),invoiceId:invoice.Id,syncToken:invoice.SyncToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+
+  const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(
+    '/invoice',
+    {
+      method: 'POST',
+      body: JSON.stringify(updateData),
+    }
+  );
+
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:610',message:'After saveInvoice API request',data:{hasInvoice:!!response.Invoice,invoiceId:response.Invoice?.Id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+
   return response.Invoice;
 }
 
 /**
  * Get invoice by ID
+ * @param invoiceId - The invoice ID
+ * @param include - Optional query parameter (e.g., 'invoiceLink' to get share link)
+ * @param minorVersion - API minor version (default 36 for invoiceLink support)
  */
-export async function getInvoice(invoiceId: string): Promise<QuickBooksInvoice> {
-  const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(
-    `/invoice/${invoiceId}`
-  );
+export async function getInvoice(invoiceId: string, include?: string, minorVersion: number = 36): Promise<QuickBooksInvoice> {
+  let endpoint = `/invoice/${invoiceId}`;
+  const params = new URLSearchParams();
+  
+  if (include) {
+    params.append('include', include);
+  }
+  
+  // Use minor version 36+ for invoiceLink support
+  params.append('minorversion', minorVersion.toString());
+  
+  if (params.toString()) {
+    endpoint += `?${params.toString()}`;
+  }
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:650',message:'Before getInvoice API request',data:{endpoint,invoiceId,include,minorVersion},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'G'})}).catch(()=>{});
+  // #endregion
+  
+  const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(endpoint);
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:662',message:'After getInvoice API request',data:{hasInvoice:!!response.Invoice,hasInvoiceLink:!!response.Invoice?.InvoiceLink,hasPaymentLink:!!response.Invoice?.PaymentLink,invoiceLink:response.Invoice?.InvoiceLink,paymentLink:response.Invoice?.PaymentLink},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'G'})}).catch(()=>{});
+  // #endregion
+  
+  // Transform Sandbox URL if needed (based on forum solution)
+  if (response.Invoice?.InvoiceLink && response.Invoice.InvoiceLink.includes('developer.intuit.com/comingSoonview/')) {
+    // Replace Sandbox URL format with working format
+    const transformedLink = response.Invoice.InvoiceLink.replace(
+      'https://developer.intuit.com/comingSoonview/',
+      'https://connect.intuit.com/t/'
+    );
+    response.Invoice.InvoiceLink = transformedLink;
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:672',message:'Transformed Sandbox invoice link',data:{originalLink:response.Invoice.InvoiceLink,transformedLink},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'G'})}).catch(()=>{});
+    // #endregion
+  }
+  
   return response.Invoice;
+}
+
+/**
+ * Send invoice via email (this may generate the share link)
+ * Note: This actually sends an email, so use carefully
+ * @param invoiceId - The invoice ID
+ * @param syncToken - The invoice sync token
+ * @param emailAddress - Optional email address (uses customer email if not provided)
+ */
+export async function sendInvoice(invoiceId: string, syncToken: string, emailAddress?: string): Promise<void> {
+  const endpoint = `/invoice/${invoiceId}/send?minorversion=65`;
+  
+  const sendData: any = {
+    Invoice: {
+      Id: invoiceId,
+      SyncToken: syncToken,
+    },
+  };
+  
+  if (emailAddress) {
+    sendData.Invoice.BillEmail = {
+      Address: emailAddress,
+    };
+  }
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:695',message:'Before sendInvoice API request',data:{invoiceId,syncToken,emailAddress,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
+  // #endregion
+  
+  await apiRequest(endpoint, {
+    method: 'POST',
+    body: JSON.stringify(sendData),
+  });
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:707',message:'After sendInvoice API request',data:{invoiceId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
+  // #endregion
 }
 
 /**
@@ -695,19 +822,35 @@ export async function createSubsequentInvoices(
 
 /**
  * Get payment URL from invoice
- * QuickBooks provides InvoiceLink or we construct it from invoice ID
+ * Prioritizes share link (InvoiceLink) which doesn't require login
+ * Falls back to constructing customer-facing payment URL using DocNumber
  */
 export function getInvoicePaymentUrl(invoice: QuickBooksInvoice, companyId: string, useSandbox: boolean = true): string {
-  // Try to use provided payment link
-  if (invoice.PaymentLink) {
-    return invoice.PaymentLink;
-  }
-
+  // First priority: InvoiceLink (share link - no login required)
   if (invoice.InvoiceLink) {
     return invoice.InvoiceLink;
   }
 
-  // Construct payment URL if we have invoice ID
+  // Second priority: PaymentLink if available
+  if (invoice.PaymentLink) {
+    return invoice.PaymentLink;
+  }
+
+  // Third priority: Construct customer-facing payment URL using DocNumber
+  // QuickBooks customer payment portal URLs use DocNumber for customer access
+  if (invoice.DocNumber) {
+    // Customer-facing payment portal URL format
+    // This allows customers to view and pay without QuickBooks login
+    if (useSandbox) {
+      // Sandbox payment portal (format may vary - needs testing)
+      return `https://payments.intuit.com/invoice/${invoice.DocNumber}`;
+    } else {
+      // Production payment portal
+      return `https://payments.intuit.com/invoice/${invoice.DocNumber}`;
+    }
+  }
+
+  // Fallback: Construct URL (but this requires login, so not ideal)
   if (invoice.Id) {
     const baseUrl = useSandbox
       ? 'https://app.sandbox.qbo.intuit.com'
@@ -715,6 +858,6 @@ export function getInvoicePaymentUrl(invoice: QuickBooksInvoice, companyId: stri
     return `${baseUrl}/app/invoice?txnId=${invoice.Id}`;
   }
 
-  throw new Error('Cannot generate payment URL: invoice missing ID and payment links');
+  throw new Error('Cannot generate payment URL: invoice missing ID, DocNumber, and payment links');
 }
 

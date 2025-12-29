@@ -6,7 +6,10 @@ import {
   findOrCreateCategory,
   findOrCreateSubcategory,
   createInvoice,
+  getInvoice,
+  sendInvoice,
   getInvoicePaymentUrl,
+  type QuickBooksInvoice,
 } from '@/lib/quickbooks';
 
 /**
@@ -145,6 +148,9 @@ export async function POST(request: NextRequest) {
     // Create the invoice
     let invoice;
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:148',message:'Before createInvoice call',data:{customerId:customer.Id,itemId:item.Id,amount,hasCategory:!!category?.Id,hasSubcategory:!!subcategory?.Id,customFieldsCount:customFields.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       invoice = await createInvoice(
         customer.Id,
         item.Id,
@@ -154,7 +160,13 @@ export async function POST(request: NextRequest) {
         subcategory?.Id,
         customFields
       );
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:160',message:'After createInvoice call',data:{hasInvoice:!!invoice,invoiceId:invoice?.Id,hasSyncToken:!!invoice?.SyncToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:163',message:'Error in createInvoice',data:{error:error.message,errorStack:error.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('Error creating invoice:', error);
       return NextResponse.json(
         { error: `Failed to create invoice: ${error.message}` },
@@ -169,14 +181,64 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get payment URL
+    // Note: Invoice is already saved when created via POST - no need for separate save operation
+
+    // Try to send invoice to generate share link (without actually emailing)
+    // This may generate the InvoiceLink field
+    if (invoice.SyncToken && customer.PrimaryEmailAddr?.Address) {
+      try {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:185',message:'Before sendInvoice to generate share link',data:{invoiceId:invoice.Id,email:customer.PrimaryEmailAddr.Address},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
+        // #endregion
+        await sendInvoice(invoice.Id, invoice.SyncToken, customer.PrimaryEmailAddr.Address);
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:189',message:'After sendInvoice',data:{invoiceId:invoice.Id},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
+        // #endregion
+      } catch (error: any) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:192',message:'Error sending invoice (continuing)',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
+        // #endregion
+        console.warn('Error sending invoice (continuing anyway):', error);
+        // Continue even if send fails - may not be necessary for share link
+      }
+    }
+
+    // Fetch invoice with share link (using minor version 65)
+    let invoiceWithLink: QuickBooksInvoice;
+    try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:199',message:'Before getInvoice with share link',data:{invoiceId:invoice.Id},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+      invoiceWithLink = await getInvoice(invoice.Id, 'invoiceLink', 65);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:202',message:'After getInvoice with share link',data:{hasInvoiceLink:!!invoiceWithLink.InvoiceLink,hasPaymentLink:!!invoiceWithLink.PaymentLink,invoiceLink:invoiceWithLink.InvoiceLink},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+    } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:205',message:'Error fetching invoice with share link',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+      console.error('Error fetching invoice with share link:', error);
+      // Fallback to original invoice if fetch fails
+      invoiceWithLink = invoice;
+    }
+
+    // Get payment URL (prioritizes share link)
     const companyId = process.env.QUICKBOOKS_COMPANY_ID || '9341455971522574';
     const useSandbox = process.env.QUICKBOOKS_USE_SANDBOX !== 'false';
     
     let paymentUrl: string;
     try {
-      paymentUrl = getInvoicePaymentUrl(invoice, companyId, useSandbox);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:200',message:'Before getInvoicePaymentUrl',data:{hasInvoiceLink:!!invoiceWithLink.InvoiceLink,hasPaymentLink:!!invoiceWithLink.PaymentLink},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
+      paymentUrl = getInvoicePaymentUrl(invoiceWithLink, companyId, useSandbox);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:203',message:'After getInvoicePaymentUrl',data:{paymentUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
     } catch (error: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-invoice/route.ts:206',message:'Error getting payment URL',data:{error:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'F'})}).catch(()=>{});
+      // #endregion
       console.error('Error getting payment URL:', error);
       return NextResponse.json(
         { error: `Failed to get payment URL: ${error.message}` },
