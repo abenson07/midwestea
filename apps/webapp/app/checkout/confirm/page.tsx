@@ -128,19 +128,33 @@ function CheckoutConfirmContent() {
 
       const ensureUserResult = await ensureUserResponse.json();
 
-      // TODO: Integrate with QuickBooks checkout
-      // Placeholder for QuickBooks integration
-      // const checkoutResponse = await fetch('/api/checkout/create-quickbooks-session', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     classId: classData?.class_id,
-      //     email,
-      //     amount: calculatePaymentSchedule()?.now,
-      //   }),
-      // });
-      // const { checkoutUrl } = await checkoutResponse.json();
-      // window.location.href = checkoutUrl;
+      // Create QuickBooks invoice and get payment URL
+      if (!classData?.class_id) {
+        throw new Error('Class data is missing');
+      }
+
+      const checkoutResponse = await fetch(`${basePath}/api/checkout/create-invoice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          classId: classData.class_id,
+        }),
+      });
+
+      if (!checkoutResponse.ok) {
+        const errorData = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to create invoice');
+      }
+
+      const { paymentUrl } = await checkoutResponse.json();
+      
+      if (!paymentUrl) {
+        throw new Error('Payment URL not received from server');
+      }
+
+      // Redirect to QuickBooks payment page
+      window.location.href = paymentUrl;
     } catch (err: any) {
       setEmailError(err.message || 'Failed to initiate checkout');
     } finally {
