@@ -8,9 +8,10 @@ export interface Course {
   course_name: string;
   course_code: string;
   program_type: string | null;
+  programming_offering: string | null;
+  course_image: string | null;
   length_of_class: string | null;
   certification_length: number | null;
-  graduation_rate: number | null;
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
@@ -34,9 +35,9 @@ export interface Class {
   class_start_date: string | null;
   class_close_date: string | null;
   is_online: boolean;
+  programming_offering: string | null;
   length_of_class: string | null;
   certification_length: number | null;
-  graduation_rate: number | null;
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
@@ -108,7 +109,7 @@ export async function getCourses(): Promise<{ courses: Course[] | null; error: s
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, program_type, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, registration_limit, price, registration_fee, stripe_product_id")
       .or("program_type.eq.course,program_type.is.null")
       .order("course_code");
 
@@ -131,7 +132,7 @@ export async function getPrograms(): Promise<{ programs: Course[] | null; error:
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, program_type, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, registration_limit, price, registration_fee, stripe_product_id")
       .eq("program_type", "program")
       .order("course_code");
 
@@ -222,9 +223,9 @@ export async function createClass(
   classStartDate?: string | null,
   classCloseDate?: string | null,
   isOnline?: boolean,
+  programmingOffering?: string | null,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
-  graduationRate?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
@@ -268,9 +269,10 @@ export async function createClass(
         classStartDate,
         classCloseDate,
         isOnline,
+        programmingOffering,
+        classImage,
         lengthOfClass,
         certificationLength,
-        graduationRate,
         registrationLimit,
         price,
         registrationFee,
@@ -338,9 +340,9 @@ export async function updateClass(
   classStartDate?: string | null,
   classCloseDate?: string | null,
   isOnline?: boolean,
+  programmingOffering?: string | null,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
-  graduationRate?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
@@ -368,9 +370,9 @@ export async function updateClass(
     if (classStartDate !== undefined) updateData.class_start_date = classStartDate;
     if (classCloseDate !== undefined) updateData.class_close_date = classCloseDate;
     if (isOnline !== undefined) updateData.is_online = isOnline;
+    if (programmingOffering !== undefined) updateData.programming_offering = programmingOffering;
     if (lengthOfClass !== undefined) updateData.length_of_class = lengthOfClass;
     if (certificationLength !== undefined) updateData.certification_length = certificationLength;
-    if (graduationRate !== undefined) updateData.graduation_rate = graduationRate;
     if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
     if (price !== undefined) updateData.price = price;
     if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
@@ -428,9 +430,10 @@ export async function updateCourse(
   id: string,
   courseName?: string,
   courseCode?: string,
+  programmingOffering?: string | null,
+  courseImage?: string | null,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
-  graduationRate?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
@@ -442,9 +445,11 @@ export async function updateCourse(
 
     if (courseName !== undefined) updateData.course_name = courseName;
     if (courseCode !== undefined) updateData.course_code = courseCode;
+    if (programmingOffering !== undefined) updateData.programming_offering = programmingOffering;
+    if (courseImage !== undefined) updateData.course_image = courseImage;
+    if (courseImage !== undefined) updateData.course_image = courseImage;
     if (lengthOfClass !== undefined) updateData.length_of_class = lengthOfClass;
     if (certificationLength !== undefined) updateData.certification_length = certificationLength;
-    if (graduationRate !== undefined) updateData.graduation_rate = graduationRate;
     if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
     if (price !== undefined) updateData.price = price;
     if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
@@ -474,7 +479,6 @@ export async function createCourse(
   courseCode: string,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
-  graduationRate?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
@@ -490,7 +494,6 @@ export async function createCourse(
         program_type: "course",
         length_of_class: lengthOfClass || null,
         certification_length: certificationLength || null,
-        graduation_rate: graduationRate || null,
         registration_limit: registrationLimit || null,
         price: price || null,
         registration_fee: registrationFee || null,
@@ -518,7 +521,6 @@ export async function createProgram(
   courseCode: string,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
-  graduationRate?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
@@ -534,7 +536,6 @@ export async function createProgram(
         program_type: "program",
         length_of_class: lengthOfClass || null,
         certification_length: certificationLength || null,
-        graduation_rate: graduationRate || null,
         registration_limit: registrationLimit || null,
         price: price || null,
         registration_fee: registrationFee || null,

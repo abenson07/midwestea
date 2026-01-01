@@ -318,9 +318,9 @@ function ClassDetailContent() {
             formData.classStartDate || null,
             formData.classEndDate || null,
             formData.classType === 'online',
+            formData.programmingOffering || null,
             null, // length_of_class
             formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
-            parsePercentage(formData.graduationRate),
             formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
             parseDollars(formData.price),
             parseDollars(formData.registrationFee)
@@ -472,12 +472,6 @@ function ClassDetailContent() {
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Certification Length</label>
                         <p className="mt-1 text-sm text-gray-900">{classData.certification_length || "—"}</p>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-500">Graduation Rate</label>
-                        <p className="mt-1 text-sm text-gray-900">
-                            {classData.graduation_rate ? `${(classData.graduation_rate / 100).toFixed(2)}%` : "—"}
-                        </p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Price</label>

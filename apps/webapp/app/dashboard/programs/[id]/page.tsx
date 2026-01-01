@@ -163,9 +163,10 @@ function ProgramDetailContent() {
                 formData.classStartDate || null,
                 formData.classEndDate || null,
                 formData.classType === 'online',
+                selectedProgram.programming_offering || null,
+                selectedProgram.course_image || null,
                 null, // length_of_class
                 formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
-                parsePercentage(formData.graduationRate),
                 formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
                 parseDollars(formData.price),
                 parseDollars(formData.registrationFee),
@@ -195,9 +196,10 @@ function ProgramDetailContent() {
         const oldValues = {
             course_name: originalProgram.course_name,
             course_code: originalProgram.course_code,
+            programming_offering: originalProgram.programming_offering,
+            course_image: originalProgram.course_image,
             length_of_class: originalProgram.length_of_class,
             certification_length: originalProgram.certification_length,
-            graduation_rate: originalProgram.graduation_rate,
             registration_limit: originalProgram.registration_limit,
             price: originalProgram.price,
             registration_fee: originalProgram.registration_fee,
@@ -211,9 +213,10 @@ function ProgramDetailContent() {
             program.id,
             program.course_name,
             program.course_code,
+            program.programming_offering,
+            program.course_image,
             program.length_of_class,
             program.certification_length,
-            program.graduation_rate,
             program.registration_limit,
             program.price,
             program.registration_fee,
@@ -236,6 +239,24 @@ function ProgramDetailContent() {
             // Note: course_code is not editable (read-only) to prevent foreign key constraint violations
             // So we don't need to track changes to it
 
+            // Compare programming_offering
+            if (oldValues.programming_offering !== program.programming_offering) {
+                fieldChanges.push({
+                    field_name: "programming_offering",
+                    old_value: oldValues.programming_offering || null,
+                    new_value: program.programming_offering || null,
+                });
+            }
+
+            // Compare course_image
+            if (oldValues.course_image !== program.course_image) {
+                fieldChanges.push({
+                    field_name: "course_image",
+                    old_value: oldValues.course_image || null,
+                    new_value: program.course_image || null,
+                });
+            }
+
             // Compare length_of_class
             if (oldValues.length_of_class !== program.length_of_class) {
                 fieldChanges.push({
@@ -251,15 +272,6 @@ function ProgramDetailContent() {
                     field_name: "certification_length",
                     old_value: oldValues.certification_length ? String(oldValues.certification_length) : null,
                     new_value: program.certification_length ? String(program.certification_length) : null,
-                });
-            }
-
-            // Compare graduation_rate
-            if (oldValues.graduation_rate !== program.graduation_rate) {
-                fieldChanges.push({
-                    field_name: "graduation_rate",
-                    old_value: oldValues.graduation_rate ? String(oldValues.graduation_rate) : null,
-                    new_value: program.graduation_rate ? String(program.graduation_rate) : null,
                 });
             }
 
@@ -488,25 +500,54 @@ function ProgramDetailContent() {
                             <p className="text-xs text-gray-500 mt-1">Program code cannot be changed (classes depend on it)</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Length of Class</label>
-                                <input
-                                    type="text"
-                                    value={program.length_of_class || ''}
-                                    onChange={(e) => setProgram({ ...program, length_of_class: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Class Type</label>
+                            <select
+                                value={program.programming_offering || ''}
+                                onChange={(e) => setProgram({ ...program, programming_offering: e.target.value || null })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                            >
+                                <option value="">Select class type...</option>
+                                <option value="In Person Only">In Person Only</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Online + Skills Training">Online + Skills Training</option>
+                                <option value="In Person + Homework">In Person + Homework</option>
+                                <option value="Online Only">Online Only</option>
+                            </select>
+                        </div>
+
+                        {(program.programming_offering !== 'Online Only' && program.programming_offering !== 'Online + Skills Training') && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Length of Class</label>
+                                    <input
+                                        type="text"
+                                        value={program.length_of_class || ''}
+                                        onChange={(e) => setProgram({ ...program, length_of_class: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
+                                    <input
+                                        type="number"
+                                        value={program.registration_limit || ''}
+                                        onChange={(e) => setProgram({ ...program, registration_limit: parseInt(e.target.value) || null })}
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
-                                <input
-                                    type="number"
-                                    value={program.registration_limit || ''}
-                                    onChange={(e) => setProgram({ ...program, registration_limit: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
+                        )}
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Course Image URL</label>
+                            <input
+                                type="url"
+                                value={program.course_image || ''}
+                                onChange={(e) => setProgram({ ...program, course_image: e.target.value || null })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                placeholder="https://example.com/image.jpg"
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -516,16 +557,6 @@ function ProgramDetailContent() {
                                     type="number"
                                     value={program.certification_length || ''}
                                     onChange={(e) => setProgram({ ...program, certification_length: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Graduation Rate (%)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={program.graduation_rate ? (program.graduation_rate / 100).toFixed(2) : ''}
-                                    onChange={(e) => setProgram({ ...program, graduation_rate: parseFloat(e.target.value) * 100 || null })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>

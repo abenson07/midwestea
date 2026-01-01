@@ -183,8 +183,8 @@ function CheckoutConfirmContent() {
     );
   }
 
-  // Use 'webflow-image' (with hyphen) as that's the actual field name in the database
-  const imageUrlValue = (classData as any)['webflow-image'] || undefined;
+  // Use 'class_image' as the field name in the database
+  const imageUrlValue = (classData as any)['class_image'] || undefined;
   const hasRegistrationFee = !!(classData.registration_fee && classData.registration_fee > 0);
   const invoice1DueDate = (classData as any)['invoice_1_due_date'] || undefined;
   const invoice2DueDate = (classData as any)['invoice_2_due_date'] || undefined;

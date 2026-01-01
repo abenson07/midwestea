@@ -47,9 +47,6 @@ function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): 
   if (classData.certification_length !== null && classData.certification_length !== undefined) {
     fieldData['certification-length'] = classData.certification_length;
   }
-  if (classData.graduation_rate !== null && classData.graduation_rate !== undefined) {
-    fieldData['graduation-rate'] = classData.graduation_rate;
-  }
   if (classData.registration_limit !== null && classData.registration_limit !== undefined) {
     fieldData['registration-limit'] = classData.registration_limit.toString();
   }
@@ -138,7 +135,6 @@ export async function updateWebflowClassItem(
       if (partial.product_id !== undefined) webflowFields['product-id'] = partial.product_id || '';
       if (partial.length_of_class !== undefined) webflowFields['length-of-class'] = partial.length_of_class || '';
       if (partial.certification_length !== undefined) webflowFields['certification-length'] = partial.certification_length?.toString() || '';
-      if (partial.graduation_rate !== undefined) webflowFields['graduation-rate'] = partial.graduation_rate?.toString() || '';
       if (partial.registration_limit !== undefined) webflowFields['registration-limit'] = partial.registration_limit?.toString() || '';
       if (partial.price !== undefined) webflowFields['price'] = partial.price ? (partial.price / 100).toFixed(2) : '';
       if (partial.registration_fee !== undefined) webflowFields['registration-fee'] = partial.registration_fee ? (partial.registration_fee / 100).toFixed(2) : '';

@@ -237,8 +237,8 @@ function CheckoutDetailsContent() {
     );
   }
 
-  // Use 'webflow-image' (with hyphen) as that's the actual field name in the database
-  const imageUrlValue = (classData as any)['webflow-image'] || undefined;
+  // Use 'class_image' as the field name in the database
+  const imageUrlValue = (classData as any)['class_image'] || undefined;
 
   return (
     <CheckoutLayout 

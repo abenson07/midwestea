@@ -24,9 +24,9 @@ export interface ClassFormData {
   classStartDate: string;
   classEndDate: string;
   classType: 'online' | 'in-person' | 'hybrid';
+  programmingOffering: string;
   price: string;
   registrationFee: string;
-  graduationRate: string;
   certificateLength: string;
   registrationLimit: string;
 }
@@ -50,9 +50,9 @@ export function CreateClassModal({
     classStartDate: '',
     classEndDate: '',
     classType: 'in-person',
+    programmingOffering: '',
     price: '',
     registrationFee: '',
-    graduationRate: '',
     certificateLength: '',
     registrationLimit: ''
   });
@@ -62,14 +62,12 @@ export function CreateClassModal({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [isRegistrationFeeEditing, setIsRegistrationFeeEditing] = useState(false);
-  const [isGraduationRateEditing, setIsGraduationRateEditing] = useState(false);
   const [isCertificateLengthEditing, setIsCertificateLengthEditing] = useState(false);
   const [isRegistrationLimitEditing, setIsRegistrationLimitEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const registrationFeeInputRef = useRef<HTMLInputElement>(null);
-  const graduationRateInputRef = useRef<HTMLInputElement>(null);
   const certificateLengthInputRef = useRef<HTMLInputElement>(null);
   const registrationLimitInputRef = useRef<HTMLInputElement>(null);
 
@@ -104,13 +102,6 @@ export function CreateClassModal({
       registrationFeeInputRef.current.select();
     }
   }, [isRegistrationFeeEditing]);
-
-  useEffect(() => {
-    if (isGraduationRateEditing && graduationRateInputRef.current) {
-      graduationRateInputRef.current.focus();
-      graduationRateInputRef.current.select();
-    }
-  }, [isGraduationRateEditing]);
 
   useEffect(() => {
     if (isCertificateLengthEditing && certificateLengthInputRef.current) {
@@ -180,9 +171,9 @@ export function CreateClassModal({
           ? new Date(editingClass.class_close_date).toISOString().split('T')[0] 
           : '',
         classType: editingClass.is_online ? 'online' : 'in-person',
+        programmingOffering: editingClass.programming_offering || '',
         price: editingClass.price ? (editingClass.price / 100).toFixed(2) : '',
         registrationFee: editingClass.registration_fee ? (editingClass.registration_fee / 100).toFixed(2) : '',
-        graduationRate: editingClass.graduation_rate ? (editingClass.graduation_rate / 100).toFixed(2) : '',
         certificateLength: editingClass.certification_length?.toString() || '',
         registrationLimit: editingClass.registration_limit?.toString() || '',
       });
@@ -200,7 +191,6 @@ export function CreateClassModal({
         classType: 'in-person',
         price: '',
         registrationFee: '',
-        graduationRate: '',
         certificateLength: '',
         registrationLimit: '',
       });
@@ -230,9 +220,9 @@ export function CreateClassModal({
   const inheritFieldsFromCourse = (course: Course) => {
     setFormData(prev => ({
       ...prev,
+      programmingOffering: course.programming_offering || prev.programmingOffering,
       price: course.price ? (course.price / 100).toFixed(2) : prev.price,
       registrationFee: course.registration_fee ? (course.registration_fee / 100).toFixed(2) : prev.registrationFee,
-      graduationRate: course.graduation_rate ? (course.graduation_rate / 100).toFixed(2) : prev.graduationRate,
       certificateLength: course.certification_length?.toString() || prev.certificateLength,
       registrationLimit: course.registration_limit?.toString() || prev.registrationLimit,
     }));
@@ -268,6 +258,11 @@ export function CreateClassModal({
   const isEditMode = !!editingClass;
   const labelText = context === 'program' ? 'Program' : 'Course';
   const isOnline = formData.classType === 'online';
+  const shouldHideFields = formData.programmingOffering === 'Online Only' || formData.programmingOffering === 'Online + Skills Training';
+  
+  // Determine if registration fee should be hidden (for courses, not programs)
+  const selectedCourse = formData.courseId ? [...programs, ...courses].find(c => c.id === formData.courseId) : null;
+  const shouldHideRegistrationFee = selectedCourse?.program_type === 'course';
 
   if (!isOpen) return null;
 
@@ -431,72 +426,40 @@ export function CreateClassModal({
               </div>
 
               {/* Registration Fee Badge Input */}
-              <div className="relative flex-1">
-                {isRegistrationFeeEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
-                    <DollarSign size={12} className="text-gray-700" />
-                    <input
-                      ref={registrationFeeInputRef}
-                      type="text"
-                      value={formData.registrationFee}
-                      onChange={(e) => updateField('registrationFee', e.target.value)}
-                      onBlur={() => setIsRegistrationFeeEditing(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setIsRegistrationFeeEditing(false);
-                        }
-                      }}
-                      className="flex-1 text-[11px] font-medium text-gray-700 focus:outline-none bg-transparent"
-                      placeholder="0.00"
-                    />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsRegistrationFeeEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
-                  >
-                    <DollarSign size={12} className="text-gray-700" />
-                    <span className="text-[11px] font-medium text-gray-700 truncate">
-                      {formData.registrationFee || 'Reg Fee'}
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {/* Graduation Rate Badge Input */}
-              <div className="relative flex-1">
-                {isGraduationRateEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
-                    <Percent size={12} className="text-gray-700" />
-                    <input
-                      ref={graduationRateInputRef}
-                      type="text"
-                      value={formData.graduationRate}
-                      onChange={(e) => updateField('graduationRate', e.target.value)}
-                      onBlur={() => setIsGraduationRateEditing(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setIsGraduationRateEditing(false);
-                        }
-                      }}
-                      className="flex-1 text-[11px] font-medium text-gray-700 focus:outline-none bg-transparent"
-                      placeholder="0%"
-                    />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsGraduationRateEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
-                  >
-                    <Percent size={12} className="text-gray-700" />
-                    <span className="text-[11px] font-medium text-gray-700 truncate">
-                      {formData.graduationRate ? `${formData.graduationRate}%` : 'Grad Rate'}
-                    </span>
-                  </button>
-                )}
-              </div>
+              {!shouldHideRegistrationFee && (
+                <div className="relative flex-1">
+                  {isRegistrationFeeEditing ? (
+                    <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
+                      <DollarSign size={12} className="text-gray-700" />
+                      <input
+                        ref={registrationFeeInputRef}
+                        type="text"
+                        value={formData.registrationFee}
+                        onChange={(e) => updateField('registrationFee', e.target.value)}
+                        onBlur={() => setIsRegistrationFeeEditing(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setIsRegistrationFeeEditing(false);
+                          }
+                        }}
+                        className="flex-1 text-[11px] font-medium text-gray-700 focus:outline-none bg-transparent"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsRegistrationFeeEditing(true)}
+                      className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
+                    >
+                      <DollarSign size={12} className="text-gray-700" />
+                      <span className="text-[11px] font-medium text-gray-700 truncate">
+                        {formData.registrationFee || 'Reg Fee'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Certificate Length Badge Input */}
               <div className="relative flex-1">
@@ -533,108 +496,92 @@ export function CreateClassModal({
               </div>
 
               {/* Registration Limit Badge Input */}
-              <div className="relative flex-1">
-                {isRegistrationLimitEditing ? (
-                  <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
-                    <UserCheck size={12} className="text-gray-700" />
-                    <input
-                      ref={registrationLimitInputRef}
-                      type="text"
-                      value={formData.registrationLimit}
-                      onChange={(e) => updateField('registrationLimit', e.target.value)}
-                      onBlur={() => setIsRegistrationLimitEditing(false)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setIsRegistrationLimitEditing(false);
-                        }
-                      }}
-                      className="flex-1 text-[11px] font-medium text-gray-700 focus:outline-none bg-transparent"
-                      placeholder="0"
-                    />
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setIsRegistrationLimitEditing(true)}
-                    className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
-                  >
-                    <UserCheck size={12} className="text-gray-700" />
-                    <span className="text-[11px] font-medium text-gray-700 truncate">
-                      {formData.registrationLimit || 'Reg Limit'}
-                    </span>
-                  </button>
-                )}
-              </div>
+              {!shouldHideFields && (
+                <div className="relative flex-1">
+                  {isRegistrationLimitEditing ? (
+                    <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
+                      <UserCheck size={12} className="text-gray-700" />
+                      <input
+                        ref={registrationLimitInputRef}
+                        type="text"
+                        value={formData.registrationLimit}
+                        onChange={(e) => updateField('registrationLimit', e.target.value)}
+                        onBlur={() => setIsRegistrationLimitEditing(false)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            setIsRegistrationLimitEditing(false);
+                          }
+                        }}
+                        className="flex-1 text-[11px] font-medium text-gray-700 focus:outline-none bg-transparent"
+                        placeholder="0"
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsRegistrationLimitEditing(true)}
+                      className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
+                    >
+                      <UserCheck size={12} className="text-gray-700" />
+                      <span className="text-[11px] font-medium text-gray-700 truncate">
+                        {formData.registrationLimit || 'Reg Limit'}
+                      </span>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Primary Details */}
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Enrollment Open Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.enrollmentOpenDate}
-                    onChange={(e) => updateField('enrollmentOpenDate', e.target.value)}
-                    disabled={isOnline}
-                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
-                      isOnline
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
-                    }`}
-                  />
+              {!shouldHideFields && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      Enrollment Open Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.enrollmentOpenDate}
+                      onChange={(e) => updateField('enrollmentOpenDate', e.target.value)}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      Enrollment Close Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.enrollmentCloseDate}
+                      onChange={(e) => updateField('enrollmentCloseDate', e.target.value)}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      Class Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.classStartDate}
+                      onChange={(e) => updateField('classStartDate', e.target.value)}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-gray-700">
+                      Class End Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.classEndDate}
+                      onChange={(e) => updateField('classEndDate', e.target.value)}
+                      className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Enrollment Close Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.enrollmentCloseDate}
-                    onChange={(e) => updateField('enrollmentCloseDate', e.target.value)}
-                    disabled={isOnline}
-                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
-                      isOnline
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Class Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.classStartDate}
-                    onChange={(e) => updateField('classStartDate', e.target.value)}
-                    disabled={isOnline}
-                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
-                      isOnline
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
-                    }`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-medium mb-2 ${isOnline ? 'text-gray-400' : 'text-gray-700'}`}>
-                    Class End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.classEndDate}
-                    onChange={(e) => updateField('classEndDate', e.target.value)}
-                    disabled={isOnline}
-                    className={`w-full px-4 py-2.5 text-sm border border-gray-300 rounded-md shadow-sm transition-colors ${
-                      isOnline
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'text-gray-900 bg-white focus:outline-none focus:border-black focus:ring-black'
-                    }`}
-                  />
-                </div>
-              </div>
+              )}
             </div>
           </div>
 

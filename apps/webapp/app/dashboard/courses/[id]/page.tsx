@@ -163,9 +163,10 @@ function CourseDetailContent() {
                 formData.classStartDate || null,
                 formData.classEndDate || null,
                 formData.classType === 'online',
+                selectedCourse.programming_offering || null,
+                selectedCourse.course_image || null,
                 null, // length_of_class
                 formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
-                parsePercentage(formData.graduationRate),
                 formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
                 parseDollars(formData.price),
                 parseDollars(formData.registrationFee),
@@ -195,9 +196,10 @@ function CourseDetailContent() {
         const oldValues = {
             course_name: originalCourse.course_name,
             course_code: originalCourse.course_code,
+            programming_offering: originalCourse.programming_offering,
+            course_image: originalCourse.course_image,
             length_of_class: originalCourse.length_of_class,
             certification_length: originalCourse.certification_length,
-            graduation_rate: originalCourse.graduation_rate,
             registration_limit: originalCourse.registration_limit,
             price: originalCourse.price,
             registration_fee: originalCourse.registration_fee,
@@ -211,9 +213,10 @@ function CourseDetailContent() {
             course.id,
             course.course_name,
             course.course_code,
+            course.programming_offering,
+            course.course_image,
             course.length_of_class,
             course.certification_length,
-            course.graduation_rate,
             course.registration_limit,
             course.price,
             course.registration_fee,
@@ -236,6 +239,24 @@ function CourseDetailContent() {
             // Note: course_code is not editable (read-only) to prevent foreign key constraint violations
             // So we don't need to track changes to it
 
+            // Compare programming_offering
+            if (oldValues.programming_offering !== course.programming_offering) {
+                fieldChanges.push({
+                    field_name: "programming_offering",
+                    old_value: oldValues.programming_offering || null,
+                    new_value: course.programming_offering || null,
+                });
+            }
+
+            // Compare course_image
+            if (oldValues.course_image !== course.course_image) {
+                fieldChanges.push({
+                    field_name: "course_image",
+                    old_value: oldValues.course_image || null,
+                    new_value: course.course_image || null,
+                });
+            }
+
             // Compare length_of_class
             if (oldValues.length_of_class !== course.length_of_class) {
                 fieldChanges.push({
@@ -251,15 +272,6 @@ function CourseDetailContent() {
                     field_name: "certification_length",
                     old_value: oldValues.certification_length ? String(oldValues.certification_length) : null,
                     new_value: course.certification_length ? String(course.certification_length) : null,
-                });
-            }
-
-            // Compare graduation_rate
-            if (oldValues.graduation_rate !== course.graduation_rate) {
-                fieldChanges.push({
-                    field_name: "graduation_rate",
-                    old_value: oldValues.graduation_rate ? String(oldValues.graduation_rate) : null,
-                    new_value: course.graduation_rate ? String(course.graduation_rate) : null,
                 });
             }
 
@@ -434,23 +446,19 @@ function CourseDetailContent() {
                         <p className="mt-1 text-sm text-gray-900">{course.certification_length || "—"}</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-500">Graduation Rate</label>
-                        <p className="mt-1 text-sm text-gray-900">
-                            {course.graduation_rate ? `${(course.graduation_rate / 100).toFixed(2)}%` : "—"}
-                        </p>
-                    </div>
-                    <div>
                         <label className="block text-sm font-medium text-gray-500">Price</label>
                         <p className="mt-1 text-sm text-gray-900">
                             {formatCurrency(course.price)}
                         </p>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-500">Registration Fee</label>
-                        <p className="mt-1 text-sm text-gray-900">
-                            {formatCurrency(course.registration_fee)}
-                        </p>
-                    </div>
+                    {course.program_type === 'program' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-500">Registration Fee</label>
+                            <p className="mt-1 text-sm text-gray-900">
+                                {formatCurrency(course.registration_fee)}
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -506,26 +514,55 @@ function CourseDetailContent() {
                             <p className="text-xs text-gray-500 mt-1">Course code cannot be changed (classes depend on it)</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Length of Class</label>
-                                <input
-                                    type="text"
-                                    value={course.length_of_class || ''}
-                                    onChange={(e) => setCourse({ ...course, length_of_class: e.target.value })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
-                                <input
-                                    type="number"
-                                    value={course.registration_limit || ''}
-                                    onChange={(e) => setCourse({ ...course, registration_limit: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Class Type</label>
+                            <select
+                                value={course.programming_offering || ''}
+                                onChange={(e) => setCourse({ ...course, programming_offering: e.target.value || null })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                            >
+                                <option value="">Select class type...</option>
+                                <option value="In Person Only">In Person Only</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Online + Skills Training">Online + Skills Training</option>
+                                <option value="In Person + Homework">In Person + Homework</option>
+                                <option value="Online Only">Online Only</option>
+                            </select>
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Course Image URL</label>
+                            <input
+                                type="url"
+                                value={course.course_image || ''}
+                                onChange={(e) => setCourse({ ...course, course_image: e.target.value || null })}
+                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                placeholder="https://example.com/image.jpg"
+                            />
+                        </div>
+
+                        {(course.programming_offering !== 'Online Only' && course.programming_offering !== 'Online + Skills Training') && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Length of Class</label>
+                                    <input
+                                        type="text"
+                                        value={course.length_of_class || ''}
+                                        onChange={(e) => setCourse({ ...course, length_of_class: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Registration Limit</label>
+                                    <input
+                                        type="number"
+                                        value={course.registration_limit || ''}
+                                        onChange={(e) => setCourse({ ...course, registration_limit: parseInt(e.target.value) || null })}
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -534,16 +571,6 @@ function CourseDetailContent() {
                                     type="number"
                                     value={course.certification_length || ''}
                                     onChange={(e) => setCourse({ ...course, certification_length: parseInt(e.target.value) || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Graduation Rate (%)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={course.graduation_rate ? (course.graduation_rate / 100).toFixed(2) : ''}
-                                    onChange={(e) => setCourse({ ...course, graduation_rate: parseFloat(e.target.value) * 100 || null })}
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
@@ -560,16 +587,18 @@ function CourseDetailContent() {
                                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Reg. Fee ($)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={course.registration_fee ? (course.registration_fee / 100).toFixed(2) : ''}
-                                    onChange={(e) => setCourse({ ...course, registration_fee: parseFloat(e.target.value) * 100 || null })}
-                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                                />
-                            </div>
+                            {course.program_type === 'program' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Reg. Fee ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={course.registration_fee ? (course.registration_fee / 100).toFixed(2) : ''}
+                                        onChange={(e) => setCourse({ ...course, registration_fee: parseFloat(e.target.value) * 100 || null })}
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    />
+                                </div>
+                            )}
                         </div>
 
                         <div>
