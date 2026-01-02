@@ -8,7 +8,66 @@ export interface WebflowConfig {
 }
 
 /**
+ * Webflow option IDs for programming-type field
+ * These IDs are from the "Classes" collection in Webflow
+ */
+const PROGRAMMING_TYPE_OPTIONS = {
+  program: '8f23647a3279dcd1c52615d67ed7c09d', // "Program"
+  course: 'cf6ac20db4b5c1fadcccc2c9aa7b197a',  // "Course"
+} as const;
+
+/**
+ * Webflow option IDs for programming-offering field
+ * These IDs are from the "Classes" collection in Webflow
+ */
+const PROGRAMMING_OFFERING_OPTIONS: Record<string, string> = {
+  'In Person Only': '159920eac500cde3efad27f4d164afa1',
+  'In Person + Homework': 'feb38d5ad9ed5841a505405ba760613c',
+  'Hybrid': '4cf8fda6d5f5c376f5c872cb20afdb55',
+  'Online Only': 'd9fc898f661c2213b2ca5a3b1aff0411',
+  'Online + Skills Training': '8c0a65e251fd363e459edca744cc570a',
+} as const;
+
+/**
+ * Format price/registration fee for Webflow:
+ * - Convert cents to dollars with 2 decimal places
+ * - Remove .00 if it's a whole dollar amount
+ * - Add comma separators for numbers > 999
+ * Examples: 880000 → "8,800", 880050 → "8,800.50", 100 → "1"
+ */
+function formatPriceForWebflow(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined) {
+    return '';
+  }
+  
+  // Convert cents to dollars
+  const dollars = cents / 100;
+  
+  // Format with 2 decimal places
+  let formatted = dollars.toFixed(2);
+  
+  // Remove .00 if it's a whole dollar amount
+  if (formatted.endsWith('.00')) {
+    formatted = formatted.slice(0, -3);
+  }
+  
+  // Add comma separators for numbers > 999
+  // Split by decimal point to handle both whole numbers and decimals
+  const parts = formatted.split('.');
+  const wholePart = parts[0];
+  
+  // Add commas to whole number part if > 999
+  if (parseInt(wholePart) > 999) {
+    const formattedWhole = parseInt(wholePart).toLocaleString('en-US');
+    formatted = parts.length > 1 ? `${formattedWhole}.${parts[1]}` : formattedWhole;
+  }
+  
+  return formatted;
+}
+
+/**
  * Map Supabase class data to Webflow CMS field format
+ * Always includes all fields, even when NULL, so Webflow can clear them on sync
  */
 function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): Record<string, any> {
   // Webflow requires 'name' and 'slug' fields
@@ -18,47 +77,61 @@ function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): 
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
   
-  // Build field data based on actual Webflow collection schema
-  // For Programs collection: "Course Code" → slug is "program-code"
-  // For Classes collection: "Course Code" → slug might be "course-code" (need to verify)
+  // Build field data - always include fields, even when NULL, so Webflow can clear them
   const fieldData: Record<string, any> = {
-    name: className, // "Class Name" field slug is "name"
-    slug: slug,     // "Slug" field slug is "slug"
+    name: className,
+    slug: slug,
   };
 
-  // Map fields based on actual Webflow slugs
-  // Course Code: "program-code" for programs, "course-code" for courses (assumed)
-  if (classData.course_code) {
-    fieldData[isProgram ? 'program-code' : 'course-code'] = classData.course_code;
+  // Always include course-code (empty string if NULL)
+  fieldData['course-code'] = classData.course_code || '';
+  
+  // Add programming-type field (program or course) - use Webflow option IDs
+  fieldData['programming-type'] = isProgram ? PROGRAMMING_TYPE_OPTIONS.program : PROGRAMMING_TYPE_OPTIONS.course;
+  
+  // Add programming-offering field - use Webflow option IDs, empty string if NULL
+  if (classData.programming_offering) {
+    const programmingOfferingOptionId = PROGRAMMING_OFFERING_OPTIONS[classData.programming_offering];
+    if (programmingOfferingOptionId) {
+      fieldData['programming-offering'] = programmingOfferingOptionId;
+    } else {
+      // Log warning if we have a value but no mapping (shouldn't happen, but helps debug)
+      console.warn(`[Webflow] No option ID mapping found for programming_offering: "${classData.programming_offering}"`);
+      fieldData['programming-offering'] = '';
+    }
+  } else {
+    fieldData['programming-offering'] = '';
   }
   
-  if (classData.class_id) fieldData['class-id'] = classData.class_id;
-  if (classData.enrollment_start) fieldData['enrollment-start'] = classData.enrollment_start;
-  if (classData.enrollment_close) fieldData['enrollment-close'] = classData.enrollment_close;
-  if (classData.class_start_date) fieldData['class-start-date'] = classData.class_start_date;
-  if (classData.class_close_date) fieldData['class-close-date'] = classData.class_close_date;
-  if (classData.location) fieldData['location'] = classData.location;
+  // Always include all fields - set to empty string if NULL to clear in Webflow
+  fieldData['class-id'] = classData.class_id || '';
+  fieldData['enrollment-start'] = classData.enrollment_start || '';
+  fieldData['enrollment-close'] = classData.enrollment_close || '';
+  fieldData['class-start-date'] = classData.class_start_date || '';
+  fieldData['class-close-date'] = classData.class_close_date || '';
+  fieldData['location'] = classData.location || '';
   
-  // Is Online: Switch field - send boolean
+  // Is Online: Switch field - send boolean (defaults to false)
   fieldData['is-online'] = classData.is_online || false;
   
-  if (classData.product_id) fieldData['product-id'] = classData.product_id;
-  if (classData.length_of_class) fieldData['length-of-class'] = classData.length_of_class;
-  if (classData.certification_length !== null && classData.certification_length !== undefined) {
-    fieldData['certification-length'] = classData.certification_length;
-  }
-  if (classData.registration_limit !== null && classData.registration_limit !== undefined) {
-    fieldData['registration-limit'] = classData.registration_limit.toString();
-  }
-  if (classData.price !== null && classData.price !== undefined) {
-    fieldData['price'] = (classData.price / 100).toFixed(2);
-  }
-  if (classData.registration_fee !== null && classData.registration_fee !== undefined) {
-    fieldData['registration-fee'] = (classData.registration_fee / 100).toFixed(2);
-  }
-  if (classData.class_image) {
-    fieldData['class-image'] = classData.class_image;
-  }
+  fieldData['product-id'] = classData.product_id || '';
+  fieldData['length-of-class'] = classData.length_of_class || '';
+  
+  // Numeric fields - convert to string, empty string if NULL
+  fieldData['certification-length'] = classData.certification_length !== null && classData.certification_length !== undefined 
+    ? classData.certification_length.toString() 
+    : '';
+  fieldData['registration-limit'] = classData.registration_limit !== null && classData.registration_limit !== undefined 
+    ? classData.registration_limit.toString() 
+    : '';
+  
+  // Price fields - format with helper function (handles cents to dollars, removes .00, adds commas)
+  fieldData['price'] = formatPriceForWebflow(classData.price);
+  fieldData['registration-fee'] = formatPriceForWebflow(classData.registration_fee);
+  
+  // Image and link fields - empty string if NULL
+  fieldData['class-image'] = classData.class_image || '';
+  fieldData['class-page'] = classData.wf_class_link || '';
 
   return fieldData;
 }
@@ -80,24 +153,40 @@ export async function createWebflowClassItem(
     const webflowFields = mapClassToWebflowFields(classData, isProgram);
     console.log('[Webflow] Mapped fields:', Object.keys(webflowFields));
 
-    const item = await webflow.collections.items.createItem(config.collectionId, {
-      isDraft: false,
-      fieldData: webflowFields as any, // Type assertion needed due to dynamic field names
-    });
-
-    console.log('[Webflow] Item created successfully, ID:', item.id);
-
-    // Publish the item immediately
-    if (item.id) {
-      try {
-        await webflow.collections.items.publishItem(config.collectionId, {
-          itemIds: [item.id],
+    // Try createItemLive first (publishes immediately), fall back to createItem + publishItem if not available
+    let item;
+    try {
+      // Use createItemLive to create and publish immediately (bypasses publish queue)
+      item = await webflow.collections.items.createItemLive(config.collectionId, {
+        isDraft: false,
+        fieldData: webflowFields as any, // Type assertion needed due to dynamic field names
+      });
+      console.log('[Webflow] Item created and published immediately via createItemLive, ID:', item.id);
+    } catch (liveError: any) {
+      // If createItemLive fails (e.g., 404 - endpoint not available), fall back to createItem + publishItem
+      if (liveError.statusCode === 404 || liveError.message?.includes('not found')) {
+        console.log('[Webflow] createItemLive not available, falling back to createItem + publishItem');
+        item = await webflow.collections.items.createItem(config.collectionId, {
+          isDraft: false,
+          fieldData: webflowFields as any,
         });
-        console.log('[Webflow] Item published immediately, ID:', item.id);
-      } catch (publishError: any) {
-        console.error('[Webflow] Error publishing item:', publishError);
-        // Don't fail the whole operation if publish fails - item is still created
-        console.warn('[Webflow] Item created but publish failed. Item ID:', item.id);
+        console.log('[Webflow] Item created, ID:', item.id);
+        
+        // Publish immediately after creation
+        if (item.id) {
+          try {
+            await webflow.collections.items.publishItem(config.collectionId, {
+              itemIds: [item.id],
+            });
+            console.log('[Webflow] Item published immediately via publishItem, ID:', item.id);
+          } catch (publishError: any) {
+            console.error('[Webflow] Error publishing item:', publishError);
+            console.warn('[Webflow] Item created but publish failed. Item ID:', item.id);
+          }
+        }
+      } else {
+        // Re-throw if it's a different error
+        throw liveError;
       }
     }
 
@@ -155,9 +244,20 @@ export async function updateWebflowClassItem(
       if (partial.length_of_class !== undefined) webflowFields['length-of-class'] = partial.length_of_class || '';
       if (partial.certification_length !== undefined) webflowFields['certification-length'] = partial.certification_length?.toString() || '';
       if (partial.registration_limit !== undefined) webflowFields['registration-limit'] = partial.registration_limit?.toString() || '';
-      if (partial.price !== undefined) webflowFields['price'] = partial.price ? (partial.price / 100).toFixed(2) : '';
-      if (partial.registration_fee !== undefined) webflowFields['registration-fee'] = partial.registration_fee ? (partial.registration_fee / 100).toFixed(2) : '';
+      if (partial.price !== undefined) webflowFields['price'] = formatPriceForWebflow(partial.price);
+      if (partial.registration_fee !== undefined) webflowFields['registration-fee'] = formatPriceForWebflow(partial.registration_fee);
       if (partial.class_image !== undefined) webflowFields['class-image'] = partial.class_image || '';
+      if (partial.wf_class_link !== undefined) webflowFields['class-page'] = partial.wf_class_link || '';
+      // Add new fields for unified collection - use Webflow option IDs
+      if (partial.programming_offering !== undefined) {
+        const programmingOfferingOptionId = partial.programming_offering 
+          ? PROGRAMMING_OFFERING_OPTIONS[partial.programming_offering] 
+          : null;
+        // Always set the field, even if NULL, to clear it in Webflow
+        webflowFields['programming-offering'] = programmingOfferingOptionId || '';
+      }
+      // Always include programming-type to ensure it's set correctly (derived from isProgram parameter)
+      webflowFields['programming-type'] = isProgram ? PROGRAMMING_TYPE_OPTIONS.program : PROGRAMMING_TYPE_OPTIONS.course;
     }
 
     // Only update if we have fields to update
@@ -165,12 +265,40 @@ export async function updateWebflowClassItem(
       return { success: true, error: null }; // Nothing to update
     }
 
-    // Use updateItem for a single item update
-    await webflow.collections.items.updateItem(config.collectionId, webflowItemId, {
-      fieldData: webflowFields,
-    });
-
-    return { success: true, error: null };
+    // Try updateItemLive first (publishes immediately), fall back to updateItem + publishItem if not available
+    try {
+      // Use updateItemLive to update and publish immediately (bypasses publish queue)
+      await webflow.collections.items.updateItemLive(config.collectionId, webflowItemId, {
+        fieldData: webflowFields,
+      });
+      console.log('[Webflow] Item updated and published immediately via updateItemLive');
+      return { success: true, error: null };
+    } catch (liveError: any) {
+      // If updateItemLive fails (e.g., 404 - endpoint not available), fall back to updateItem + publishItem
+      if (liveError.statusCode === 404 || liveError.message?.includes('not found')) {
+        console.log('[Webflow] updateItemLive not available, falling back to updateItem + publishItem');
+        await webflow.collections.items.updateItem(config.collectionId, webflowItemId, {
+          fieldData: webflowFields,
+        });
+        
+        // Publish immediately after update
+        try {
+          await webflow.collections.items.publishItem(config.collectionId, {
+            itemIds: [webflowItemId],
+          });
+          console.log('[Webflow] Item updated and published immediately via publishItem');
+        } catch (publishError: any) {
+          console.error('[Webflow] Error publishing item:', publishError);
+          // Don't fail the whole operation if publish fails - item is still updated
+          console.warn('[Webflow] Item updated but publish failed');
+        }
+        
+        return { success: true, error: null };
+      } else {
+        // Re-throw if it's a different error
+        throw liveError;
+      }
+    }
   } catch (error: any) {
     console.error('Error updating Webflow item:', error);
     return { success: false, error: error.message || 'Failed to update Webflow item' };
@@ -178,11 +306,12 @@ export async function updateWebflowClassItem(
 }
 
 /**
- * Get Webflow configuration based on program type
+ * Get Webflow configuration - always returns unified "Classes" collection
  */
 export function getWebflowConfig(programType: string | null): WebflowConfig | null {
   const apiToken = process.env.WEBFLOW_API_TOKEN;
   const siteId = process.env.WEBFLOW_SITE_ID;
+  const collectionId = process.env.WEBFLOW_CLASSES_COLLECTION_ID;
   
   if (!apiToken || !siteId) {
     console.error('[Webflow] Missing Webflow API configuration');
@@ -191,23 +320,10 @@ export function getWebflowConfig(programType: string | null): WebflowConfig | nu
     return null;
   }
 
-  let collectionId: string | undefined;
-  const expectedVarName = programType === 'program' 
-    ? 'WEBFLOW_PROGRAMS_COLLECTION_ID' 
-    : 'WEBFLOW_CLASSES_COLLECTION_ID';
-  
-  if (programType === 'program') {
-    collectionId = process.env.WEBFLOW_PROGRAMS_COLLECTION_ID;
-  } else {
-    // program_type === 'course' or null
-    collectionId = process.env.WEBFLOW_COURSES_COLLECTION_ID;
-  }
-
   if (!collectionId) {
-    console.error('[Webflow] Missing Webflow collection ID for program type:', programType);
-    console.error('[Webflow] Expected environment variable:', expectedVarName);
-    console.error('[Webflow] WEBFLOW_PROGRAMS_COLLECTION_ID:', process.env.WEBFLOW_PROGRAMS_COLLECTION_ID ? 'SET' : 'MISSING');
-    console.error('[Webflow] WEBFLOW_COURSES_COLLECTION_ID:', process.env.WEBFLOW_COURSES_COLLECTION_ID ? 'SET' : 'MISSING');
+    console.error('[Webflow] Missing Webflow collection ID');
+    console.error('[Webflow] Expected environment variable: WEBFLOW_CLASSES_COLLECTION_ID');
+    console.error('[Webflow] WEBFLOW_CLASSES_COLLECTION_ID:', collectionId ? 'SET' : 'MISSING');
     return null;
   }
 

@@ -144,10 +144,10 @@ export async function PUT(
     if (currentClass.webflow_item_id) {
       console.log('[API] Starting Webflow sync for class update:', classId);
       try {
-        // Look up the course/program to determine program_type
+        // Look up the course/program to determine program_type and get wf_class_link
         const { data: course, error: courseError } = await supabase
           .from('courses')
-          .select('program_type')
+          .select('program_type, wf_class_link')
           .eq('id', currentClass.course_uuid)
           .single();
         
@@ -162,21 +162,24 @@ export async function PUT(
             const envStatus = {
               apiToken: process.env.WEBFLOW_API_TOKEN ? 'SET' : 'MISSING',
               siteId: process.env.WEBFLOW_SITE_ID ? 'SET' : 'MISSING',
-              collectionId: course.program_type === 'program' 
-                ? (process.env.WEBFLOW_PROGRAMS_COLLECTION_ID ? 'SET' : 'MISSING')
-                : (process.env.WEBFLOW_COURSES_COLLECTION_ID ? 'SET' : 'MISSING'),
+              collectionId: process.env.WEBFLOW_CLASSES_COLLECTION_ID ? 'SET' : 'MISSING',
             };
             console.error('[API] Webflow config is null. Environment variables:', envStatus);
             webflowError = `Webflow config missing. Check: ${JSON.stringify(envStatus)}`;
           } else {
             console.log('[API] Webflow config created, collectionId:', webflowConfig.collectionId);
             
-            // Use the updated class data for Webflow sync
+            // Use the updated class data for Webflow sync, ensuring wf_class_link is from course
             const isProgram = course.program_type === 'program';
+            const wfClassLinkFromCourse = course.wf_class_link || null;
+            const classDataForWebflow = {
+              ...updatedClass,
+              wf_class_link: wfClassLinkFromCourse,
+            };
             const { success, error: wfError } = await updateWebflowClassItem(
               webflowConfig,
               currentClass.webflow_item_id,
-              updatedClass,
+              classDataForWebflow,
               isProgram
             );
 
@@ -185,6 +188,13 @@ export async function PUT(
               webflowError = `Webflow API error: ${wfError || 'Unknown error'}`;
             } else {
               console.log('[API] Webflow item updated successfully');
+              // Update the class's wf_class_link in the database to match the course
+              if (wfClassLinkFromCourse !== updatedClass.wf_class_link) {
+                await supabase
+                  .from('classes')
+                  .update({ wf_class_link: wfClassLinkFromCourse })
+                  .eq('id', classId);
+              }
             }
           }
         } else {

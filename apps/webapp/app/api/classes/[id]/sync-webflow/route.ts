@@ -122,18 +122,8 @@ export async function POST(
         );
 
         if (success) {
-          console.log('[API] Successfully updated Webflow item');
-          // Publish the updated item
-          try {
-            const { WebflowClient } = await import('webflow-api');
-            const webflow = new WebflowClient({ accessToken: webflowConfig.apiToken });
-            await webflow.collections.items.publishItem(webflowConfig.collectionId, {
-              itemIds: [existingWebflowItemId],
-            });
-            console.log('[API] Published updated Webflow item');
-          } catch (publishError: any) {
-            console.warn('[API] Failed to publish updated item (non-critical):', publishError);
-          }
+          console.log('[API] Successfully updated and published Webflow item');
+          // Note: updateItemLive already publishes immediately, no separate publish call needed
 
           // Log the sync action
           await insertLog({

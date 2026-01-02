@@ -90,9 +90,7 @@ export async function DELETE(
             const envStatus = {
               apiToken: process.env.WEBFLOW_API_TOKEN ? 'SET' : 'MISSING',
               siteId: process.env.WEBFLOW_SITE_ID ? 'SET' : 'MISSING',
-              collectionId: course.program_type === 'program' 
-                ? (process.env.WEBFLOW_PROGRAMS_COLLECTION_ID ? 'SET' : 'MISSING')
-                : (process.env.WEBFLOW_COURSES_COLLECTION_ID ? 'SET' : 'MISSING'),
+              collectionId: process.env.WEBFLOW_CLASSES_COLLECTION_ID ? 'SET' : 'MISSING',
             };
             console.error('[API] Webflow config is null. Environment variables:', envStatus);
             webflowError = `Webflow config missing. Check: ${JSON.stringify(envStatus)}`;
