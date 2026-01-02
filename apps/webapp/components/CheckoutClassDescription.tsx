@@ -124,8 +124,8 @@ export default function CheckoutClassDescription({
             {endDate ? formatDate(endDate) : 'Placeholder date'}
           </p>
 
-          {/* Location */}
-          <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)', alignSelf: 'flex-start' }}>
+          {/* Location - Hidden for now */}
+          {/* <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)', alignSelf: 'flex-start' }}>
             Location
           </p>
           <div style={{ color: 'var(--semantics-text, #191920)', whiteSpace: 'nowrap' }}>
@@ -142,10 +142,10 @@ export default function CheckoutClassDescription({
                 <p style={{ margin: 0 }}>12345</p>
               </>
             )}
-          </div>
+          </div> */}
 
-          {/* Frequency */}
-          <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)', alignSelf: 'flex-start' }}>
+          {/* Frequency - Hidden for now */}
+          {/* <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)', alignSelf: 'flex-start' }}>
             Frequency
           </p>
           <div style={{ color: 'var(--semantics-text, #191920)', whiteSpace: 'nowrap' }}>
@@ -161,7 +161,7 @@ export default function CheckoutClassDescription({
                 <p style={{ margin: 0 }}>Placeholder time</p>
               </>
             )}
-          </div>
+          </div> */}
         </div>
       )}
     </div>

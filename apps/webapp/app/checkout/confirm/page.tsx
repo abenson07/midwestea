@@ -13,11 +13,22 @@ function CheckoutConfirmContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [emailError, setEmailError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const classIDParam = searchParams.get('classID');
+    const emailParam = searchParams.get('email');
+    const fullNameParam = searchParams.get('fullName');
+    
+    // Set email and fullName from URL params if available
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+    if (fullNameParam) {
+      setFullName(fullNameParam);
+    }
     
     if (!classIDParam) {
       setError('Class ID is required. Please provide a classID in the URL (e.g., ?classID=cct-001).');
@@ -54,29 +65,20 @@ function CheckoutConfirmContent() {
     fetchClassData();
   }, [searchParams]);
 
+  // Redirect back to details if email is missing
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (!emailParam && !loading && classData) {
+      const classIDParam = searchParams.get('classID');
+      router.push(`/checkout/details?classID=${classIDParam}`);
+    }
+  }, [searchParams, loading, classData, router]);
+
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-    // Only clear error if email becomes valid while typing (so error disappears when fixed)
-    // Don't set new errors while typing - wait for blur or submit
-    if (emailError && validateEmail(value)) {
-      setEmailError('');
-    }
-  };
-
-  const handleEmailBlur = () => {
-    // Validate on blur (when user leaves the field)
-    if (email && !validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
-    } else {
-      setEmailError('');
-    }
-  };
 
   const calculatePaymentSchedule = () => {
     if (!classData) return null;
@@ -220,81 +222,23 @@ function CheckoutConfirmContent() {
               lineHeight: '140%'
             }}
           >
-            Enter your email and review the payment schedule below to continue.
+            Review the payment schedule below to continue.
           </p>
         </>
       }
-      emailField={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                  color: 'var(--Semantics-Text, #191920)',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Email Address *
-              </p>
-            </div>
-          </div>
-          <div
-            style={{
-              backgroundColor: 'white',
-              border: '1px solid var(--color-neutral-light, #969699)',
-              borderRadius: 'var(--radius-extra-small, 4px)',
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center',
-              padding: '12px',
-              width: '100%'
-            }}
-          >
-            <input
-              type="email"
-              value={email}
-              onChange={handleEmailChange}
-              onBlur={handleEmailBlur}
-              placeholder="example@email.com"
-              className="checkout-email-input"
-              style={{
-                flex: 1,
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '16px',
-                fontWeight: 400,
-                lineHeight: 1.4,
-                color: 'var(--text-input-text-input-text, #191920)',
-                backgroundColor: 'transparent',
-                border: 'none',
-                outline: 'none',
-                minWidth: 0,
-                padding: 0
-              }}
-            />
-          </div>
-          {emailError && (
-            <p
-              style={{
-                margin: 0,
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '14px',
-                color: '#ef4444'
-              }}
-            >
-              {emailError}
-            </p>
-          )}
-        </div>
-      }
       buttonText={isSubmitting ? 'Processing...' : 'Proceed to Payment'}
       onButtonClick={handleCheckout}
-      onBackClick={() => router.push(`/checkout/details?classID=${searchParams.get('classID')}`)}
+      onBackClick={() => {
+        const classIDParam = searchParams.get('classID');
+        const emailParam = searchParams.get('email');
+        const fullNameParam = searchParams.get('fullName');
+        
+        const params = new URLSearchParams({ classID: classIDParam || '' });
+        if (emailParam) params.append('email', emailParam);
+        if (fullNameParam) params.append('fullName', fullNameParam);
+        
+        router.push(`/checkout/details?${params.toString()}`);
+      }}
       wrapperClassName="checkout-payment-schedule-wrapper"
     >
       <CheckoutPaymentSchedule

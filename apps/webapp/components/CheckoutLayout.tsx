@@ -15,6 +15,7 @@ interface CheckoutLayoutProps {
   logoUrl?: string;
   classesContent?: ReactNode;
   emailField?: ReactNode;
+  fullNameField?: ReactNode;
   wrapperClassName?: string; // Custom className for checkout-details-wrapper
 }
 
@@ -31,6 +32,7 @@ export default function CheckoutLayout({
   logoUrl = 'https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/69519dfb03c5fd3b91b0c2f2_Company%20Logo.svg',
   classesContent,
   emailField,
+  fullNameField,
   wrapperClassName = 'checkout-details-wrapper'
 }: CheckoutLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
@@ -193,6 +195,13 @@ export default function CheckoutLayout({
               </>
             )}
           </div>
+
+          {/* Full Name Wrapper */}
+          {fullNameField && (
+            <div className="checkout-fullname-wrapper">
+              {fullNameField}
+            </div>
+          )}
 
           {/* Email Wrapper */}
           {emailField && (

@@ -6,6 +6,7 @@ import type { Class } from '@midwestea/types';
 import CheckoutLayout from '@/components/CheckoutLayout';
 import CheckoutClassDescription from '@/components/CheckoutClassDescription';
 import CheckoutClassCard from '@/components/CheckoutClassCard';
+import CheckoutPaymentSchedule from '@/components/CheckoutPaymentSchedule';
 
 function CheckoutDetailsContent() {
   const searchParams = useSearchParams();
@@ -19,6 +20,12 @@ function CheckoutDetailsContent() {
   const [classesCache, setClassesCache] = useState<Record<string, Class>>({});
   const classesCacheRef = useRef<Record<string, Class>>({});
   const isInternalUpdate = useRef(false);
+  // Form fields
+  const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [fullNameError, setFullNameError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Helper to update both state and ref
   const updateCache = (updates: Record<string, Class>) => {
@@ -34,6 +41,16 @@ function CheckoutDetailsContent() {
     }
 
     const classIDParam = searchParams.get('classID');
+    const emailParam = searchParams.get('email');
+    const fullNameParam = searchParams.get('fullName');
+    
+    // Set email and fullName from URL params if available (e.g., when navigating back)
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+    if (fullNameParam) {
+      setFullName(fullNameParam);
+    }
     
     if (!classIDParam) {
       setError('Class ID is required. Please provide a classID in the URL (e.g., ?classID=cct-001).');
@@ -129,9 +146,122 @@ function CheckoutDetailsContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const handleContinue = () => {
-    if (selectedClassId) {
-      router.push(`/checkout/confirm?classID=${selectedClassId}`);
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    // Only clear error if email becomes valid while typing
+    if (emailError && validateEmail(value)) {
+      setEmailError('');
+    }
+  };
+
+  const handleEmailBlur = () => {
+    // Validate on blur
+    if (email && !validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setFullName(value);
+    // Only clear error if fullName becomes valid while typing
+    if (fullNameError && value.trim()) {
+      setFullNameError('');
+    }
+  };
+
+  const handleFullNameBlur = () => {
+    // Validate on blur
+    if (!fullName.trim()) {
+      setFullNameError('Full name is required');
+    } else {
+      setFullNameError('');
+    }
+  };
+
+  const handleContinue = async () => {
+    // Validate email before continuing
+    if (!email) {
+      setEmailError('Email is required');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate full name before continuing
+    if (!fullName.trim()) {
+      setFullNameError('Full name is required');
+      return;
+    }
+
+    if (!selectedClassId || !classData) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setEmailError('');
+    setFullNameError('');
+
+    try {
+      // Ensure user exists in auth.users
+      const basePath = typeof window !== 'undefined' 
+        ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+        : '';
+      
+      const ensureUserResponse = await fetch(`${basePath}/api/checkout/ensure-user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!ensureUserResponse.ok) {
+        const errorData = await ensureUserResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to ensure user exists');
+      }
+
+      const ensureUserResult = await ensureUserResponse.json();
+
+      // Get Stripe payment link for the class
+      if (!classData?.class_id) {
+        throw new Error('Class data is missing');
+      }
+
+      const checkoutResponse = await fetch(`${basePath}/api/checkout/get-payment-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          classId: classData.class_id,
+        }),
+      });
+
+      if (!checkoutResponse.ok) {
+        const errorData = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to get payment link');
+      }
+
+      const { paymentUrl } = await checkoutResponse.json();
+      
+      if (!paymentUrl) {
+        throw new Error('Payment URL not received from server');
+      }
+
+      // Redirect to Stripe payment link
+      window.location.href = paymentUrl;
+    } catch (err: any) {
+      setEmailError(err.message || 'Failed to initiate checkout');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -246,12 +376,161 @@ function CheckoutDetailsContent() {
       price={classData.price || undefined}
       registrationFee={classData.registration_fee || undefined}
       imageUrl={imageUrlValue}
-      buttonText="Continue to Payment"
+      buttonText={isSubmitting ? 'Processing...' : 'Continue to Payment'}
       onButtonClick={handleContinue}
       onBackClick={() => router.back()}
+      fullNameField={
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                  color: 'var(--Semantics-Text, #191920)',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Full Name <span style={{ color: '#ef4444' }}>*</span>
+              </p>
+            </div>
+          </div>
+          <div
+            style={{
+              backgroundColor: 'white',
+              border: fullNameError ? '1px solid #ef4444' : '1px solid var(--color-neutral-light, #969699)',
+              borderRadius: 'var(--radius-extra-small, 4px)',
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'center',
+              padding: '12px',
+              width: '100%'
+            }}
+          >
+            <input
+              type="text"
+              value={fullName}
+              onChange={handleFullNameChange}
+              onBlur={handleFullNameBlur}
+              placeholder="John Doe"
+              className="checkout-fullname-input"
+              style={{
+                flex: 1,
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '16px',
+                fontWeight: 400,
+                lineHeight: 1.4,
+                color: 'var(--text-input-text-input-text, #191920)',
+                backgroundColor: 'transparent',
+                border: 'none',
+                outline: 'none',
+                minWidth: 0,
+                padding: 0
+              }}
+            />
+          </div>
+          {fullNameError && (
+            <p
+              style={{
+                margin: 0,
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '14px',
+                color: '#ef4444'
+              }}
+            >
+              {fullNameError}
+            </p>
+          )}
+        </div>
+      }
+      emailField={
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <p
+                style={{
+                  margin: 0,
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                  color: 'var(--Semantics-Text, #191920)',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                Email Address <span style={{ color: '#ef4444' }}>*</span>
+              </p>
+            </div>
+          </div>
+          <div
+            style={{
+              backgroundColor: 'white',
+              border: emailError ? '1px solid #ef4444' : '1px solid var(--color-neutral-light, #969699)',
+              borderRadius: 'var(--radius-extra-small, 4px)',
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'center',
+              padding: '12px',
+              width: '100%'
+            }}
+          >
+            <input
+              type="email"
+              value={email}
+              onChange={handleEmailChange}
+              onBlur={handleEmailBlur}
+              placeholder="example@email.com"
+              className="checkout-email-input"
+              style={{
+                flex: 1,
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '16px',
+                fontWeight: 400,
+                lineHeight: 1.4,
+                color: 'var(--text-input-text-input-text, #191920)',
+                backgroundColor: 'transparent',
+                border: 'none',
+                outline: 'none',
+                minWidth: 0,
+                padding: 0
+              }}
+            />
+          </div>
+          {emailError && (
+            <p
+              style={{
+                margin: 0,
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '14px',
+                color: '#ef4444'
+              }}
+            >
+              {emailError}
+            </p>
+          )}
+        </div>
+      }
       classesContent={
         hasMultipleClasses ? (
           <>
+            <p
+              style={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '16px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                margin: 0,
+                height: '20px',
+                color: 'var(--semantics-text, #191920)'
+              }}
+            >
+              Choose class
+            </p>
             {availableClasses.map((cls) => {
               const isActive = cls.classId === selectedClassId;
               // Use cached full class data if available, otherwise fall back to current classData or basic data
@@ -275,6 +554,12 @@ function CheckoutDetailsContent() {
                 }
               }
               
+              // Get end date - prefer raw date from cached full class data
+              let cardEndDate: string | undefined = undefined;
+              if (fullClassData?.class_close_date) {
+                cardEndDate = formatDateForCard(fullClassData.class_close_date);
+              }
+              
               return (
                 <CheckoutClassCard
                   key={cls.classId}
@@ -282,6 +567,7 @@ function CheckoutDetailsContent() {
                   state={isActive ? 'active' : 'default'}
                   location={fullClassData?.location || cls.location || undefined}
                   date={cardDate}
+                  endDate={cardEndDate}
                   onClick={() => handleClassSelection(cls.classId)}
                 />
               );
@@ -290,22 +576,33 @@ function CheckoutDetailsContent() {
         ) : null
       }
     >
-      {/* Show description based on is_online boolean */}
-      {classData.is_online ? (
-        <CheckoutClassDescription
-          variant="online"
-          description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
+        {/* Show description based on is_online boolean */}
+        {classData.is_online ? (
+          <CheckoutClassDescription
+            variant="online"
+            description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+          />
+        ) : (
+          <CheckoutClassDescription
+            variant="in-person"
+            description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+            startDate={classData.class_start_date || undefined}
+            endDate={classData.class_close_date || undefined}
+            location={classData.location || undefined}
+            frequency={classData.length_of_class || undefined}
+          />
+        )}
+
+        {/* Payment Schedule */}
+        <CheckoutPaymentSchedule
+          hasRegistrationFee={!!(classData.registration_fee && classData.registration_fee > 0)}
+          registrationFee={classData.registration_fee || undefined}
+          price={classData.price || undefined}
+          invoice1DueDate={(classData as any)['invoice_1_due_date'] || undefined}
+          invoice2DueDate={(classData as any)['invoice_2_due_date'] || undefined}
         />
-      ) : (
-        <CheckoutClassDescription
-          variant="in-person"
-          description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
-          startDate={classData.class_start_date || undefined}
-          endDate={classData.class_close_date || undefined}
-          location={classData.location || undefined}
-          frequency={classData.length_of_class || undefined}
-        />
-      )}
+      </div>
     </CheckoutLayout>
   );
 }
