@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { createWebflowClassItem, updateWebflowClassItem, getWebflowConfig } from '@/lib/webflow';
-import { getCurrentAdmin } from '@/lib/logging';
+import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import type { Class } from '@/lib/classes';
 
 export const runtime = 'nodejs';
@@ -69,10 +69,10 @@ export async function POST(
       );
     }
 
-    // Look up the course/program to determine program_type
+    // Look up the course/program to determine program_type and get wf_class_link
     const { data: course, error: courseError } = await supabase
       .from('courses')
-      .select('program_type')
+      .select('program_type, wf_class_link')
       .eq('id', classData.course_uuid)
       .single();
 
@@ -103,6 +103,12 @@ export async function POST(
 
     const isProgram = programType === 'program';
     const existingWebflowItemId = classData.webflow_item_id;
+    
+    // Ensure wf_class_link is from course
+    const classDataForWebflow: Class = {
+      ...classData as Class,
+      wf_class_link: course.wf_class_link || classData.wf_class_link || null,
+    };
 
     // Try to update if webflow_item_id exists
     if (existingWebflowItemId) {
@@ -111,7 +117,7 @@ export async function POST(
         const { success, error: updateError } = await updateWebflowClassItem(
           webflowConfig,
           existingWebflowItemId,
-          classData as Class,
+          classDataForWebflow,
           isProgram
         );
 
@@ -128,6 +134,16 @@ export async function POST(
           } catch (publishError: any) {
             console.warn('[API] Failed to publish updated item (non-critical):', publishError);
           }
+
+          // Log the sync action
+          await insertLog({
+            admin_user_id: admin.id,
+            reference_id: classId,
+            reference_type: 'class',
+            action_type: 'webflow_synced',
+            new_value: 'updated',
+            class_id: classId,
+          });
 
           return NextResponse.json({
             success: true,
@@ -149,7 +165,7 @@ export async function POST(
     console.log('[API] Creating new Webflow item');
     const { webflowItemId, error: createError } = await createWebflowClassItem(
       webflowConfig,
-      classData as Class,
+      classDataForWebflow,
       isProgram
     );
 
@@ -160,10 +176,13 @@ export async function POST(
       );
     }
 
-    // Update the class with the new webflow_item_id
+    // Update the class with the new webflow_item_id and wf_class_link
     const { error: updateDbError } = await supabase
       .from('classes')
-      .update({ webflow_item_id: webflowItemId })
+      .update({ 
+        webflow_item_id: webflowItemId,
+        wf_class_link: course.wf_class_link || null,
+      })
       .eq('id', classId);
 
     if (updateDbError) {
@@ -171,10 +190,21 @@ export async function POST(
       // Don't fail the whole operation - Webflow item was created successfully
     }
 
+    // Log the sync action
+    const syncAction = existingWebflowItemId ? 'recreated' : 'created';
+    await insertLog({
+      admin_user_id: admin.id,
+      reference_id: classId,
+      reference_type: 'class',
+      action_type: 'webflow_synced',
+      new_value: syncAction,
+      class_id: classId,
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Class synced to Webflow successfully',
-      action: existingWebflowItemId ? 'recreated' : 'created',
+      action: syncAction,
       webflowItemId,
     });
   } catch (error: any) {

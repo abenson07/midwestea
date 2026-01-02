@@ -5,7 +5,7 @@ export interface LogRecord {
   admin_user_id: string | null;
   reference_id: string;
   reference_type: "program" | "course" | "class" | "student";
-  action_type: "detail_updated" | "class_created" | "class_deleted" | "student_added" | "student_removed" | "student_registered" | "payment_success";
+  action_type: "detail_updated" | "class_created" | "class_deleted" | "student_added" | "student_removed" | "student_registered" | "payment_success" | "webflow_synced";
   field_name: string | null;
   old_value: string | null;
   new_value: string | null;
@@ -118,6 +118,12 @@ export function formatLogMessage(log: LogRecord): string {
       const emailPart = studentEmail ? ` (${studentEmail})` : "";
       const amount = log.amount ? formatCurrency(log.amount) : "$0.00";
       return `${studentName}${emailPart} paid ${amount} – ${timestamp}`;
+    }
+
+    case "webflow_synced": {
+      const action = log.new_value || "synced"; // new_value will contain "created", "updated", or "recreated"
+      const actionVerb = action === "created" ? "created" : action === "recreated" ? "recreated" : "updated";
+      return `${adminName} ${actionVerb} this class in Webflow – ${timestamp}`;
     }
 
     default:
