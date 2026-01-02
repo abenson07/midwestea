@@ -52,7 +52,10 @@
     }
     
     // If not in URL, try to get from the CMS-bound button
-    const cmsButton = document.querySelector('[data-checkout-button="cms"]');
+    // Check both lowercase and uppercase versions for case-insensitive matching
+    const cmsButtonLower = document.querySelector('[data-checkout-button="cms"]');
+    const cmsButtonUpper = document.querySelector('[data-checkout-button="CMS"]');
+    const cmsButton = cmsButtonLower || cmsButtonUpper;
     
     if (cmsButton) {
       const courseCode = cmsButton.getAttribute('data-course-code');
