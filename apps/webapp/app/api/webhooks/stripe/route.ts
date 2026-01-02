@@ -18,8 +18,20 @@ export async function POST(request: NextRequest) {
   // #region agent log
   fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:16',message:'Stripe webhook POST received',data:{hasSignature:!!request.headers.get('stripe-signature')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
   // #endregion
-  const body = await request.text();
+  
+  // Get the raw body as text - critical for Stripe signature verification
+  // Read as ArrayBuffer first to ensure we get the exact raw bytes without any transformation
+  const bodyBuffer = await request.arrayBuffer();
+  // Convert to string using TextDecoder to preserve exact bytes
+  const decoder = new TextDecoder('utf-8');
+  const body = decoder.decode(bodyBuffer);
   const signature = request.headers.get('stripe-signature');
+
+  // Debug logging
+  console.log('[webhook] Body length:', body.length);
+  console.log('[webhook] Body preview (first 100 chars):', body.substring(0, 100));
+  console.log('[webhook] Has signature:', !!signature);
+  console.log('[webhook] Content-Type:', request.headers.get('content-type'));
 
   if (!signature) {
     console.error('[webhook] Missing stripe-signature header');
@@ -47,10 +59,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Log webhook secret info (first 10 chars only for security)
+  console.log('[webhook] Webhook secret configured:', webhookSecret.substring(0, 10) + '...');
+  console.log('[webhook] Signature header:', signature?.substring(0, 50) + '...');
+
   let event: Stripe.Event;
 
   try {
     const stripe = getStripeClient(stripeSecretKey);
+    // Important: body must be the raw string, signature must be from headers
+    // If this fails, the body was likely modified before reaching this handler
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     // #region agent log
     fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:50',message:'Event constructed successfully',data:{eventType:event.type,eventId:event.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
@@ -81,12 +99,122 @@ export async function POST(request: NextRequest) {
       
       console.log('[webhook] Processing checkout.session.completed:', session.id);
 
-      // Extract classId from metadata
-      const classId = session.metadata?.classId;
+      // Extract classId from metadata first
+      let classId = session.metadata?.classId;
+      
+      // If not in metadata, try to find it from the payment link
+      // Retrieve the full session from Stripe to get payment_link field
       if (!classId) {
-        console.error('[webhook] Missing classId in checkout session metadata');
+        console.log('[webhook] classId not in metadata, looking up from payment link');
+        const supabase = createSupabaseAdminClient();
+        const stripe = getStripeClient(stripeSecretKey);
+        
+        let paymentLinkIdentifier: string | null = null;
+        
+        try {
+          // Retrieve the full session to get payment_link field (if created from payment link)
+          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+            expand: ['payment_link']
+          });
+          
+          // Check if session was created from a payment link
+          if (fullSession.payment_link) {
+            // payment_link can be a string (ID) or an object
+            if (typeof fullSession.payment_link === 'string') {
+              // If it's just an ID, we need to construct the URL or look it up differently
+              // Payment link IDs are like: plink_xxx, but URLs are like: https://buy.stripe.com/xxx
+              // We'll need to try matching by the payment link object's URL if available
+              console.log('[webhook] Found payment_link ID:', fullSession.payment_link);
+            } else {
+              // If it's expanded, get the URL
+              const paymentLinkObj = fullSession.payment_link as any;
+              if (paymentLinkObj.url) {
+                paymentLinkIdentifier = paymentLinkObj.url;
+              }
+            }
+          }
+        } catch (retrieveError) {
+          console.warn('[webhook] Failed to retrieve full session:', retrieveError);
+        }
+        
+        // Fallback: Try to extract from session URL if payment_link not found
+        if (!paymentLinkIdentifier && session.url) {
+          // Extract payment link ID from the checkout URL
+          // Payment link URLs are like: https://buy.stripe.com/xxx
+          const urlMatch = session.url.match(/buy\.stripe\.com\/([a-zA-Z0-9]+)/);
+          if (urlMatch) {
+            paymentLinkIdentifier = `https://buy.stripe.com/${urlMatch[1]}`;
+          }
+        }
+        
+        if (paymentLinkIdentifier) {
+          console.log('[webhook] Looking up class by payment link:', paymentLinkIdentifier);
+          
+          // First try to find in classes table
+          const { data: classData, error: classLookupError } = await supabase
+            .from('classes')
+            .select('class_id')
+            .eq('stripe_payment_link', paymentLinkIdentifier)
+            .maybeSingle();
+          
+          if (!classLookupError && classData?.class_id) {
+            classId = classData.class_id;
+            console.log('[webhook] Found classId from classes table:', classId);
+          } else {
+            // Fallback: try courses table (payment links might be stored there)
+            console.log('[webhook] Not found in classes, trying courses table...');
+            const { data: courseData, error: courseLookupError } = await supabase
+              .from('courses')
+              .select('course_code')
+              .eq('stripe_payment_link', paymentLinkIdentifier)
+              .maybeSingle();
+            
+            if (!courseLookupError && courseData?.course_code) {
+              // If found in courses, we need to find a class with that course_code
+              // For now, we'll use the course_code as a fallback identifier
+              // But ideally we'd find a specific class - this is a limitation of the fallback approach
+              console.warn('[webhook] Found course_code from courses table:', courseData.course_code);
+              console.warn('[webhook] Note: Cannot determine specific classId from course_code alone. Consider adding metadata to payment links.');
+            } else {
+              console.warn('[webhook] Could not find payment link in classes or courses tables');
+              console.warn('[webhook] Payment link searched:', paymentLinkIdentifier);
+              console.warn('[webhook] This payment link does not exist in your database. Check that:');
+              console.warn('[webhook] 1. The payment link URL matches exactly (including https://)');
+              console.warn('[webhook] 2. The payment link is stored in the classes.stripe_payment_link column');
+            }
+          }
+        } else {
+          console.warn('[webhook] Could not extract payment link identifier from session');
+          console.log('[webhook] Session URL:', session.url);
+          console.log('[webhook] This is likely a Stripe CLI test event - test events do not have real payment links');
+          console.log('[webhook] Real payments through your payment links (like https://buy.stripe.com/...) will have payment link URLs that match your database');
+        }
+      }
+      
+      if (!classId) {
+        console.error('[webhook] Missing classId - not in metadata and could not find from payment link');
+        console.log('[webhook] Session metadata:', JSON.stringify(session.metadata, null, 2));
+        console.log('[webhook] Payment link:', (session as any).payment_link);
+        console.log('[webhook] Session URL:', session.url);
+        console.log('[webhook] Session ID:', session.id);
+        
+        // Check if this looks like a test event (no payment link)
+        const isTestEvent = !(session as any).payment_link && !session.url?.includes('buy.stripe.com');
+        const errorMessage = isTestEvent 
+          ? 'Test event from Stripe CLI - no payment link available. Real payments through your payment links should work correctly.'
+          : 'This webhook requires a classId. It should be in session metadata or the payment link should match a class in the database.';
+        
+        // For test events without metadata, return a more informative error
         return NextResponse.json(
-          { error: 'Missing classId in checkout session metadata' },
+          { 
+            error: 'Missing classId in checkout session metadata',
+            message: errorMessage,
+            is_test_event: isTestEvent,
+            session_id: session.id,
+            payment_link: (session as any).payment_link || null,
+            session_url: session.url || null,
+            metadata: session.metadata || {}
+          },
           { status: 400 }
         );
       }
