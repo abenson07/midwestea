@@ -93,140 +93,7 @@ export async function POST(request: NextRequest) {
     try {
       const session = event.data.object as Stripe.Checkout.Session;
       
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:60',message:'Processing checkout.session.completed',data:{sessionId:session.id,paymentStatus:session.payment_status,metadata:session.metadata},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
       console.log('[webhook] Processing checkout.session.completed:', session.id);
-
-      // Extract classId from metadata first
-      let classId = session.metadata?.classId;
-      
-      // If not in metadata, try to find it from the payment link
-      // Retrieve the full session from Stripe to get payment_link field
-      if (!classId) {
-        console.log('[webhook] classId not in metadata, looking up from payment link');
-        const supabase = createSupabaseAdminClient();
-        const stripe = getStripeClient(stripeSecretKey);
-        
-        let paymentLinkIdentifier: string | null = null;
-        
-        try {
-          // Retrieve the full session to get payment_link field (if created from payment link)
-          const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
-            expand: ['payment_link']
-          });
-          
-          // Check if session was created from a payment link
-          if (fullSession.payment_link) {
-            // payment_link can be a string (ID) or an object
-            if (typeof fullSession.payment_link === 'string') {
-              // If it's just an ID, retrieve the payment link object to get its URL
-              const paymentLinkId = fullSession.payment_link;
-              console.log('[webhook] Found payment_link ID, retrieving payment link object:', paymentLinkId);
-              try {
-                const paymentLinkObj = await stripe.paymentLinks.retrieve(paymentLinkId);
-                if (paymentLinkObj.url) {
-                  paymentLinkIdentifier = paymentLinkObj.url;
-                  console.log('[webhook] Retrieved payment link URL:', paymentLinkIdentifier);
-                }
-              } catch (retrieveError: any) {
-                console.warn('[webhook] Failed to retrieve payment link object:', retrieveError.message);
-              }
-            } else {
-              // If it's expanded, get the URL directly
-              const paymentLinkObj = fullSession.payment_link as any;
-              if (paymentLinkObj.url) {
-                paymentLinkIdentifier = paymentLinkObj.url;
-                console.log('[webhook] Got payment link URL from expanded object:', paymentLinkIdentifier);
-              }
-            }
-          }
-        } catch (retrieveError) {
-          console.warn('[webhook] Failed to retrieve full session:', retrieveError);
-        }
-        
-        // Fallback: Try to extract from session URL if payment_link not found
-        if (!paymentLinkIdentifier && session.url) {
-          // Extract payment link ID from the checkout URL
-          // Payment link URLs are like: https://buy.stripe.com/xxx
-          const urlMatch = session.url.match(/buy\.stripe\.com\/([a-zA-Z0-9]+)/);
-          if (urlMatch) {
-            paymentLinkIdentifier = `https://buy.stripe.com/${urlMatch[1]}`;
-          }
-        }
-        
-        if (paymentLinkIdentifier) {
-          console.log('[webhook] Looking up class by payment link:', paymentLinkIdentifier);
-          
-          // First try to find in classes table
-          const { data: classData, error: classLookupError } = await supabase
-            .from('classes')
-            .select('class_id')
-            .eq('stripe_payment_link', paymentLinkIdentifier)
-            .maybeSingle();
-          
-          if (!classLookupError && classData?.class_id) {
-            classId = classData.class_id;
-            console.log('[webhook] Found classId from classes table:', classId);
-          } else {
-            // Fallback: try courses table (payment links might be stored there)
-            console.log('[webhook] Not found in classes, trying courses table...');
-            const { data: courseData, error: courseLookupError } = await supabase
-              .from('courses')
-              .select('course_code')
-              .eq('stripe_payment_link', paymentLinkIdentifier)
-              .maybeSingle();
-            
-            if (!courseLookupError && courseData?.course_code) {
-              // If found in courses, we need to find a class with that course_code
-              // For now, we'll use the course_code as a fallback identifier
-              // But ideally we'd find a specific class - this is a limitation of the fallback approach
-              console.warn('[webhook] Found course_code from courses table:', courseData.course_code);
-              console.warn('[webhook] Note: Cannot determine specific classId from course_code alone. Consider adding metadata to payment links.');
-            } else {
-              console.warn('[webhook] Could not find payment link in classes or courses tables');
-              console.warn('[webhook] Payment link searched:', paymentLinkIdentifier);
-              console.warn('[webhook] This payment link does not exist in your database. Check that:');
-              console.warn('[webhook] 1. The payment link URL matches exactly (including https://)');
-              console.warn('[webhook] 2. The payment link is stored in the classes.stripe_payment_link column');
-            }
-          }
-        } else {
-          console.warn('[webhook] Could not extract payment link identifier from session');
-          console.log('[webhook] Session URL:', session.url);
-          console.log('[webhook] This is likely a Stripe CLI test event - test events do not have real payment links');
-          console.log('[webhook] Real payments through your payment links (like https://buy.stripe.com/...) will have payment link URLs that match your database');
-        }
-      }
-      
-      if (!classId) {
-        console.error('[webhook] Missing classId - not in metadata and could not find from payment link');
-        console.log('[webhook] Session metadata:', JSON.stringify(session.metadata, null, 2));
-        console.log('[webhook] Payment link:', (session as any).payment_link);
-        console.log('[webhook] Session URL:', session.url);
-        console.log('[webhook] Session ID:', session.id);
-        
-        // Check if this looks like a test event (no payment link)
-        const isTestEvent = !(session as any).payment_link && !session.url?.includes('buy.stripe.com');
-        const errorMessage = isTestEvent 
-          ? 'Test event from Stripe CLI - no payment link available. Real payments through your payment links should work correctly.'
-          : 'This webhook requires a classId. It should be in session metadata or the payment link should match a class in the database.';
-        
-        // For test events without metadata, return a more informative error
-        return NextResponse.json(
-          { 
-            error: 'Missing classId in checkout session metadata',
-            message: errorMessage,
-            is_test_event: isTestEvent,
-            session_id: session.id,
-            payment_link: (session as any).payment_link || null,
-            session_url: session.url || null,
-            metadata: session.metadata || {}
-          },
-          { status: 400 }
-        );
-      }
 
       // Extract email from session
       const email = session.customer_email || session.customer_details?.email;
@@ -238,28 +105,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log('[webhook] Extracted email:', email, 'classId:', classId);
+      console.log('[webhook] Extracted email:', email);
 
       // Step 1: Find or create student
       const student = await findOrCreateStudent(email);
       console.log('[webhook] Student found/created:', student.id);
 
-      // Step 2: Get or create Stripe customer (if customer ID exists)
-      if (session.customer) {
-        await getOrCreateStripeCustomer(student, email, undefined);
-      }
-      console.log('[webhook] Stripe customer ensured for student:', student.id);
-
-      // Step 3: Find class by class_id
-      const classRecord = await findClassByClassId(classId);
-      console.log('[webhook] Class found:', classRecord.id, 'class_id:', classRecord.class_id);
-
-      // Step 4: Create enrollment
-      const enrollment = await createEnrollment(student.id, classRecord.id);
-      console.log('[webhook] Enrollment created/found:', enrollment.id);
-
-      // Step 5: Create payment record
-      // For checkout sessions, we need to get the payment intent
+      // Step 2: Get payment details
       let paymentIntentId: string | null = null;
       let amountCents = session.amount_total || 0;
       let receiptUrl: string | null = null;
@@ -288,8 +140,90 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Create payment record directly (bypassing createPayment which expects PaymentIntent)
+      // Step 3: Get payment link info for later processing
+      let paymentLinkId: string | null = null;
+      let paymentLinkUrl: string | null = null;
+      try {
+        const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
+          expand: ['payment_link', 'line_items']
+        });
+        
+        if (fullSession.payment_link) {
+          if (typeof fullSession.payment_link === 'string') {
+            paymentLinkId = fullSession.payment_link;
+            try {
+              const paymentLinkObj = await stripe.paymentLinks.retrieve(paymentLinkId);
+              paymentLinkUrl = paymentLinkObj.url || null;
+            } catch (err) {
+              console.warn('[webhook] Failed to retrieve payment link URL:', err);
+            }
+          } else {
+            paymentLinkId = (fullSession.payment_link as any).id;
+            paymentLinkUrl = (fullSession.payment_link as any).url || null;
+          }
+        }
+      } catch (err) {
+        console.warn('[webhook] Failed to retrieve payment link info:', err);
+      }
+
+      // Step 4: Create a minimal enrollment (required for payments table)
+      // We'll create a placeholder enrollment that can be updated later by follow-up scripts
       const supabase = createSupabaseAdminClient();
+      
+      // Create a temporary enrollment record (we'll need a class_id, so use a placeholder)
+      // For now, we'll need to handle this - but let's try to find/create a minimal enrollment
+      // Actually, we need enrollment_id which requires a class. Let's create a dummy enrollment.
+      // But wait - we need a class_id for enrollment. Let's store payment data and handle enrollment later.
+      
+      // Actually, let's just create the payment with a placeholder enrollment
+      // We'll need to modify the approach - create enrollment with a placeholder class or make enrollment_id nullable
+      
+      // For now, let's create a minimal enrollment record
+      // We'll need to get or create a placeholder class, or make enrollment_id nullable
+      
+      // Simplest: Create enrollment with a placeholder/dummy class
+      // But that's messy. Let's check if we can make enrollment_id nullable first.
+      
+      // Actually, the user wants to just create payments. Let's create a payment record
+      // We'll need enrollment_id, so we'll create a minimal enrollment.
+      // But we need a class_id for enrollment. This is getting complex.
+      
+      // Let me simplify: Create payment with enrollment_id pointing to a placeholder enrollment
+      // We'll create the enrollment with minimal data that can be updated later
+      
+      // Get or create a placeholder class for "unassigned" payments
+      const { data: placeholderClass, error: classError } = await supabase
+        .from('classes')
+        .select('id')
+        .eq('class_id', 'UNASSIGNED')
+        .maybeSingle();
+      
+      let classIdForEnrollment: string;
+      if (!placeholderClass) {
+        // Create placeholder class if it doesn't exist
+        const { data: newClass, error: createClassError } = await supabase
+          .from('classes')
+          .insert({
+            class_id: 'UNASSIGNED',
+            class_name: 'Unassigned - To Be Processed',
+            course_code: 'UNASSIGNED',
+          })
+          .select('id')
+          .single();
+        
+        if (createClassError || !newClass) {
+          throw new Error(`Failed to create placeholder class: ${createClassError?.message}`);
+        }
+        classIdForEnrollment = newClass.id;
+      } else {
+        classIdForEnrollment = placeholderClass.id;
+      }
+
+      // Create enrollment with placeholder class
+      const enrollment = await createEnrollment(student.id, classIdForEnrollment);
+      console.log('[webhook] Created placeholder enrollment:', enrollment.id);
+
+      // Step 5: Create payment record
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert({
@@ -312,93 +246,19 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('[webhook] Payment created:', payment.id);
-
-      // Step 6: Log student registration
-      try {
-        await insertLog({
-          admin_user_id: null,
-          reference_id: classRecord.id,
-          reference_type: 'class',
-          action_type: 'student_registered',
-          student_id: student.id,
-          class_id: classRecord.id,
-        });
-      } catch (logError: any) {
-        console.error('[webhook] Failed to log student registration:', logError);
-      }
-
-      // Step 7: Log payment success
-      try {
-        await insertLog({
-          admin_user_id: null,
-          reference_id: classRecord.id,
-          reference_type: 'class',
-          action_type: 'payment_success',
-          student_id: student.id,
-          class_id: classRecord.id,
-          amount: amountCents,
-        });
-      } catch (logError: any) {
-        console.error('[webhook] Failed to log payment success:', logError);
-      }
-
-      // Step 8: Create invoice record for CSV export on successful payment
-      let invoiceErrorDetails: any = null;
-      try {
-        const paymentDate = new Date();
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:163',message:'About to call createRegistrationFeeInvoices (checkout.session)',data:{paymentId:payment.id,classId:classRecord.id,classIdText:classRecord.class_id,email,paymentDate:paymentDate.toISOString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        console.log('[webhook] Creating invoice record for payment:', payment.id);
-        console.log('[webhook] Class details:', {
-          id: classRecord.id,
-          class_id: classRecord.class_id,
-          class_name: classRecord.class_name,
-          course_code: classRecord.course_code,
-          price: classRecord.price,
-          registration_fee: classRecord.registration_fee,
-        });
-        const invoices = await createRegistrationFeeInvoices(
-          payment.id,
-          classRecord,
-          email,
-          paymentDate
-        );
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:172',message:'createRegistrationFeeInvoices returned successfully (checkout.session)',data:{invoiceCount:invoices.length,invoiceNumbers:invoices.map(i=>i.invoice_number)},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        console.log('[webhook] Successfully created invoice records for CSV export:', invoices.length, 'invoices');
-        console.log('[webhook] Invoice numbers:', invoices.map(i => i.invoice_number));
-      } catch (invoiceError: any) {
-        // #region agent log
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:175',message:'createRegistrationFeeInvoices threw error (checkout.session)',data:{error:invoiceError.message,errorStack:invoiceError.stack,classId:classRecord.class_id,paymentId:payment.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run3',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        invoiceErrorDetails = {
-          error: invoiceError.message,
-          stack: invoiceError.stack,
-          code: invoiceError.code,
-          details: invoiceError.details,
-          hint: invoiceError.hint,
-          classId: classRecord.class_id,
-          paymentId: payment.id,
-        };
-        console.error('[webhook] Failed to create invoice records:', invoiceErrorDetails);
-        // Log the full error object for debugging
-        console.error('[webhook] Full invoice error:', JSON.stringify(invoiceErrorDetails, null, 2));
-        // Don't fail the webhook if invoice creation fails, but include error in response
-      }
+      console.log('[webhook] Payment link ID:', paymentLinkId);
+      console.log('[webhook] Payment link URL:', paymentLinkUrl);
 
       return NextResponse.json({
         success: true,
-        student_id: student.id,
-        enrollment_id: enrollment.id,
         payment_id: payment.id,
-        class_id: classRecord.id,
-        invoice_error: invoiceErrorDetails ? {
-          message: invoiceErrorDetails.error,
-          code: invoiceErrorDetails.code,
-          details: invoiceErrorDetails.details,
-        } : null,
+        enrollment_id: enrollment.id,
+        student_id: student.id,
+        amount_cents: amountCents,
+        payment_link_id: paymentLinkId,
+        payment_link_url: paymentLinkUrl,
+        stripe_session_id: session.id,
+        message: 'Payment created successfully. Enrollment and class assignment can be processed by follow-up scripts.',
       });
     } catch (error: any) {
       console.error('[webhook] Error processing checkout.session.completed:', {
