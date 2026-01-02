@@ -39,15 +39,16 @@
 
   /**
    * Get course values from URL, localStorage, or CMS button
+   * Returns courseCode and optionally classId (classId may be null for waitlist)
    */
   function getCourseValues() {
     // First, try to get from URL hash
     const hashParams = parseHashParams();
     
-    if (hashParams.course_code && hashParams.class_id) {
+    if (hashParams.course_code) {
       return {
         courseCode: hashParams.course_code,
-        classId: hashParams.class_id
+        classId: hashParams.class_id || null
       };
     }
     
@@ -61,10 +62,10 @@
       const courseCode = cmsButton.getAttribute('data-course-code');
       const classId = cmsButton.getAttribute('data-class-id');
       
-      if (courseCode && classId) {
+      if (courseCode) {
         return {
           courseCode: courseCode,
-          classId: classId
+          classId: classId || null
         };
       }
     }
@@ -74,10 +75,10 @@
       const courseCode = localStorage.getItem('webflow_course_code');
       const classId = localStorage.getItem('webflow_class_id');
       
-      if (courseCode && classId) {
+      if (courseCode) {
         return {
           courseCode: courseCode,
-          classId: classId
+          classId: classId || null
         };
       }
     } catch (error) {
@@ -92,6 +93,36 @@
    */
   function updateButton(button, courseCode, classId) {
     if (!button) {
+      return false;
+    }
+    
+    const buttonType = button.getAttribute('data-checkout-button');
+    
+    // Handle waitlist buttons
+    if (buttonType === 'waitlist') {
+      // For waitlist buttons, get course_code from the button itself
+      const waitlistCourseCode = button.getAttribute('data-course-code') || courseCode;
+      
+      if (!waitlistCourseCode) {
+        console.warn('Course Detail: Waitlist button missing data-course-code attribute');
+        return false;
+      }
+      
+      // Set data attributes
+      button.setAttribute('data-course-code', waitlistCourseCode);
+      button.setAttribute('class-code', waitlistCourseCode);
+      
+      // Update href to point to waitlist page with courseCode only
+      const waitlistUrl = '/app/checkout/waitlist?courseCode=' + encodeURIComponent(waitlistCourseCode.toLowerCase());
+      button.setAttribute('href', waitlistUrl);
+      
+      console.log('Course Detail: Updated waitlist button with course_code:', waitlistCourseCode);
+      return true;
+    }
+    
+    // Handle regular checkout buttons (require classId)
+    if (!classId) {
+      console.warn('Course Detail: Checkout button requires class_id but none found');
       return false;
     }
     
@@ -116,22 +147,29 @@
     setTimeout(function() {
       const values = getCourseValues();
       
-      if (!values) {
-        console.warn('Course Detail: No course_code or class_id found. Buttons will not be updated.');
-        return;
-      }
-      
       // Find all checkout buttons using data attribute
       const checkoutButtons = document.querySelectorAll('[data-checkout-button]');
       
-      checkoutButtons.forEach(function(button) {
-        updateButton(button, values.courseCode, values.classId);
-        console.log('Course Detail: Updated checkout button with course_code:', values.courseCode, 'class_id:', values.classId);
-      });
-      
       if (checkoutButtons.length === 0) {
         console.warn('Course Detail: No checkout buttons found with data-checkout-button attribute');
+        return;
       }
+      
+      checkoutButtons.forEach(function(button) {
+        const buttonType = button.getAttribute('data-checkout-button');
+        
+        // For waitlist buttons, they have their own course_code attribute
+        if (buttonType === 'waitlist') {
+          updateButton(button, null, null);
+        } else {
+          // For regular checkout buttons, use values from URL/CMS/localStorage
+          if (!values) {
+            console.warn('Course Detail: No course_code or class_id found. Regular checkout buttons will not be updated.');
+            return;
+          }
+          updateButton(button, values.courseCode, values.classId);
+        }
+      });
     }, 100); // Small delay to ensure CMS bindings are loaded
   }
 

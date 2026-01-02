@@ -9,7 +9,7 @@ interface CheckoutLayoutProps {
   titleContent?: ReactNode;
   price?: number; // Price in cents
   registrationFee?: number; // Registration fee in cents
-  buttonText?: string;
+  buttonText?: string | null;
   onButtonClick?: () => void;
   onBackClick?: () => void;
   logoUrl?: string;
@@ -26,7 +26,7 @@ export default function CheckoutLayout({
   titleContent,
   price,
   registrationFee,
-  buttonText = 'Continue',
+  buttonText,
   onButtonClick,
   onBackClick,
   logoUrl = 'https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/69519dfb03c5fd3b91b0c2f2_Company%20Logo.svg',

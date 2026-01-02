@@ -560,6 +560,10 @@ function CheckoutDetailsContent() {
                 cardEndDate = formatDateForCard(fullClassData.class_close_date);
               }
               
+              // Get raw dates for grid display (when card is active)
+              const cardStartDate = fullClassData?.class_start_date || undefined;
+              const cardCloseDate = fullClassData?.class_close_date || undefined;
+              
               return (
                 <CheckoutClassCard
                   key={cls.classId}
@@ -568,6 +572,8 @@ function CheckoutDetailsContent() {
                   location={fullClassData?.location || cls.location || undefined}
                   date={cardDate}
                   endDate={cardEndDate}
+                  startDate={cardStartDate}
+                  closeDate={cardCloseDate}
                   onClick={() => handleClassSelection(cls.classId)}
                 />
               );
@@ -577,21 +583,25 @@ function CheckoutDetailsContent() {
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
-        {/* Show description based on is_online boolean */}
-        {classData.is_online ? (
-          <CheckoutClassDescription
-            variant="online"
-            description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
-          />
-        ) : (
-          <CheckoutClassDescription
-            variant="in-person"
-            description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
-            startDate={classData.class_start_date || undefined}
-            endDate={classData.class_close_date || undefined}
-            location={classData.location || undefined}
-            frequency={classData.length_of_class || undefined}
-          />
+        {/* Show description only when there's a single class */}
+        {!hasMultipleClasses && (
+          <>
+            {classData.is_online ? (
+              <CheckoutClassDescription
+                variant="online"
+                description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+              />
+            ) : (
+              <CheckoutClassDescription
+                variant="in-person"
+                description="Train alongside experienced EMS professionals in real-world environments. Hands-on, state-approved instruction that builds confidence and keeps your skills field-ready."
+                startDate={classData.class_start_date || undefined}
+                endDate={classData.class_close_date || undefined}
+                location={classData.location || undefined}
+                frequency={classData.length_of_class || undefined}
+              />
+            )}
+          </>
         )}
 
         {/* Payment Schedule */}

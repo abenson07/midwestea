@@ -40,9 +40,14 @@
 
   /**
    * Build hash string from parameters
+   * If classId is not provided, only include course_code (for waitlist)
    */
   function buildHashString(courseCode, classId) {
-    return '#course_code=' + encodeURIComponent(courseCode) + '#class_id=' + encodeURIComponent(classId);
+    if (classId) {
+      return '#course_code=' + encodeURIComponent(courseCode) + '#class_id=' + encodeURIComponent(classId);
+    } else {
+      return '#course_code=' + encodeURIComponent(courseCode);
+    }
   }
 
   /**
@@ -61,15 +66,16 @@
 
   /**
    * Get values from URL, localStorage, or CMS button
+   * Returns courseCode and optionally classId (classId may be null for waitlist)
    */
   function getCourseValues() {
     // First, try to get from URL hash
     const hashParams = parseHashParams();
     
-    if (hashParams.course_code && hashParams.class_id) {
+    if (hashParams.course_code) {
       return {
         courseCode: hashParams.course_code,
-        classId: hashParams.class_id,
+        classId: hashParams.class_id || null,
         source: 'url'
       };
     }
@@ -84,11 +90,24 @@
       const courseCode = cmsButton.getAttribute('data-course-code');
       const classId = cmsButton.getAttribute('data-class-id');
       
-      if (courseCode && classId) {
+      if (courseCode) {
         return {
           courseCode: courseCode,
-          classId: classId,
+          classId: classId || null,
           source: 'cms'
+        };
+      }
+    }
+    
+    // Check for waitlist button
+    const waitlistButton = document.querySelector('[data-checkout-button="waitlist"]');
+    if (waitlistButton) {
+      const courseCode = waitlistButton.getAttribute('data-course-code');
+      if (courseCode) {
+        return {
+          courseCode: courseCode,
+          classId: null,
+          source: 'waitlist'
         };
       }
     }
@@ -98,10 +117,10 @@
       const courseCode = localStorage.getItem('webflow_course_code');
       const classId = localStorage.getItem('webflow_class_id');
       
-      if (courseCode && classId) {
+      if (courseCode) {
         return {
           courseCode: courseCode,
-          classId: classId,
+          classId: classId || null,
           source: 'localStorage'
         };
       }
@@ -119,16 +138,24 @@
     const values = getCourseValues();
     
     if (!values) {
-      console.warn('Course Detail: No course_code or class_id found in URL, CMS button, or localStorage');
+      console.warn('Course Detail: No course_code found in URL, CMS button, waitlist button, or localStorage');
       return;
     }
     
-    // If values came from localStorage or CMS but not URL, update URL
-    if (values.source === 'localStorage' || values.source === 'cms') {
+    // If values came from localStorage, CMS, or waitlist button but not URL, update URL
+    if (values.source === 'localStorage' || values.source === 'cms' || values.source === 'waitlist') {
       updateURL(values.courseCode, values.classId);
-      console.log('Course Detail: Updated URL with course_code:', values.courseCode, 'class_id:', values.classId);
+      if (values.classId) {
+        console.log('Course Detail: Updated URL with course_code:', values.courseCode, 'class_id:', values.classId);
+      } else {
+        console.log('Course Detail: Updated URL with course_code:', values.courseCode, '(waitlist - no class_id)');
+      }
     } else {
-      console.log('Course Detail: Found course_code:', values.courseCode, 'class_id:', values.classId, 'in URL');
+      if (values.classId) {
+        console.log('Course Detail: Found course_code:', values.courseCode, 'class_id:', values.classId, 'in URL');
+      } else {
+        console.log('Course Detail: Found course_code:', values.courseCode, 'in URL (waitlist - no class_id)');
+      }
     }
   }
 

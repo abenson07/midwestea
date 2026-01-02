@@ -7,6 +7,8 @@ interface CheckoutClassCardProps {
   time?: string;
   date?: string;
   endDate?: string;
+  startDate?: string;
+  closeDate?: string;
   onClick?: () => void;
 }
 
@@ -17,6 +19,8 @@ export default function CheckoutClassCard({
   time = '3:00pm - 4:00pm',
   date = 'June 5th, 2025',
   endDate,
+  startDate,
+  closeDate,
   onClick
 }: CheckoutClassCardProps) {
   const isActive = state === 'active';
@@ -88,10 +92,26 @@ export default function CheckoutClassCard({
     return 'TBD';
   };
 
+  const formatDateForGrid = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      return date.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return '';
+    }
+  };
+
   const formattedDate = formatDate(date);
   const startMonth = getMonthFromDate(date);
   const formattedStartDate = formatDateForDisplay(date);
   const formattedEndDate = endDate ? formatDateForDisplay(endDate) : null;
+  const gridStartDate = formatDateForGrid(startDate);
+  const gridEndDate = formatDateForGrid(closeDate);
 
   return (
     <div
@@ -183,6 +203,48 @@ export default function CheckoutClassCard({
                 Starts in {startMonth}
               </p>
             </div>
+            {/* Show start/end dates when card is active and dates are provided */}
+            {isActive && (gridStartDate || gridEndDate) && (
+              <div
+                className="class-dates-grid"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'max-content auto',
+                  gap: '8px 18px',
+                  width: '100%',
+                  fontFamily: '"DM Sans", sans-serif',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  lineHeight: 1.4,
+                  textTransform: 'uppercase',
+                  marginTop: '8px'
+                }}
+              >
+                {/* Start Date */}
+                {gridStartDate && (
+                  <>
+                    <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
+                      Start date
+                    </p>
+                    <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
+                      {gridStartDate}
+                    </p>
+                  </>
+                )}
+
+                {/* End Date */}
+                {gridEndDate && (
+                  <>
+                    <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
+                      End date
+                    </p>
+                    <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
+                      {gridEndDate}
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
