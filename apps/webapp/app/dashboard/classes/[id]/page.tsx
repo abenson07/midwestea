@@ -35,6 +35,7 @@ function ClassDetailContent() {
     // Sidebar state
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [syncing, setSyncing] = useState(false);
     const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>("");
@@ -261,6 +262,46 @@ function ClassDetailContent() {
         setIsEditModalOpen(true);
     };
 
+    const handleSyncToWebflow = async () => {
+        if (!classData) return;
+
+        setSyncing(true);
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Not authenticated");
+                return;
+            }
+
+            const basePath = typeof window !== 'undefined' 
+                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                : '';
+            
+            const response = await fetch(`${basePath}/api/classes/${classData.id}/sync-webflow`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(`Successfully synced to Webflow! (${result.action})`);
+                // Reload class data to get updated webflow_item_id
+                await loadClass();
+            } else {
+                alert(`Failed to sync to Webflow: ${result.error}`);
+            }
+        } catch (err: any) {
+            alert(`Failed to sync to Webflow: ${err.message}`);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
     const handleDelete = async () => {
         if (!classData) return;
 
@@ -417,12 +458,27 @@ function ClassDetailContent() {
                     <h1 className="text-2xl font-bold text-gray-900">{classData.class_id}</h1>
                     <p className="text-sm text-gray-500 mt-1">{classData.class_name}</p>
                 </div>
-                <button
-                    onClick={handleEdit}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                    Edit
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={handleSyncToWebflow}
+                        disabled={syncing}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                        <img
+                            src="/app/images/Mark_Logo_Blue.svg"
+                            alt="Webflow"
+                            className="h-4 w-auto"
+                            style={{ height: '16px' }}
+                        />
+                        <span>{syncing ? "Syncing..." : "Sync"}</span>
+                    </button>
+                    <button
+                        onClick={handleEdit}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                        Edit
+                    </button>
+                </div>
             </div>
 
             {/* Details Section */}

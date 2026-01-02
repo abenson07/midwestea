@@ -172,10 +172,12 @@ export async function PUT(
             console.log('[API] Webflow config created, collectionId:', webflowConfig.collectionId);
             
             // Use the updated class data for Webflow sync
+            const isProgram = course.program_type === 'program';
             const { success, error: wfError } = await updateWebflowClassItem(
               webflowConfig,
               currentClass.webflow_item_id,
-              updatedClass
+              updatedClass,
+              isProgram
             );
 
             if (!success) {

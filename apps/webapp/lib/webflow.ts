@@ -120,7 +120,8 @@ export async function createWebflowClassItem(
 export async function updateWebflowClassItem(
   config: WebflowConfig,
   webflowItemId: string,
-  classData: Class | Partial<Class>
+  classData: Class | Partial<Class>,
+  isProgram: boolean = false
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     const webflow = new WebflowClient({ 
@@ -137,7 +138,7 @@ export async function updateWebflowClassItem(
     if (isFullClass) {
       // Use the full mapping function for complete class data
       const fullClass = classData as Class;
-      Object.assign(webflowFields, mapClassToWebflowFields(fullClass));
+      Object.assign(webflowFields, mapClassToWebflowFields(fullClass, isProgram));
     } else {
       // Partial update - only include provided fields
       const partial = classData as Partial<Class>;
