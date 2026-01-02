@@ -164,9 +164,10 @@ function ClassesPageContent() {
                 formData.classStartDate || null,
                 formData.classEndDate || null,
                 formData.classType === 'online',
+                selectedCourse.programming_offering || null,
+                selectedCourse.course_image || null,
                 null, // length_of_class
                 formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
-                parsePercentage(formData.graduationRate),
                 formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
                 parseDollars(formData.price),
                 parseDollars(formData.registrationFee),
@@ -214,9 +215,10 @@ function ClassesPageContent() {
             formData.classStartDate || null,
             formData.classEndDate || null,
             formData.classType === 'online',
+            formData.programmingOffering || null,
+            selectedClass.class_image || null,
             null, // length_of_class
             formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
-            parsePercentage(formData.graduationRate),
             formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
             parseDollars(formData.price),
             parseDollars(formData.registrationFee)

@@ -111,7 +111,6 @@ function CoursesPageContent() {
             newCourseData.courseCode,
             newCourseData.lengthOfClass || null,
             newCourseData.certificationLength ? parseInt(newCourseData.certificationLength, 10) : null,
-            parsePercentage(newCourseData.graduationRate),
             newCourseData.registrationLimit ? parseInt(newCourseData.registrationLimit, 10) : null,
             parseDollars(newCourseData.price),
             parseDollars(newCourseData.registrationFee),

@@ -5,7 +5,7 @@ export interface LogRecord {
   admin_user_id: string | null;
   reference_id: string;
   reference_type: "program" | "course" | "class" | "student";
-  action_type: "detail_updated" | "class_created" | "class_deleted" | "student_added" | "student_removed" | "student_registered" | "payment_success" | "webflow_synced";
+  action_type: "detail_updated" | "class_created" | "class_updated" | "class_deleted" | "student_added" | "student_removed" | "student_registered" | "payment_success" | "webflow_synced";
   field_name: string | null;
   old_value: string | null;
   new_value: string | null;
@@ -87,6 +87,9 @@ export function formatLogMessage(log: LogRecord): string {
         return `${adminName} created Class ID ${log.classes.class_id} – ${timestamp}`;
       }
       return `${adminName} created this class – ${timestamp}`;
+
+    case "class_updated":
+      return `${adminName} updated this class – ${timestamp}`;
 
     case "class_deleted":
       return `${adminName} deleted this class – ${timestamp}`;

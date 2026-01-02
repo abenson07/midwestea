@@ -20,10 +20,12 @@ function CourseDetailContent() {
     const [course, setCourse] = useState<Course | null>(null);
     const [originalCourse, setOriginalCourse] = useState<Course | null>(null);
     const [classes, setClasses] = useState<Class[]>([]);
+    const [waitlistEntries, setWaitlistEntries] = useState<any[]>([]);
     const [programs, setPrograms] = useState<Course[]>([]);
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingClasses, setLoadingClasses] = useState(true);
+    const [loadingWaitlist, setLoadingWaitlist] = useState(false);
     const [error, setError] = useState("");
 
     // Sidebar state
@@ -94,8 +96,36 @@ function CourseDetailContent() {
             // Filter classes by matching course_code
             const courseClasses = fetchedClasses.filter(c => c.course_code === course.course_code);
             setClasses(courseClasses);
+            
+            // If no classes, load waitlist entries
+            if (courseClasses.length === 0) {
+                await loadWaitlist();
+            } else {
+                setWaitlistEntries([]);
+            }
         }
         setLoadingClasses(false);
+    };
+
+    const loadWaitlist = async () => {
+        if (!course || !course.course_code) return;
+        setLoadingWaitlist(true);
+        try {
+            const basePath = typeof window !== 'undefined' 
+                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                : '';
+            const response = await fetch(`${basePath}/api/waitlist/by-course-code/${course.course_code}`);
+            if (response.ok) {
+                const result = await response.json();
+                setWaitlistEntries(result.waitlist || []);
+            } else {
+                console.error('Error fetching waitlist:', await response.json());
+            }
+        } catch (err) {
+            console.error('Error fetching waitlist:', err);
+        } finally {
+            setLoadingWaitlist(false);
+        }
     };
 
     const handleEdit = () => {
@@ -374,6 +404,38 @@ function CourseDetailContent() {
         },
     ];
 
+    type WaitlistEntry = {
+        id: string;
+        student_id: string;
+        course_code: string;
+        created_at: string;
+        updated_at: string;
+        full_name: string | null;
+        email: string | null;
+    };
+
+    const waitlistColumns = [
+        { 
+            header: "Full Name", 
+            accessorKey: "full_name" as keyof WaitlistEntry,
+            cell: (item: WaitlistEntry) => item.full_name || "—"
+        },
+        { 
+            header: "Email", 
+            accessorKey: "email" as keyof WaitlistEntry,
+            cell: (item: WaitlistEntry) => item.email || "—"
+        },
+        {
+            header: "Signed Up",
+            accessorKey: "created_at" as keyof WaitlistEntry,
+            cell: (item: WaitlistEntry) => {
+                if (!item.created_at) return "—";
+                const date = new Date(item.created_at);
+                return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        },
+    ];
+
     if (loading) {
         return (
             <div className="space-y-6">
@@ -462,24 +524,40 @@ function CourseDetailContent() {
                 </div>
             </div>
 
-            {/* Classes Section */}
+            {/* Classes or Waitlist Section */}
             <div>
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
-                    <button
-                        onClick={() => setIsCreateClassModalOpen(true)}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
-                    >
-                        Add Class
-                    </button>
-                </div>
-                <DataTable
-                    data={classes}
-                    columns={classColumns}
-                    isLoading={loadingClasses}
-                    onRowClick={handleClassClick}
-                    emptyMessage="No classes found for this course."
-                />
+                {classes.length > 0 ? (
+                    <>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
+                            <button
+                                onClick={() => setIsCreateClassModalOpen(true)}
+                                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
+                            >
+                                Add Class
+                            </button>
+                        </div>
+                        <DataTable
+                            data={classes}
+                            columns={classColumns}
+                            isLoading={loadingClasses}
+                            onRowClick={handleClassClick}
+                            emptyMessage="No classes found for this course."
+                        />
+                    </>
+                ) : (
+                    <>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold text-gray-900">Waitlist</h2>
+                        </div>
+                        <DataTable
+                            data={waitlistEntries}
+                            columns={waitlistColumns}
+                            isLoading={loadingWaitlist}
+                            emptyMessage="No waitlist entries found for this course."
+                        />
+                    </>
+                )}
             </div>
 
             {/* Activity Log Section */}

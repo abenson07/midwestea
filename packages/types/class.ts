@@ -20,11 +20,14 @@ export type Class = {
   class_image: string | null;
   length_of_class: string | null;
   certification_length: number | null;
+  graduation_rate: number | null;
   registration_limit: number | null;
   stripe_product_id: string | null;
   price: number | null;
   registration_fee: number | null;
   stripe_payment_link: string | null;
+  webflow_item_id: string | null;
+  wf_class_link: string | null;
 };
 
 

@@ -110,7 +110,6 @@ function ProgramsPageContent() {
             newProgramData.programCode,
             newProgramData.lengthOfClass || null,
             newProgramData.certificationLength ? parseInt(newProgramData.certificationLength, 10) : null,
-            parsePercentage(newProgramData.graduationRate),
             newProgramData.registrationLimit ? parseInt(newProgramData.registrationLimit, 10) : null,
             parseDollars(newProgramData.price),
             parseDollars(newProgramData.registrationFee),

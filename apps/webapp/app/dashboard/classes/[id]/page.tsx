@@ -360,6 +360,7 @@ function ClassDetailContent() {
             formData.classEndDate || null,
             formData.classType === 'online',
             formData.programmingOffering || null,
+            classData.class_image || null,
             null, // length_of_class
             formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
             formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,

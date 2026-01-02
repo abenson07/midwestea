@@ -239,7 +239,7 @@ export async function updateWebflowClassItem(
       if (partial.class_start_date !== undefined) webflowFields['class-start-date'] = partial.class_start_date || '';
       if (partial.class_close_date !== undefined) webflowFields['class-close-date'] = partial.class_close_date || '';
       if (partial.location !== undefined) webflowFields['location'] = partial.location || '';
-      if (partial.is_online !== undefined) webflowFields['is-online'] = partial.is_online || false;
+      if (partial.is_online !== undefined) webflowFields['is-online'] = partial.is_online ? 'true' : 'false';
       if (partial.product_id !== undefined) webflowFields['product-id'] = partial.product_id || '';
       if (partial.length_of_class !== undefined) webflowFields['length-of-class'] = partial.length_of_class || '';
       if (partial.certification_length !== undefined) webflowFields['certification-length'] = partial.certification_length?.toString() || '';

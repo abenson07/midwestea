@@ -12,6 +12,7 @@ export interface Course {
   course_image: string | null;
   length_of_class: string | null;
   certification_length: number | null;
+  graduation_rate: number | null;
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
@@ -39,11 +40,13 @@ export interface Class {
   class_image: string | null;
   length_of_class: string | null;
   certification_length: number | null;
+  graduation_rate: number | null;
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
   product_id: string | null;
   webflow_item_id: string | null;
+  wf_class_link: string | null;
   location: string | null;
 }
 
@@ -110,7 +113,7 @@ export async function getCourses(): Promise<{ courses: Course[] | null; error: s
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
       .or("program_type.eq.course,program_type.is.null")
       .order("course_code");
 
@@ -133,7 +136,7 @@ export async function getPrograms(): Promise<{ programs: Course[] | null; error:
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
       .eq("program_type", "program")
       .order("course_code");
 

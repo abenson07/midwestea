@@ -3,7 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 
 interface CheckoutLayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
   imageUrl?: string;
   title?: string;
   titleContent?: ReactNode;

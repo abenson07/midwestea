@@ -150,9 +150,10 @@ export default function ClassDetailPage() {
         classStartDate || null,
         classCloseDate || null,
         isOnline,
+        classData?.programming_offering || null,
+        classData?.class_image || null,
         lengthOfClass || null,
         certificationLength ? parseInt(certificationLength, 10) : null,
-        parsePercentage(graduationRate),
         registrationLimit ? parseInt(registrationLimit, 10) : null,
         parseDollars(price),
         parseDollars(registrationFee)
