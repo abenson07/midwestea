@@ -125,6 +125,20 @@ export async function DELETE(
       console.log('[API] No webflow_item_id found, skipping Webflow deletion');
     }
 
+    // Delete all logs associated with this class
+    const { error: logsDeleteError } = await supabase
+      .from('logs')
+      .delete()
+      .eq('class_id', classId);
+
+    if (logsDeleteError) {
+      console.error('Error deleting logs for class:', logsDeleteError);
+      // Log the error but don't fail the class deletion
+      // The logs deletion is best-effort cleanup
+    } else {
+      console.log('[API] Deleted logs associated with class:', classId);
+    }
+
     // Delete the class from Supabase
     const { error: deleteError } = await supabase
       .from('classes')
