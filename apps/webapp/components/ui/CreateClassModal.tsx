@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from 'react';
-import { X, ChevronDown, Monitor, Users, Building2, DollarSign, Percent, Award, UserCheck } from 'lucide-react';
+import { X, ChevronDown, DollarSign, Award, UserCheck } from 'lucide-react';
 import { getPrograms, getCourses, type Course, type Class } from '@/lib/classes';
 
 interface CreateClassModalProps {
   isOpen?: boolean;
   onClose?: () => void;
-  onSubmit?: (data: ClassFormData) => void;
+  onSubmit?: (data: ClassFormData) => Promise<void> | void;
   onDelete?: () => void;
   context?: 'program' | 'course' | 'classes';
   preselectedProgramId?: string;
@@ -59,34 +59,17 @@ export function CreateClassModal({
   const [programs, setPrograms] = useState<Course[]>(providedPrograms || []);
   const [courses, setCourses] = useState<Course[]>(providedCourses || []);
   const [loadingData, setLoadingData] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [isRegistrationFeeEditing, setIsRegistrationFeeEditing] = useState(false);
   const [isCertificateLengthEditing, setIsCertificateLengthEditing] = useState(false);
   const [isRegistrationLimitEditing, setIsRegistrationLimitEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const priceInputRef = useRef<HTMLInputElement>(null);
   const registrationFeeInputRef = useRef<HTMLInputElement>(null);
   const certificateLengthInputRef = useRef<HTMLInputElement>(null);
   const registrationLimitInputRef = useRef<HTMLInputElement>(null);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
 
   // Focus inputs when editing starts
   useEffect(() => {
@@ -189,6 +172,7 @@ export function CreateClassModal({
         classStartDate: '',
         classEndDate: '',
         classType: 'in-person',
+        programmingOffering: '',
         price: '',
         registrationFee: '',
         certificateLength: '',
@@ -228,9 +212,33 @@ export function CreateClassModal({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      // Update classType based on programmingOffering before submitting
+      const updatedFormData: ClassFormData = {
+        ...formData,
+        classType: (formData.programmingOffering === 'Online Only' || formData.programmingOffering === 'Online + Skills Training') ? 'online' : 'in-person'
+      };
+      
+      const result = onSubmit(updatedFormData);
+      
+      // If onSubmit returns a Promise, wait for it
+      if (result instanceof Promise) {
+        await result;
+      }
+      
+      // If we get here without error, the parent should close the modal
+      // If there's an error, it will be caught below
+    } catch (error: any) {
+      // Handle error - show it and remove overlay
+      const errorMessage = error?.message || error?.toString() || 'Failed to create class';
+      setSubmitError(errorMessage);
+      setIsSubmitting(false);
+    }
   };
 
   const updateField = (field: keyof ClassFormData, value: string | boolean | 'online' | 'in-person' | 'hybrid') => {
@@ -245,19 +253,11 @@ export function CreateClassModal({
     }
   };
 
-  const classTypeOptions = [
-    { value: 'online' as const, label: 'Online', icon: Monitor },
-    { value: 'in-person' as const, label: 'In Person', icon: Users },
-    { value: 'hybrid' as const, label: 'Hybrid', icon: Building2 },
-  ];
-
-  const currentOption = classTypeOptions.find(opt => opt.value === formData.classType) || classTypeOptions[1];
-  const CurrentIcon = currentOption.icon;
-
   // Determine label and options for dropdown
   const isEditMode = !!editingClass;
   const labelText = context === 'program' ? 'Program' : 'Course';
-  const isOnline = formData.classType === 'online';
+  // Derive isOnline from programmingOffering instead of classType dropdown
+  const isOnline = formData.programmingOffering === 'Online Only' || formData.programmingOffering === 'Online + Skills Training';
   const shouldHideFields = formData.programmingOffering === 'Online Only' || formData.programmingOffering === 'Online + Skills Training';
   
   // Determine if registration fee should be hidden (for courses, not programs)
@@ -268,7 +268,7 @@ export function CreateClassModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col relative">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">
@@ -276,16 +276,46 @@ export function CreateClassModal({
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            disabled={isSubmitting}
+            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Close modal"
           >
             <X size={24} />
           </button>
         </div>
 
+        {/* Loading Overlay */}
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
+            <p className="text-lg font-medium text-gray-900">Creating class...</p>
+            <p className="text-sm text-gray-600 mt-2">Please wait</p>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {submitError && (
+          <div className="px-6 py-4 bg-red-50 border-b border-red-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-red-600 font-medium">Error:</span>
+                <span className="text-red-700">{submitError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSubmitError(null)}
+                className="text-red-600 hover:text-red-800"
+                aria-label="Dismiss error"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="px-6 py-6 space-y-6">
+          <div className={`px-6 py-6 space-y-6 ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}>
             {/* Course/Program Selection - Primary Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -343,55 +373,28 @@ export function CreateClassModal({
               </div>
             </div>
 
-            {/* Class Type Badge Dropdown and Price Badge */}
+            {/* Programming Offering Dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Class Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.programmingOffering}
+                onChange={(e) => updateField('programmingOffering', e.target.value)}
+                required
+                className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-black focus:ring-black"
+              >
+                <option value="">Select class type...</option>
+                <option value="In Person Only">In Person Only</option>
+                <option value="Hybrid">Hybrid</option>
+                <option value="Online + Skills Training">Online + Skills Training</option>
+                <option value="In Person + Homework">In Person + Homework</option>
+                <option value="Online Only">Online Only</option>
+              </select>
+            </div>
+
+            {/* Price Badge Input */}
             <div className="flex items-center gap-2">
-              <div className="relative flex-1" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50 transition-colors w-full"
-                >
-                  <CurrentIcon size={12} className="text-gray-700" />
-                  <span className="text-[11px] font-medium text-gray-700">{currentOption.label}</span>
-                  <ChevronDown size={12} className="text-gray-500" />
-                </button>
-
-              {/* Dropdown Menu */}
-              {isDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 min-w-[140px]">
-                  {classTypeOptions.map((option) => {
-                    const OptionIcon = option.icon;
-                    const isSelected = formData.classType === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          updateField('classType', option.value);
-                          setIsDropdownOpen(false);
-                        }}
-                        className={`w-full flex items-center gap-1.5 px-2 py-1.5 text-[11px] font-medium transition-colors ${
-                          isSelected
-                            ? 'bg-gray-100 text-gray-900'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <div className={`w-2 h-2 rounded-full ${
-                          isSelected ? 'bg-gray-600' : 'bg-gray-400'
-                        }`} />
-                        <OptionIcon size={12} className={isSelected ? 'text-gray-700' : 'text-gray-500'} />
-                        <span>{option.label}</span>
-                        {isSelected && (
-                          <span className="ml-auto text-gray-600">✓</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-              </div>
-
-              {/* Price Badge Input */}
               <div className="relative flex-1">
                 {isPriceEditing ? (
                   <div className="flex items-center gap-1.5 px-1 py-1 rounded border border-gray-300 bg-white ring-2 ring-transparent focus-within:ring-black w-full">
@@ -602,15 +605,17 @@ export function CreateClassModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors"
+                disabled={isSubmitting}
+                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isEditMode ? 'Save Changes' : 'Create Class'}
+                {isSubmitting ? 'Creating...' : (isEditMode ? 'Save Changes' : 'Create Class')}
               </button>
             </div>
           </div>

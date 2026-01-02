@@ -56,6 +56,9 @@ function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): 
   if (classData.registration_fee !== null && classData.registration_fee !== undefined) {
     fieldData['registration-fee'] = (classData.registration_fee / 100).toFixed(2);
   }
+  if (classData.class_image) {
+    fieldData['class-image'] = classData.class_image;
+  }
 
   return fieldData;
 }
@@ -78,11 +81,26 @@ export async function createWebflowClassItem(
     console.log('[Webflow] Mapped fields:', Object.keys(webflowFields));
 
     const item = await webflow.collections.items.createItem(config.collectionId, {
-      isDraft: true, // Create as draft (requires manual publishing)
+      isDraft: false,
       fieldData: webflowFields as any, // Type assertion needed due to dynamic field names
     });
 
     console.log('[Webflow] Item created successfully, ID:', item.id);
+
+    // Publish the item immediately
+    if (item.id) {
+      try {
+        await webflow.collections.items.publishItem(config.collectionId, {
+          itemIds: [item.id],
+        });
+        console.log('[Webflow] Item published immediately, ID:', item.id);
+      } catch (publishError: any) {
+        console.error('[Webflow] Error publishing item:', publishError);
+        // Don't fail the whole operation if publish fails - item is still created
+        console.warn('[Webflow] Item created but publish failed. Item ID:', item.id);
+      }
+    }
+
     return { webflowItemId: item.id || null, error: null };
   } catch (error: any) {
     console.error('[Webflow] Error creating item:', error);
@@ -131,13 +149,14 @@ export async function updateWebflowClassItem(
       if (partial.class_start_date !== undefined) webflowFields['class-start-date'] = partial.class_start_date || '';
       if (partial.class_close_date !== undefined) webflowFields['class-close-date'] = partial.class_close_date || '';
       if (partial.location !== undefined) webflowFields['location'] = partial.location || '';
-      if (partial.is_online !== undefined) webflowFields['is-online'] = partial.is_online ? 'Yes' : 'No';
+      if (partial.is_online !== undefined) webflowFields['is-online'] = partial.is_online || false;
       if (partial.product_id !== undefined) webflowFields['product-id'] = partial.product_id || '';
       if (partial.length_of_class !== undefined) webflowFields['length-of-class'] = partial.length_of_class || '';
       if (partial.certification_length !== undefined) webflowFields['certification-length'] = partial.certification_length?.toString() || '';
       if (partial.registration_limit !== undefined) webflowFields['registration-limit'] = partial.registration_limit?.toString() || '';
       if (partial.price !== undefined) webflowFields['price'] = partial.price ? (partial.price / 100).toFixed(2) : '';
       if (partial.registration_fee !== undefined) webflowFields['registration-fee'] = partial.registration_fee ? (partial.registration_fee / 100).toFixed(2) : '';
+      if (partial.class_image !== undefined) webflowFields['class-image'] = partial.class_image || '';
     }
 
     // Only update if we have fields to update
@@ -196,5 +215,26 @@ export function getWebflowConfig(programType: string | null): WebflowConfig | nu
     collectionId,
     apiToken,
   };
+}
+
+/**
+ * Delete a Webflow collection item for a class
+ */
+export async function deleteWebflowClassItem(
+  config: WebflowConfig,
+  webflowItemId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const webflow = new WebflowClient({ 
+      accessToken: config.apiToken 
+    });
+    
+    await webflow.collections.items.deleteItem(config.collectionId, webflowItemId);
+
+    return { success: true, error: null };
+  } catch (error: any) {
+    console.error('Error deleting Webflow item:', error);
+    return { success: false, error: error.message || 'Failed to delete Webflow item' };
+  }
 }
 

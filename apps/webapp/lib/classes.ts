@@ -36,6 +36,7 @@ export interface Class {
   class_close_date: string | null;
   is_online: boolean;
   programming_offering: string | null;
+  class_image: string | null;
   length_of_class: string | null;
   certification_length: number | null;
   registration_limit: number | null;
@@ -224,6 +225,7 @@ export async function createClass(
   classCloseDate?: string | null,
   isOnline?: boolean,
   programmingOffering?: string | null,
+  classImage?: string | null,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
   registrationLimit?: number | null,
@@ -341,6 +343,7 @@ export async function updateClass(
   classCloseDate?: string | null,
   isOnline?: boolean,
   programmingOffering?: string | null,
+  classImage?: string | null,
   lengthOfClass?: string | null,
   certificationLength?: number | null,
   registrationLimit?: number | null,
@@ -351,50 +354,49 @@ export async function updateClass(
 ): Promise<ClassResponse> {
   try {
     const supabase = await createSupabaseClient();
-    
-    // First, get the current class to check for webflow_item_id
-    const { data: currentClass, error: fetchError } = await supabase
-      .from("classes")
-      .select("webflow_item_id, course_uuid")
-      .eq("id", id)
-      .single();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (fetchError) {
-      return { success: false, error: fetchError.message };
+    if (sessionError || !session) {
+      return { success: false, error: 'Not authenticated. Please log in.' };
     }
 
-    const updateData: any = {};
+    const basePath = typeof window !== 'undefined' 
+      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+      : '';
 
-    if (enrollmentStart !== undefined) updateData.enrollment_start = enrollmentStart;
-    if (enrollmentClose !== undefined) updateData.enrollment_close = enrollmentClose;
-    if (classStartDate !== undefined) updateData.class_start_date = classStartDate;
-    if (classCloseDate !== undefined) updateData.class_close_date = classCloseDate;
-    if (isOnline !== undefined) updateData.is_online = isOnline;
-    if (programmingOffering !== undefined) updateData.programming_offering = programmingOffering;
-    if (lengthOfClass !== undefined) updateData.length_of_class = lengthOfClass;
-    if (certificationLength !== undefined) updateData.certification_length = certificationLength;
-    if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
-    if (price !== undefined) updateData.price = price;
-    if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
-    if (location !== undefined) updateData.location = location;
-    if (className !== undefined) updateData.class_name = className;
+    const response = await fetch(`${basePath}/api/classes/${id}/update`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        enrollmentStart,
+        enrollmentClose,
+        classStartDate,
+        classCloseDate,
+        isOnline,
+        programmingOffering,
+        classImage,
+        lengthOfClass,
+        certificationLength,
+        registrationLimit,
+        price,
+        registrationFee,
+        location,
+        className,
+      }),
+    });
 
-    const { error } = await supabase
-      .from("classes")
-      .update(updateData)
-      .eq("id", id);
-
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const result = await response.json();
+      return { success: false, error: result.error || 'Failed to update class' };
     }
 
-    // TODO: Webflow sync for updates should be moved to a server-side API route
-    // For now, updates only happen in Supabase
-    // The webflow_item_id is preserved, but Webflow won't be updated until we add an update API route
-
-    return { success: true };
+    const result = await response.json();
+    return { success: true, class: result.class };
   } catch (err) {
-    const error = err as PostgrestError;
+    const error = err as Error;
     return { success: false, error: error.message || "Failed to update class" };
   }
 }
