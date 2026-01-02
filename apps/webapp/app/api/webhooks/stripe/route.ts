@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
   console.log('[webhook] Signature header:', signature?.substring(0, 50) + '...');
 
   let event: Stripe.Event;
+  const stripe = getStripeClient(stripeSecretKey);
 
   try {
-    const stripe = getStripeClient(stripeSecretKey);
     // Important: body must be the raw string, signature must be from headers
     // If this fails, the body was likely modified before reaching this handler
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
@@ -122,7 +122,6 @@ export async function POST(request: NextRequest) {
           : session.payment_intent.id;
         
         // Retrieve payment intent to get amount and receipt
-        const stripe = getStripeClient(stripeSecretKey);
         try {
           const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
           amountCents = paymentIntent.amount;
