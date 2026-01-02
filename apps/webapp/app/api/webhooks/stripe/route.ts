@@ -121,15 +121,24 @@ export async function POST(request: NextRequest) {
           if (fullSession.payment_link) {
             // payment_link can be a string (ID) or an object
             if (typeof fullSession.payment_link === 'string') {
-              // If it's just an ID, we need to construct the URL or look it up differently
-              // Payment link IDs are like: plink_xxx, but URLs are like: https://buy.stripe.com/xxx
-              // We'll need to try matching by the payment link object's URL if available
-              console.log('[webhook] Found payment_link ID:', fullSession.payment_link);
+              // If it's just an ID, retrieve the payment link object to get its URL
+              const paymentLinkId = fullSession.payment_link;
+              console.log('[webhook] Found payment_link ID, retrieving payment link object:', paymentLinkId);
+              try {
+                const paymentLinkObj = await stripe.paymentLinks.retrieve(paymentLinkId);
+                if (paymentLinkObj.url) {
+                  paymentLinkIdentifier = paymentLinkObj.url;
+                  console.log('[webhook] Retrieved payment link URL:', paymentLinkIdentifier);
+                }
+              } catch (retrieveError: any) {
+                console.warn('[webhook] Failed to retrieve payment link object:', retrieveError.message);
+              }
             } else {
-              // If it's expanded, get the URL
+              // If it's expanded, get the URL directly
               const paymentLinkObj = fullSession.payment_link as any;
               if (paymentLinkObj.url) {
                 paymentLinkIdentifier = paymentLinkObj.url;
+                console.log('[webhook] Got payment link URL from expanded object:', paymentLinkIdentifier);
               }
             }
           }
