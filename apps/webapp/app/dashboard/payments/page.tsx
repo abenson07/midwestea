@@ -7,12 +7,7 @@ import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { 
     getTransactions, 
     updateTransactionStatus, 
-    getPayoutsToReconcile,
-    getReconciledPayouts,
-    reconcileTransaction,
     type TransactionWithDetails,
-    type PayoutTransaction,
-    type PayoutGroup
 } from "@/lib/payments";
 import { formatCurrency } from "@midwestea/utils";
 
@@ -23,11 +18,6 @@ function TransactionsPageContent() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // Payout reconciliation state
-    const [payoutsToReconcile, setPayoutsToReconcile] = useState<PayoutGroup[]>([]);
-    const [reconciledPayouts, setReconciledPayouts] = useState<PayoutTransaction[]>([]);
-    const [showReconciled, setShowReconciled] = useState(true);
-    const [reconcilingIds, setReconcilingIds] = useState<Set<string>>(new Set());
 
     // Sidebar state
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithDetails | null>(null);
@@ -36,7 +26,6 @@ function TransactionsPageContent() {
 
     useEffect(() => {
         loadTransactions();
-        loadPayouts();
     }, []);
 
     // Handle URL params for deep linking
@@ -81,48 +70,6 @@ function TransactionsPageContent() {
         }
     };
 
-    const loadPayouts = async () => {
-        try {
-            // Load payouts to reconcile
-            const { payouts, error: reconcileError } = await getPayoutsToReconcile();
-            if (reconcileError) {
-                console.error("[TransactionsPageContent] Error loading payouts to reconcile:", reconcileError);
-            } else {
-                setPayoutsToReconcile(payouts);
-            }
-
-            // Load reconciled payouts
-            const { transactions: reconciled, error: reconciledError } = await getReconciledPayouts();
-            if (reconciledError) {
-                console.error("[TransactionsPageContent] Error loading reconciled payouts:", reconciledError);
-            } else {
-                setReconciledPayouts(reconciled);
-            }
-        } catch (err: any) {
-            console.error("[TransactionsPageContent] Exception loading payouts:", err);
-        }
-    };
-
-    const handleReconcile = async (transactionId: string) => {
-        setReconcilingIds(prev => new Set(prev).add(transactionId));
-        try {
-            const { success, error: reconcileError } = await reconcileTransaction(transactionId);
-            if (reconcileError) {
-                setError(reconcileError);
-            } else if (success) {
-                // Reload payouts to update the UI
-                await loadPayouts();
-            }
-        } catch (err: any) {
-            setError(err.message || "Failed to reconcile transaction");
-        } finally {
-            setReconcilingIds(prev => {
-                const next = new Set(prev);
-                next.delete(transactionId);
-                return next;
-            });
-        }
-    };
 
     const handleRowClick = (transaction: TransactionWithDetails) => {
         router.push(`/dashboard/payments?transactionId=${transaction.id}`);
@@ -193,15 +140,6 @@ function TransactionsPageContent() {
         return date.toLocaleDateString();
     };
 
-    const formatPayoutDate = (dateString: string | null) => {
-        if (!dateString) return "N/A";
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-    };
 
     const getTransactionTypeLabel = (type: string | null): string => {
         if (type === 'registration_fee') return 'Registration Fee';
@@ -283,142 +221,6 @@ function TransactionsPageContent() {
             {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
                     {error}
-                </div>
-            )}
-
-            {/* Payouts to Reconcile Section */}
-            {payoutsToReconcile.length > 0 && (
-                <div className="space-y-6">
-                    <div>
-                        <h2 className="text-xl font-bold text-gray-900">Payouts to Reconcile</h2>
-                        <p className="text-sm text-gray-500 mt-1">Transactions that have been paid out and need reconciliation</p>
-                    </div>
-                    
-                    {payoutsToReconcile.map((payoutGroup) => (
-                        <div key={payoutGroup.payout_id} className="bg-white border border-gray-200 rounded-lg p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                                {formatCurrency(payoutGroup.payout_total)} paid out on {formatPayoutDate(payoutGroup.payout_date)}
-                            </h3>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Customer Email
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Payment Amount
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Payment Date
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Invoice Number
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Action
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {payoutGroup.transactions.map((transaction) => (
-                                            <tr key={transaction.id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                    {transaction.student_email || "N/A"}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {formatCurrency(transaction.payment_amount || 0)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {formatDate(transaction.payment_date)}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {transaction.invoice_number || "N/A"}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    <button
-                                                        onClick={() => handleReconcile(transaction.id)}
-                                                        disabled={reconcilingIds.has(transaction.id)}
-                                                        className={`text-blue-600 hover:text-blue-800 ${
-                                                            reconcilingIds.has(transaction.id) 
-                                                                ? "opacity-50 cursor-not-allowed" 
-                                                                : ""
-                                                        }`}
-                                                    >
-                                                        {reconcilingIds.has(transaction.id) ? "Reconciling..." : "Reconcile"}
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {/* Reconciled Payouts Section */}
-            {showReconciled && reconciledPayouts.length > 0 && (
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900">Reconciled Payouts</h2>
-                            <p className="text-sm text-gray-500 mt-1">Transactions that have been reconciled</p>
-                        </div>
-                        <button
-                            onClick={() => setShowReconciled(false)}
-                            className="text-sm text-blue-600 hover:text-blue-800"
-                        >
-                            Hide reconciled payouts
-                        </button>
-                    </div>
-                    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Customer Email
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Payment Amount
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Payment Date
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Payout Date
-                                        </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Invoice Number
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {reconciledPayouts.map((transaction) => (
-                                        <tr key={transaction.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {transaction.student_email || "N/A"}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {formatCurrency(transaction.payment_amount || 0)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {formatDate(transaction.payment_date)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {formatDate(transaction.payout_date)}
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {transaction.invoice_number || "N/A"}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             )}
 

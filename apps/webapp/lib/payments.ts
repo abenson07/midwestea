@@ -667,6 +667,159 @@ export async function reconcileTransaction(
 }
 
 /**
+ * Undo reconciliation for a transaction
+ * Calls the API endpoint to mark a transaction as not reconciled
+ */
+export async function undoReconciliation(
+  transactionId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    console.log("[undoReconciliation] Undoing reconciliation for transaction:", transactionId);
+    
+    const basePath = typeof window !== 'undefined' 
+      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+      : '';
+    
+    const response = await fetch(`${basePath}/api/transactions/unreconcile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ transactionId }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Failed to undo reconciliation' };
+    }
+
+    console.log("[undoReconciliation] Reconciliation undone successfully");
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error("[undoReconciliation] Error:", err);
+    return { success: false, error: err.message || "Failed to undo reconciliation" };
+  }
+}
+
+/**
+ * Get all transactions with payout_id (both reconciled and unreconciled)
+ */
+export async function getTransactionsWithPayoutId(): Promise<{ 
+  transactions: TransactionWithDetails[]; 
+  error: string | null 
+}> {
+  try {
+    console.log("[getTransactionsWithPayoutId] Starting...");
+    const supabase = await createSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(`
+        *,
+        students (
+          id,
+          full_name
+        ),
+        classes (
+          id,
+          class_id
+        )
+      `)
+      .not("payout_id", "is", null)
+      .order("payout_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[getTransactionsWithPayoutId] Error fetching transactions:", error);
+      return { transactions: [], error: error.message };
+    }
+
+    if (!data) {
+      return { transactions: [], error: null };
+    }
+
+    // Get unique student IDs to fetch emails
+    const studentIds = [...new Set(data.map((t: any) => t.student_id).filter(Boolean))];
+    const emailMap = new Map<string, string | null>();
+    
+    if (studentIds.length > 0) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const basePath = typeof window !== 'undefined' 
+            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+            : '';
+          
+          const emailPromises = studentIds.map(async (studentId: string) => {
+            try {
+              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                  return { studentId, email: result.email };
+                }
+              }
+            } catch (err) {
+              console.warn(`[getTransactionsWithPayoutId] Failed to fetch email for student ${studentId}:`, err);
+            }
+            return { studentId, email: null };
+          });
+          
+          const emailResults = await Promise.all(emailPromises);
+          emailResults.forEach(({ studentId, email }) => {
+            emailMap.set(studentId, email);
+          });
+        }
+      } catch (err) {
+        console.warn("[getTransactionsWithPayoutId] Error fetching emails:", err);
+      }
+    }
+
+    // Transform transactions
+    const transactionsWithDetails: TransactionWithDetails[] = data.map((transaction: any) => {
+      const student = transaction.students;
+      const classRecord = transaction.classes;
+
+      const studentName = student?.full_name || "Unknown Student";
+      const studentEmail = transaction.student_id ? emailMap.get(transaction.student_id) || null : null;
+      const classIdDisplay = classRecord?.class_id || transaction.class_id || "N/A";
+
+      return {
+        id: transaction.id,
+        invoice_number: transaction.invoice_number,
+        student_id: transaction.student_id,
+        class_id: transaction.class_id,
+        transaction_type: transaction.transaction_type,
+        quantity: transaction.quantity,
+        amount_due: transaction.amount_due,
+        transaction_status: transaction.transaction_status,
+        due_date: transaction.due_date,
+        student_name: studentName,
+        student_email: studentEmail,
+        class_id_display: classIdDisplay,
+        payout_id: transaction.payout_id || null,
+        payout_date: transaction.payout_date || null,
+        reconciled: transaction.reconciled || false,
+        reconciliation_date: transaction.reconciliation_date || null,
+        payment_date: transaction.payment_date || null,
+      };
+    });
+
+    return { transactions: transactionsWithDetails, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { transactions: [], error: error.message || "Failed to fetch transactions with payout_id" };
+  }
+}
+
+/**
  * Fetch transactions for a specific enrollment
  * Returns transactions ordered by: registration_fee, tuition_a, tuition_b
  */

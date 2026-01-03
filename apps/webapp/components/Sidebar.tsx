@@ -150,7 +150,18 @@ export function Sidebar() {
             );
           })}
         </ul>
-        <div className="px-3 pt-4 border-t border-gray-200">
+        <div className="px-3 pt-4 border-t border-gray-200 space-y-1">
+          <Link
+            href="/dashboard/reconcile"
+            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors w-full ${
+              pathname === "/dashboard/reconcile"
+                ? "bg-gray-100 text-gray-900"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            <CheckSquare className={`h-5 w-5 ${pathname === "/dashboard/reconcile" ? "text-black" : "text-gray-400"}`} />
+            <span>Reconcile</span>
+          </Link>
           <button
             onClick={handleDownloadInvoices}
             disabled={isDownloading}
