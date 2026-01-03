@@ -88,7 +88,7 @@ export function LogDisplay({ referenceId, referenceType, additionalFilters }: Lo
           if (log.student_id) {
             const { data: studentData } = await supabase
               .from("students")
-              .select("first_name, last_name")
+              .select("full_name")
               .eq("id", log.student_id)
               .single();
             

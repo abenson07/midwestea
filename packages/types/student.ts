@@ -4,6 +4,7 @@ export type Student = {
   id: string; // UUID, matches auth.users.id
   first_name: string | null;
   last_name: string | null;
+  full_name: string | null;
   phone: string | null;
   stripe_customer_id: string | null;
   has_required_info: boolean | null;

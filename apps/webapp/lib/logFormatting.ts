@@ -18,8 +18,7 @@ export interface LogRecord {
     display_name: string;
   } | null;
   students?: {
-    first_name: string | null;
-    last_name: string | null;
+    full_name: string | null;
     email: string | null;
   } | null;
   classes?: {
@@ -58,8 +57,7 @@ export const FIELD_LABELS: Record<string, Record<string, string>> = {
     registration_fee: "Registration Fee",
   },
   student: {
-    first_name: "First Name",
-    last_name: "Last Name",
+    full_name: "Full Name",
     email: "Email",
     phone: "Phone Number",
     t_shirt_size: "T-Shirt Size",
@@ -182,10 +180,7 @@ function formatStudentName(student: LogRecord["students"]): string {
   if (!student) {
     return "Unknown Student";
   }
-  const firstName = student.first_name || "";
-  const lastName = student.last_name || "";
-  const name = `${firstName} ${lastName}`.trim();
-  return name || "Unknown Student";
+  return student.full_name || "Unknown Student";
 }
 
 /**

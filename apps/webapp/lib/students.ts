@@ -12,7 +12,7 @@ export interface StudentWithEmail extends Student {
 /**
  * Fetch all students from the students table
  * Note: Email is stored in auth.users, so we'll attempt to get it via auth admin API
- * For now, we'll return students with name formatted from first_name + last_name
+ * Uses full_name field from the database
  */
 export async function getStudents(): Promise<{ students: StudentWithEmail[] | null; error: string | null }> {
   try {
@@ -36,13 +36,9 @@ export async function getStudents(): Promise<{ students: StudentWithEmail[] | nu
       return { students: [], error: null };
     }
 
-    // Transform students to include formatted name and attempt to get email
+    // Transform students to include name from full_name field
     const studentsWithEmail: StudentWithEmail[] = data.map((student) => {
-      const firstName = student.first_name || "";
-      const lastName = student.last_name || "";
-      const name = firstName || lastName 
-        ? `${firstName} ${lastName}`.trim() 
-        : "Unknown Student";
+      const name = student.full_name || "Unknown Student";
       
       return {
         ...student,
@@ -84,12 +80,8 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
       return { student: null, error: null };
     }
 
-    // Transform student to include formatted name
-    const firstName = data.first_name || "";
-    const lastName = data.last_name || "";
-    const name = firstName || lastName 
-      ? `${firstName} ${lastName}`.trim() 
-      : "Unknown Student";
+    // Transform student to include name from full_name field
+    const name = data.full_name || "Unknown Student";
 
     // Fetch email from auth via API route
     let email: string | null = null;
@@ -167,11 +159,7 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
         const student = enrollment.students;
         if (!student) return null;
 
-        const firstName = student.first_name || "";
-        const lastName = student.last_name || "";
-        const name = firstName || lastName 
-          ? `${firstName} ${lastName}`.trim() 
-          : "Unknown Student";
+        const name = student.full_name || "Unknown Student";
 
         return {
           ...student,
@@ -193,8 +181,7 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
  */
 export async function updateStudent(
   id: string,
-  firstName?: string | null,
-  lastName?: string | null,
+  fullName?: string | null,
   phone?: string | null,
   tShirtSize?: string | null,
   emergencyContactName?: string | null,
@@ -263,8 +250,7 @@ export async function updateStudent(
     // Update student table fields
     const updateData: any = {};
 
-    if (firstName !== undefined) updateData.first_name = firstName;
-    if (lastName !== undefined) updateData.last_name = lastName;
+    if (fullName !== undefined) updateData.full_name = fullName;
     if (phone !== undefined) updateData.phone = phone;
     if (tShirtSize !== undefined) updateData.t_shirt_size = tShirtSize;
     if (emergencyContactName !== undefined) updateData.emergency_contact_name = emergencyContactName;

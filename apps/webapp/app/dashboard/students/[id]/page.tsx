@@ -116,8 +116,7 @@ function StudentDetailContent() {
         // Perform update
         const { success, error } = await updateStudent(
             student.id,
-            student.first_name,
-            student.last_name,
+            student.full_name,
             student.phone,
             student.t_shirt_size,
             student.emergency_contact_name,
@@ -132,8 +131,7 @@ function StudentDetailContent() {
 
             // Compare all editable fields
             const fieldsToCompare = [
-                { key: "first_name", label: "first_name" },
-                { key: "last_name", label: "last_name" },
+                { key: "full_name", label: "full_name" },
                 { key: "email", label: "email" },
                 { key: "phone", label: "phone" },
                 { key: "t_shirt_size", label: "t_shirt_size" },
@@ -404,21 +402,11 @@ function StudentDetailContent() {
                 {student ? (
                     <form onSubmit={handleSave} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">First Name</label>
+                            <label className="block text-sm font-medium text-gray-700">Full Name</label>
                             <input
                                 type="text"
-                                value={student.first_name || ''}
-                                onChange={(e) => setStudent({ ...student, first_name: e.target.value })}
-                                className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input
-                                type="text"
-                                value={student.last_name || ''}
-                                onChange={(e) => setStudent({ ...student, last_name: e.target.value })}
+                                value={student.full_name || ''}
+                                onChange={(e) => setStudent({ ...student, full_name: e.target.value })}
                                 className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
                             />
                         </div>

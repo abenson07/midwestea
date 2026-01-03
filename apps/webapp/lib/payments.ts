@@ -53,11 +53,7 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
       let studentName = "Unknown Student";
       let studentId: string | undefined;
       if (student) {
-        const firstName = student.first_name || "";
-        const lastName = student.last_name || "";
-        studentName = firstName || lastName 
-          ? `${firstName} ${lastName}`.trim() 
-          : "Unknown Student";
+        studentName = student.full_name || "Unknown Student";
         studentId = student.id;
       }
 
@@ -144,11 +140,7 @@ export async function getPaymentsByStudentId(studentId: string): Promise<{ payme
       let studentName = "Unknown Student";
       let studentId: string | undefined;
       if (student) {
-        const firstName = student.first_name || "";
-        const lastName = student.last_name || "";
-        studentName = firstName || lastName 
-          ? `${firstName} ${lastName}`.trim() 
-          : "Unknown Student";
+        studentName = student.full_name || "Unknown Student";
         studentId = student.id;
       }
 
