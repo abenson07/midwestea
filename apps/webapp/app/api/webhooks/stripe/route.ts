@@ -372,6 +372,142 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Handle payout.paid event
+  if (event.type === 'payout.paid') {
+    try {
+      const payout = event.data.object as Stripe.Payout;
+      const payoutId = payout.id;
+      const payoutDate = payout.arrival_date ? new Date(payout.arrival_date * 1000).toISOString() : new Date().toISOString();
+      
+      console.log('[webhook] Processing payout.paid:', payoutId);
+
+      const supabase = createSupabaseAdminClient();
+
+      // Check if this payout has already been processed (idempotency)
+      const { data: existingTransactions } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('payout_id', payoutId)
+        .limit(1);
+
+      if (existingTransactions && existingTransactions.length > 0) {
+        console.log('[webhook] Payout already processed, exiting safely:', payoutId);
+        return NextResponse.json({
+          success: true,
+          message: 'Payout already processed (idempotency check)',
+          payout_id: payoutId,
+        });
+      }
+
+      // Query Stripe balance transactions for this payout
+      // Use expand to get charges and payment intents in a single call
+      // Handle pagination in case there are more than 100 transactions
+      const paymentIntentIds: string[] = [];
+      let hasMore = true;
+      let startingAfter: string | undefined = undefined;
+
+      while (hasMore) {
+        const balanceTransactions = await stripe.balanceTransactions.list({
+          payout: payoutId,
+          expand: ['data.source'],
+          limit: 100, // Stripe allows up to 100 per page
+          ...(startingAfter && { starting_after: startingAfter }),
+        });
+
+        console.log('[webhook] Found', balanceTransactions.data.length, 'balance transactions for payout', payoutId);
+
+        // Extract payment intent IDs from balance transactions
+        for (const balanceTransaction of balanceTransactions.data) {
+          // Only process charge transactions
+          if (balanceTransaction.type === 'charge') {
+            const source = balanceTransaction.source;
+            
+            // Source can be a charge object (when expanded) or a string ID
+            if (typeof source === 'object' && source !== null && 'object' in source) {
+              const charge = source as Stripe.Charge;
+              
+              // Get payment intent from charge
+              if (charge.payment_intent) {
+                const paymentIntentId = typeof charge.payment_intent === 'string' 
+                  ? charge.payment_intent 
+                  : charge.payment_intent.id;
+                
+                if (paymentIntentId) {
+                  paymentIntentIds.push(paymentIntentId);
+                }
+              }
+            }
+          }
+        }
+
+        // Check if there are more pages
+        hasMore = balanceTransactions.has_more;
+        if (hasMore && balanceTransactions.data.length > 0) {
+          startingAfter = balanceTransactions.data[balanceTransactions.data.length - 1].id;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      console.log('[webhook] Extracted', paymentIntentIds.length, 'payment intent IDs from payout');
+
+      if (paymentIntentIds.length === 0) {
+        console.warn('[webhook] No payment intents found in payout', payoutId);
+        return NextResponse.json({
+          success: true,
+          message: 'No payment intents found in payout',
+          payout_id: payoutId,
+        });
+      }
+
+      // Update transactions with payout_id and payout_date
+      // Match by stripe_payment_intent_id
+      const { data: updatedTransactions, error: updateError } = await supabase
+        .from('transactions')
+        .update({
+          payout_id: payoutId,
+          payout_date: payoutDate,
+        })
+        .in('stripe_payment_intent_id', paymentIntentIds)
+        .select('id');
+
+      if (updateError) {
+        console.error('[webhook] Error updating transactions with payout_id:', updateError);
+        return NextResponse.json(
+          {
+            error: 'Failed to update transactions',
+            details: updateError.message,
+          },
+          { status: 500 }
+        );
+      }
+
+      console.log('[webhook] Updated', updatedTransactions?.length || 0, 'transactions with payout_id:', payoutId);
+
+      return NextResponse.json({
+        success: true,
+        payout_id: payoutId,
+        payout_date: payoutDate,
+        payment_intent_ids_count: paymentIntentIds.length,
+        transactions_updated: updatedTransactions?.length || 0,
+      });
+    } catch (error: any) {
+      console.error('[webhook] Error processing payout.paid:', {
+        error: error.message,
+        stack: error.stack,
+        payout_id: (event.data.object as Stripe.Payout).id,
+      });
+      
+      return NextResponse.json(
+        {
+          error: 'Failed to process payout.paid webhook',
+          details: error.message,
+        },
+        { status: 500 }
+      );
+    }
+  }
+
   // Handle payment_intent events - IGNORED per user request
   // Payment processing is now handled via checkout.session.completed
   if (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.created') {

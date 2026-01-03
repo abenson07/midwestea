@@ -176,6 +176,11 @@ export interface TransactionWithDetails {
   student_name?: string;
   student_email?: string | null;
   class_id_display?: string; // The actual class_id from classes table
+  payout_id?: string | null;
+  payout_date?: string | null;
+  reconciled?: boolean;
+  reconciliation_date?: string | null;
+  payment_date?: string | null;
 }
 
 /**
@@ -287,6 +292,11 @@ export async function getTransactions(): Promise<{ transactions: TransactionWith
         student_name: studentName,
         student_email: studentEmail,
         class_id_display: classIdDisplay,
+        payout_id: transaction.payout_id || null,
+        payout_date: transaction.payout_date || null,
+        reconciled: transaction.reconciled || false,
+        reconciliation_date: transaction.reconciliation_date || null,
+        payment_date: transaction.payment_date || null,
       };
     });
 
@@ -323,6 +333,316 @@ export async function updateTransactionStatus(
   } catch (err) {
     const error = err as PostgrestError;
     return { success: false, error: error.message || "Failed to update transaction status" };
+  }
+}
+
+/**
+ * Payout transaction with details for reconciliation
+ */
+export interface PayoutTransaction {
+  id: string;
+  invoice_number: string | null;
+  student_email: string | null;
+  payment_amount: number | null;
+  payment_date: string | null;
+  payout_date: string | null;
+  payout_id: string;
+}
+
+/**
+ * Payout group with transactions and metadata
+ */
+export interface PayoutGroup {
+  payout_id: string;
+  payout_date: string | null;
+  payout_total: number;
+  transactions: PayoutTransaction[];
+}
+
+/**
+ * Get payouts to reconcile (grouped by payout_id)
+ * Returns transactions that have a payout_id but are not yet reconciled
+ */
+export async function getPayoutsToReconcile(): Promise<{ 
+  payouts: PayoutGroup[]; 
+  error: string | null 
+}> {
+  try {
+    console.log("[getPayoutsToReconcile] Starting...");
+    const supabase = await createSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(`
+        id,
+        invoice_number,
+        payout_id,
+        payout_date,
+        payment_date,
+        amount_due,
+        quantity,
+        student_id,
+        students (
+          id
+        )
+      `)
+      .not("payout_id", "is", null)
+      .eq("reconciled", false)
+      .order("payout_date", { ascending: false });
+
+    if (error) {
+      console.error("[getPayoutsToReconcile] Error fetching transactions:", error);
+      return { payouts: [], error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      return { payouts: [], error: null };
+    }
+
+    // Get unique student IDs to fetch emails
+    const studentIds = [...new Set(data.map((t: any) => t.student_id || t.students?.id).filter(Boolean))];
+    const emailMap = new Map<string, string | null>();
+    
+    if (studentIds.length > 0) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const basePath = typeof window !== 'undefined' 
+            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+            : '';
+          
+          const emailPromises = studentIds.map(async (studentId: string) => {
+            try {
+              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                  return { studentId, email: result.email };
+                }
+              }
+            } catch (err) {
+              console.warn(`[getPayoutsToReconcile] Failed to fetch email for student ${studentId}:`, err);
+            }
+            return { studentId, email: null };
+          });
+          
+          const emailResults = await Promise.all(emailPromises);
+          emailResults.forEach(({ studentId, email }) => {
+            emailMap.set(studentId, email);
+          });
+        }
+      } catch (err) {
+        console.warn("[getPayoutsToReconcile] Error fetching emails:", err);
+      }
+    }
+
+    // Group by payout_id and transform data
+    const payoutsMap: Record<string, PayoutTransaction[]> = {};
+    
+    for (const transaction of data) {
+      const payoutId = transaction.payout_id;
+      if (!payoutId) continue;
+
+      const studentId = transaction.student_id || transaction.students?.id;
+      const studentEmail = studentId ? emailMap.get(studentId) || null : null;
+      
+      const quantity = transaction.quantity || 1;
+      const amountDue = transaction.amount_due || 0;
+      const paymentAmount = quantity * amountDue;
+
+      if (!payoutsMap[payoutId]) {
+        payoutsMap[payoutId] = [];
+      }
+
+      payoutsMap[payoutId].push({
+        id: transaction.id,
+        invoice_number: transaction.invoice_number,
+        student_email: studentEmail,
+        payment_amount: paymentAmount,
+        payment_date: transaction.payment_date,
+        payout_date: transaction.payout_date,
+        payout_id: payoutId,
+      });
+    }
+
+    // Convert to array of PayoutGroup with totals
+    const payouts: PayoutGroup[] = Object.entries(payoutsMap).map(([payoutId, transactions]) => {
+      const payoutTotal = transactions.reduce((sum, t) => sum + (t.payment_amount || 0), 0);
+      const payoutDate = transactions[0]?.payout_date || null;
+      
+      return {
+        payout_id: payoutId,
+        payout_date: payoutDate,
+        payout_total: payoutTotal,
+        transactions,
+      };
+    });
+
+    // Sort by payout_date descending
+    payouts.sort((a, b) => {
+      if (!a.payout_date && !b.payout_date) return 0;
+      if (!a.payout_date) return 1;
+      if (!b.payout_date) return -1;
+      return new Date(b.payout_date).getTime() - new Date(a.payout_date).getTime();
+    });
+
+    return { payouts, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { payouts: [], error: error.message || "Failed to fetch payouts to reconcile" };
+  }
+}
+
+/**
+ * Get reconciled payouts
+ * Returns transactions that have been reconciled, sorted by reconciliation_date DESC
+ */
+export async function getReconciledPayouts(): Promise<{ 
+  transactions: PayoutTransaction[]; 
+  error: string | null 
+}> {
+  try {
+    console.log("[getReconciledPayouts] Starting...");
+    const supabase = await createSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(`
+        id,
+        invoice_number,
+        payout_id,
+        payout_date,
+        payment_date,
+        amount_due,
+        quantity,
+        reconciliation_date,
+        student_id,
+        students (
+          id
+        )
+      `)
+      .not("payout_id", "is", null)
+      .eq("reconciled", true)
+      .order("reconciliation_date", { ascending: false });
+
+    if (error) {
+      console.error("[getReconciledPayouts] Error fetching transactions:", error);
+      return { transactions: [], error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      return { transactions: [], error: null };
+    }
+
+    // Get unique student IDs to fetch emails
+    const studentIds = [...new Set(data.map((t: any) => t.student_id || t.students?.id).filter(Boolean))];
+    const emailMap = new Map<string, string | null>();
+    
+    if (studentIds.length > 0) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (token) {
+          const basePath = typeof window !== 'undefined' 
+            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+            : '';
+          
+          const emailPromises = studentIds.map(async (studentId: string) => {
+            try {
+              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+              if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                  return { studentId, email: result.email };
+                }
+              }
+            } catch (err) {
+              console.warn(`[getReconciledPayouts] Failed to fetch email for student ${studentId}:`, err);
+            }
+            return { studentId, email: null };
+          });
+          
+          const emailResults = await Promise.all(emailPromises);
+          emailResults.forEach(({ studentId, email }) => {
+            emailMap.set(studentId, email);
+          });
+        }
+      } catch (err) {
+        console.warn("[getReconciledPayouts] Error fetching emails:", err);
+      }
+    }
+
+    // Transform data
+    const transactions: PayoutTransaction[] = data.map((transaction: any) => {
+      const studentId = transaction.student_id || transaction.students?.id;
+      const studentEmail = studentId ? emailMap.get(studentId) || null : null;
+      
+      const quantity = transaction.quantity || 1;
+      const amountDue = transaction.amount_due || 0;
+      const paymentAmount = quantity * amountDue;
+
+      return {
+        id: transaction.id,
+        invoice_number: transaction.invoice_number,
+        student_email: studentEmail,
+        payment_amount: paymentAmount,
+        payment_date: transaction.payment_date,
+        payout_date: transaction.payout_date,
+        payout_id: transaction.payout_id,
+      };
+    });
+
+    return { transactions, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { transactions: [], error: error.message || "Failed to fetch reconciled payouts" };
+  }
+}
+
+/**
+ * Reconcile a transaction
+ * Calls the reconcile API endpoint to mark a transaction as reconciled
+ */
+export async function reconcileTransaction(
+  transactionId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    console.log("[reconcileTransaction] Reconciling transaction:", transactionId);
+    
+    const basePath = typeof window !== 'undefined' 
+      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+      : '';
+    
+    const response = await fetch(`${basePath}/api/transactions/reconcile`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ transactionId }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Failed to reconcile transaction' };
+    }
+
+    console.log("[reconcileTransaction] Transaction reconciled successfully");
+    return { success: true, error: null };
+  } catch (err: any) {
+    console.error("[reconcileTransaction] Error:", err);
+    return { success: false, error: err.message || "Failed to reconcile transaction" };
   }
 }
 
