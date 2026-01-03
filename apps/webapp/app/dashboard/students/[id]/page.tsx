@@ -5,12 +5,21 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassesByStudentId, type Class } from "@/lib/classes";
 import { getStudentById, updateStudent, type StudentWithEmail } from "@/lib/students";
-import { getPaymentsByStudentId, type PaymentWithDetails } from "@/lib/payments";
+import { getPaymentsByStudentId, type PaymentWithDetails, getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
+import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
+import type { Enrollment } from "@midwestea/types";
+
+// Extended class type with enrollment and payment info
+type ClassWithEnrollment = Class & {
+    enrollment_id: string;
+    enrolled_at: string | null;
+    payment_status: string;
+};
 
 function StudentDetailContent() {
     const router = useRouter();
@@ -20,7 +29,7 @@ function StudentDetailContent() {
 
     const [student, setStudent] = useState<StudentWithEmail | null>(null);
     const [originalStudent, setOriginalStudent] = useState<StudentWithEmail | null>(null);
-    const [classes, setClasses] = useState<Class[]>([]);
+    const [classes, setClasses] = useState<ClassWithEnrollment[]>([]);
     const [payments, setPayments] = useState<PaymentWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingClasses, setLoadingClasses] = useState(true);
@@ -30,6 +39,13 @@ function StudentDetailContent() {
     // Sidebar state
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [saving, setSaving] = useState(false);
+    
+    // Enrollment detail sidebar state
+    const [isEnrollmentSidebarOpen, setIsEnrollmentSidebarOpen] = useState(false);
+    const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
+    const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+    const [enrollmentTransactions, setEnrollmentTransactions] = useState<TransactionWithDetails[]>([]);
+    const [loadingEnrollment, setLoadingEnrollment] = useState(false);
 
     useEffect(() => {
         if (studentId) {
@@ -60,19 +76,127 @@ function StudentDetailContent() {
         setLoading(false);
     };
 
+    const calculatePaymentStatus = (transactions: TransactionWithDetails[]): string => {
+        if (!transactions || transactions.length === 0) {
+            return "No payments yet";
+        }
+
+        const regFee = transactions.find(t => t.transaction_type === 'registration_fee');
+        const tuitionA = transactions.find(t => t.transaction_type === 'tuition_a');
+        const tuitionB = transactions.find(t => t.transaction_type === 'tuition_b');
+
+        const now = new Date();
+        
+        // Check for past due transactions
+        const checkPastDue = (transaction: TransactionWithDetails | undefined): boolean => {
+            if (!transaction) return false;
+            if (transaction.transaction_status === 'paid') return false;
+            if (!transaction.due_date) return false;
+            return new Date(transaction.due_date) < now;
+        };
+
+        const regFeePastDue = checkPastDue(regFee);
+        const tuitionAPastDue = checkPastDue(tuitionA);
+        const tuitionBPastDue = checkPastDue(tuitionB);
+
+        if (regFeePastDue) return "Registration fee past due";
+        if (tuitionAPastDue) return "Tuition A past due";
+        if (tuitionBPastDue) return "Tuition B past due";
+
+        const regFeePaid = regFee?.transaction_status === 'paid';
+        const tuitionAPaid = tuitionA?.transaction_status === 'paid';
+        const tuitionBPaid = tuitionB?.transaction_status === 'paid';
+
+        // Check if all are paid
+        const allTransactions = [regFee, tuitionA, tuitionB].filter(Boolean);
+        const allPaid = allTransactions.every(t => t.transaction_status === 'paid');
+
+        if (allPaid) {
+            return "All paid";
+        }
+
+        // Check if registration fee and tuition A are paid
+        if (regFeePaid && tuitionAPaid && !tuitionBPaid) {
+            return "First payment paid";
+        }
+
+        // Check if only registration fee is paid
+        if (regFeePaid && !tuitionAPaid) {
+            return "Registration fee paid";
+        }
+
+        return "Pending";
+    };
+
     const loadClasses = async () => {
         if (!studentId) return;
         setLoadingClasses(true);
-        const { classes: fetchedClasses, error: fetchError } = await getClassesByStudentId(studentId);
-        if (fetchError) {
-            console.error("Error fetching classes:", fetchError);
+        
+        // Fetch enrollments with classes
+        const supabase = await createSupabaseClient();
+        const { data: enrollments, error: enrollmentError } = await supabase
+            .from("enrollments")
+            .select(`
+                id,
+                enrolled_at,
+                class_id,
+                classes (*)
+            `)
+            .eq("student_id", studentId)
+            .order("enrolled_at", { ascending: false });
+
+        if (enrollmentError) {
+            console.error("Error fetching enrollments:", enrollmentError);
             setClasses([]);
-        } else if (fetchedClasses) {
-            setClasses(fetchedClasses);
-        } else {
-            setClasses([]);
+            setLoadingClasses(false);
+            return;
         }
+
+        if (!enrollments || enrollments.length === 0) {
+            setClasses([]);
+            setLoadingClasses(false);
+            return;
+        }
+
+        // Fetch transactions for each enrollment and calculate payment status
+        const classesWithStatus: ClassWithEnrollment[] = await Promise.all(
+            enrollments.map(async (enrollment: any) => {
+                const classRecord = enrollment.classes;
+                if (!classRecord) return null;
+
+                // Fetch transactions for this enrollment
+                const { transactions } = await getTransactionsByEnrollment(enrollment.id);
+                const paymentStatus = calculatePaymentStatus(transactions || []);
+
+                return {
+                    ...(classRecord as Class),
+                    enrollment_id: enrollment.id,
+                    enrolled_at: enrollment.enrolled_at,
+                    payment_status: paymentStatus,
+                };
+            })
+        );
+
+        const validClasses = classesWithStatus.filter((c): c is ClassWithEnrollment => c !== null);
+        setClasses(validClasses);
         setLoadingClasses(false);
+    };
+
+    const getNextDueDate = async (enrollmentId: string): Promise<string | null> => {
+        const { transactions } = await getTransactionsByEnrollment(enrollmentId);
+        if (!transactions || transactions.length === 0) return null;
+        
+        const now = new Date();
+        const unpaidTransactions = transactions.filter(t => t.transaction_status !== 'paid' && t.due_date);
+        
+        if (unpaidTransactions.length === 0) return null;
+        
+        // Sort by due date and get the earliest one
+        const sortedByDueDate = unpaidTransactions
+            .map(t => ({ dueDate: new Date(t.due_date!), transaction: t }))
+            .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+        
+        return sortedByDueDate[0]?.dueDate.toISOString() || null;
     };
 
     const loadPayments = async () => {
@@ -82,11 +206,37 @@ function StudentDetailContent() {
         if (fetchError) {
             console.error("Error fetching payments:", fetchError);
             setPayments([]);
-        } else if (fetchedPayments) {
-            setPayments(fetchedPayments);
-        } else {
-            setPayments([]);
+            setLoadingPayments(false);
+            return;
         }
+        
+        if (!fetchedPayments || fetchedPayments.length === 0) {
+            setPayments([]);
+            setLoadingPayments(false);
+            return;
+        }
+
+        // Add next due date and due date info to each payment
+        const paymentsWithDueDate = await Promise.all(
+            fetchedPayments.map(async (payment) => {
+                const nextDueDate = await getNextDueDate(payment.enrollment_id);
+                // Get transactions to find the due date for this specific payment
+                const { transactions } = await getTransactionsByEnrollment(payment.enrollment_id);
+                // Find the transaction that matches this payment (by amount or payment intent)
+                const matchingTransaction = transactions?.find(
+                    t => t.stripe_payment_intent_id === payment.stripe_payment_intent_id ||
+                         (t.amount_due === payment.amount_cents && !payment.stripe_payment_intent_id)
+                );
+                
+                return {
+                    ...payment,
+                    next_due_date: nextDueDate,
+                    due_date: matchingTransaction?.due_date || null,
+                };
+            })
+        );
+
+        setPayments(paymentsWithDueDate);
         setLoadingPayments(false);
     };
 
@@ -100,8 +250,45 @@ function StudentDetailContent() {
         router.push(`/dashboard/students/${studentId}`);
     };
 
-    const handleClassClick = (classItem: Class) => {
-        router.push(`/dashboard/classes/${classItem.id}`);
+    const handleClassClick = async (classItem: Class) => {
+        if (!studentId) return;
+        
+        setLoadingEnrollment(true);
+        setIsEnrollmentSidebarOpen(true);
+        setSelectedClass(classItem);
+        
+        // Fetch enrollment
+        const { enrollment, error: enrollmentError } = await getEnrollmentByStudentAndClass(studentId, classItem.id);
+        
+        if (enrollmentError) {
+            console.error("Error fetching enrollment:", enrollmentError);
+            setSelectedEnrollment(null);
+            setEnrollmentTransactions([]);
+        } else if (enrollment) {
+            setSelectedEnrollment(enrollment);
+            
+            // Fetch transactions for this enrollment
+            const { transactions, error: transactionsError } = await getTransactionsByEnrollment(enrollment.id);
+            
+            if (transactionsError) {
+                console.error("Error fetching transactions:", transactionsError);
+                setEnrollmentTransactions([]);
+            } else {
+                setEnrollmentTransactions(transactions || []);
+            }
+        } else {
+            setSelectedEnrollment(null);
+            setEnrollmentTransactions([]);
+        }
+        
+        setLoadingEnrollment(false);
+    };
+    
+    const handleCloseEnrollmentSidebar = () => {
+        setIsEnrollmentSidebarOpen(false);
+        setSelectedEnrollment(null);
+        setSelectedClass(null);
+        setEnrollmentTransactions([]);
     };
 
     const handleSave = async (e: React.FormEvent) => {
@@ -221,22 +408,36 @@ function StudentDetailContent() {
     };
 
     const classColumns = [
-        { header: "Class ID", accessorKey: "class_id" as keyof Class, className: "font-medium" },
-        { header: "Class Name", accessorKey: "class_name" as keyof Class },
+        { header: "Class ID", accessorKey: "class_id" as keyof ClassWithEnrollment, className: "font-medium" },
+        { header: "Class Name", accessorKey: "class_name" as keyof ClassWithEnrollment },
         {
-            header: "Start Date",
-            accessorKey: "class_start_date" as keyof Class,
-            cell: (item: Class) => formatDate(item.class_start_date)
+            header: "Enrolled Date",
+            accessorKey: "enrolled_at" as keyof ClassWithEnrollment,
+            cell: (item: ClassWithEnrollment) => formatDate(item.enrolled_at)
         },
         {
-            header: "End Date",
-            accessorKey: "class_close_date" as keyof Class,
-            cell: (item: Class) => formatDate(item.class_close_date)
-        },
-        {
-            header: "Online",
-            accessorKey: "is_online" as keyof Class,
-            cell: (item: Class) => item.is_online ? "Yes" : "No"
+            header: "Payment Status",
+            accessorKey: "payment_status" as keyof ClassWithEnrollment,
+            cell: (item: ClassWithEnrollment) => {
+                const status = item.payment_status;
+                const isPastDue = status.includes("past due");
+                const isAllPaid = status === "All paid";
+                const isFirstPaid = status === "First payment paid";
+                
+                return (
+                    <span className={`text-sm ${
+                        isPastDue 
+                            ? "text-red-600 font-medium" 
+                            : isAllPaid 
+                                ? "text-green-600 font-medium"
+                                : isFirstPaid
+                                    ? "text-blue-600 font-medium"
+                                    : "text-gray-600"
+                    }`}>
+                        {status}
+                    </span>
+                );
+            }
         },
     ];
 
@@ -258,23 +459,38 @@ function StudentDetailContent() {
         },
         {
             header: "Paid At",
-            accessorKey: "paid_at" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => formatDate(item.paid_at)
+            accessorKey: "paid_at" as keyof PaymentWithDetails & { due_date?: string | null },
+            cell: (item: PaymentWithDetails & { due_date?: string | null }) => {
+                if (item.paid_at) {
+                    return formatDate(item.paid_at);
+                }
+                
+                // Check if overdue
+                if (item.due_date) {
+                    const dueDate = new Date(item.due_date);
+                    const now = new Date();
+                    if (dueDate < now) {
+                        return (
+                            <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
+                                Past due
+                            </span>
+                        );
+                    }
+                }
+                
+                // Show pending chip
+                return (
+                    <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                        Pending
+                    </span>
+                );
+            }
         },
         {
-            header: "Receipt",
-            accessorKey: "stripe_receipt_url" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => 
-                item.stripe_receipt_url ? (
-                    <a 
-                        href={item.stripe_receipt_url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline"
-                    >
-                        View
-                    </a>
-                ) : "—"
+            header: "Next Due Date",
+            accessorKey: "next_due_date" as keyof PaymentWithDetails & { next_due_date?: string | null },
+            cell: (item: PaymentWithDetails & { next_due_date?: string | null }) => 
+                formatDate(item.next_due_date)
         },
     ];
 
@@ -371,7 +587,6 @@ function StudentDetailContent() {
                     data={classes}
                     columns={classColumns}
                     isLoading={loadingClasses}
-                    onRowClick={handleClassClick}
                     emptyMessage="No classes found for this student."
                 />
             </div>
@@ -491,6 +706,105 @@ function StudentDetailContent() {
                     </form>
                 ) : (
                     <p className="text-gray-500">Student not found.</p>
+                )}
+            </DetailSidebar>
+
+            {/* Enrollment Detail Sidebar */}
+            <DetailSidebar
+                isOpen={isEnrollmentSidebarOpen}
+                onClose={handleCloseEnrollmentSidebar}
+                title={selectedClass ? selectedClass.class_name || "Enrollment Details" : "Enrollment Details"}
+            >
+                {loadingEnrollment ? (
+                    <div className="flex justify-center py-8">
+                        <p className="text-gray-500">Loading enrollment details...</p>
+                    </div>
+                ) : selectedClass && selectedEnrollment ? (
+                    <div className="space-y-6">
+                        {/* Class Information */}
+                        <div>
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3">Class Information</h3>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500">Class Name</label>
+                                    <p className="mt-1 text-sm text-gray-900">{selectedClass.class_name || "—"}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500">Class ID</label>
+                                    <p className="mt-1 text-sm text-gray-900">{selectedClass.class_id || "—"}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500">Class Start Date</label>
+                                    <p className="mt-1 text-sm text-gray-900">{formatDate(selectedClass.class_start_date)}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500">Class End Date</label>
+                                    <p className="mt-1 text-sm text-gray-900">{formatDate(selectedClass.class_close_date)}</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500">Date Enrolled</label>
+                                    <p className="mt-1 text-sm text-gray-900">{formatDate(selectedEnrollment.enrolled_at)}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Payments Section */}
+                        <div className="pt-4 border-t border-gray-200">
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3">Payments</h3>
+                            {enrollmentTransactions.length === 0 ? (
+                                <p className="text-sm text-gray-500">No transactions found for this enrollment.</p>
+                            ) : (
+                                <div className="space-y-4">
+                                    {enrollmentTransactions.map((transaction) => {
+                                        const transactionTypeLabel = 
+                                            transaction.transaction_type === 'registration_fee' ? 'Registration Fee' :
+                                            transaction.transaction_type === 'tuition_a' ? 'Tuition A' :
+                                            transaction.transaction_type === 'tuition_b' ? 'Tuition B' :
+                                            transaction.transaction_type || 'Unknown';
+                                        
+                                        const isPaid = transaction.transaction_status === 'paid';
+                                        const dateLabel = isPaid ? 'Paid Date' : 'Due Date';
+                                        const dateValue = isPaid ? transaction.payment_date : transaction.due_date;
+                                        
+                                        return (
+                                            <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h4 className="text-sm font-medium text-gray-900">{transactionTypeLabel}</h4>
+                                                    <span className={`px-2 py-1 text-xs rounded-full ${
+                                                        isPaid 
+                                                            ? "bg-green-100 text-green-800" 
+                                                            : "bg-yellow-100 text-yellow-800"
+                                                    }`}>
+                                                        {isPaid ? "Paid" : "Pending"}
+                                                    </span>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-500">Amount Due</label>
+                                                        <p className="mt-1 text-sm text-gray-900">
+                                                            {transaction.amount_due ? formatCurrency(transaction.amount_due) : "—"}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs font-medium text-gray-500">{dateLabel}</label>
+                                                        <p className="mt-1 text-sm text-gray-900">{formatDate(dateValue)}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : selectedClass ? (
+                    <div className="text-center py-8">
+                        <p className="text-sm text-gray-500">No enrollment found for this class.</p>
+                    </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <p className="text-sm text-gray-500">No class selected.</p>
+                    </div>
                 )}
             </DetailSidebar>
         </div>

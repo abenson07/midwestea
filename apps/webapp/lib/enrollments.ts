@@ -236,6 +236,8 @@ export async function createEnrollment(
 
 /**
  * Create a payment record
+ * @deprecated This function is deprecated. Use createTransaction() instead.
+ * NOTE: Now uses transactions table instead of payments table
  */
 export async function createPayment(
   enrollmentId: string,
@@ -243,6 +245,17 @@ export async function createPayment(
   amountCents: number
 ): Promise<Payment> {
   const supabase = createSupabaseAdminClient();
+
+  // Fetch enrollment to get student_id and class_id
+  const { data: enrollment, error: enrollmentError } = await supabase
+    .from('enrollments')
+    .select('student_id, class_id')
+    .eq('id', enrollmentId)
+    .single();
+
+  if (enrollmentError || !enrollment) {
+    throw new Error(`Failed to fetch enrollment: ${enrollmentError?.message || 'Enrollment not found'}`);
+  }
 
   // Get receipt URL from latest charge if available
   let receiptUrl: string | null = null;
@@ -264,28 +277,49 @@ export async function createPayment(
     }
   }
 
-  const { data: payment, error: insertError } = await supabase
-    .from('payments')
+  // Create transaction instead of payment
+  // Default to 'registration_fee' transaction type since this is legacy code
+  const now = new Date().toISOString();
+  const { data: transaction, error: insertError } = await supabase
+    .from('transactions')
     .insert({
       enrollment_id: enrollmentId,
-      amount_cents: amountCents,
+      student_id: enrollment.student_id,
+      class_id: enrollment.class_id,
+      class_type: 'course', // Default, legacy code doesn't have this info
+      transaction_type: 'registration_fee',
+      quantity: 1,
       stripe_payment_intent_id: paymentIntent.id,
-      stripe_receipt_url: receiptUrl,
-      payment_status: 'paid',
-      paid_at: new Date().toISOString(),
+      transaction_status: 'paid',
+      payment_date: now,
+      due_date: now,
+      amount_due: amountCents,
+      amount_paid: amountCents,
+      invoice_number: null, // Legacy code doesn't set invoice number
     })
     .select()
     .single();
 
   if (insertError) {
-    throw new Error(`Failed to create payment: ${insertError.message}`);
+    throw new Error(`Failed to create transaction: ${insertError.message}`);
   }
 
-  if (!payment) {
-    throw new Error('Failed to create payment: no data returned');
+  if (!transaction) {
+    throw new Error('Failed to create transaction: no data returned');
   }
 
-  return payment as Payment;
+  // Map transaction back to Payment type for compatibility
+  return {
+    id: transaction.id,
+    enrollment_id: transaction.enrollment_id,
+    amount_cents: transaction.amount_paid || transaction.amount_due || 0,
+    stripe_payment_intent_id: transaction.stripe_payment_intent_id,
+    stripe_receipt_url: receiptUrl,
+    payment_status: transaction.transaction_status || 'paid',
+    paid_at: transaction.payment_date,
+    created_at: transaction.created_at,
+    updated_at: transaction.updated_at,
+  } as Payment;
 }
 
 /**
@@ -510,6 +544,36 @@ export async function updateStudentStripeCustomerId(
 
   if (updateError) {
     throw new Error(`Failed to update student stripe_customer_id: ${updateError.message}`);
+  }
+}
+
+/**
+ * Get enrollment by student_id and class_id
+ * Returns enrollment with class details
+ */
+export async function getEnrollmentByStudentAndClass(
+  studentId: string,
+  classId: string
+): Promise<{ enrollment: Enrollment | null; error: string | null }> {
+  try {
+    const supabase = createSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from('enrollments')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('class_id', classId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return { enrollment: null, error: null }; // Not found, but not an error
+      }
+      return { enrollment: null, error: error.message };
+    }
+
+    return { enrollment: data as Enrollment, error: null };
+  } catch (err: any) {
+    return { enrollment: null, error: err.message || 'Failed to fetch enrollment' };
   }
 }
 

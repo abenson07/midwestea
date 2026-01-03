@@ -13,6 +13,7 @@ export interface PaymentWithDetails extends Payment {
 
 /**
  * Fetch all payments with joins to enrollments, students, and classes
+ * NOTE: Now uses transactions table instead of payments table
  */
 export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | null; error: string | null }> {
   try {
@@ -20,7 +21,7 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
     const supabase = await createSupabaseClient();
     console.log("[getPayments] Supabase client created");
     const { data, error } = await supabase
-      .from("payments")
+      .from("transactions")
       .select(`
         *,
         enrollments (
@@ -34,7 +35,7 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
     console.log("[getPayments] Query result:", { data, error, dataLength: data?.length });
 
     if (error) {
-      console.error("[getPayments] Error fetching payments:", error);
+      console.error("[getPayments] Error fetching transactions:", error);
       return { payments: null, error: error.message };
     }
 
@@ -43,9 +44,10 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
       return { payments: [], error: null };
     }
 
-    // Transform payments to include student and class names
-    const paymentsWithDetails: PaymentWithDetails[] = data.map((payment: any) => {
-      const enrollment = payment.enrollments;
+    // Transform transactions to include student and class names
+    // Map transaction fields to payment fields for compatibility
+    const paymentsWithDetails: PaymentWithDetails[] = data.map((transaction: any) => {
+      const enrollment = transaction.enrollments;
       const student = enrollment?.students;
       const classRecord = enrollment?.classes;
 
@@ -60,9 +62,17 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
       // Get class name
       const className = classRecord?.class_name || "Unknown Class";
 
+      // Map transaction fields to payment fields
       return {
-        ...payment,
-        enrollment_id: payment.enrollment_id,
+        id: transaction.id,
+        enrollment_id: transaction.enrollment_id,
+        amount_cents: transaction.amount_paid || transaction.amount_due || 0,
+        stripe_payment_intent_id: transaction.stripe_payment_intent_id,
+        stripe_receipt_url: null, // transactions table doesn't have this field
+        payment_status: transaction.transaction_status || 'pending',
+        paid_at: transaction.payment_date,
+        created_at: transaction.created_at,
+        updated_at: transaction.updated_at,
         student_name: studentName,
         student_id: studentId,
         class_name: className,
@@ -78,6 +88,7 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
 
 /**
  * Fetch all payments for a specific student (via enrollments)
+ * NOTE: Now uses transactions table instead of payments table
  */
 export async function getPaymentsByStudentId(studentId: string): Promise<{ payments: PaymentWithDetails[] | null; error: string | null }> {
   try {
@@ -104,9 +115,9 @@ export async function getPaymentsByStudentId(studentId: string): Promise<{ payme
     // Extract enrollment IDs
     const enrollmentIds = enrollments.map((e: any) => e.id);
 
-    // Now get all payments for these enrollments
+    // Now get all transactions for these enrollments
     const { data, error } = await supabase
-      .from("payments")
+      .from("transactions")
       .select(`
         *,
         enrollments (
@@ -121,7 +132,7 @@ export async function getPaymentsByStudentId(studentId: string): Promise<{ payme
     console.log("[getPaymentsByStudentId] Query result:", { data, error, dataLength: data?.length });
 
     if (error) {
-      console.error("[getPaymentsByStudentId] Error fetching payments for student:", error);
+      console.error("[getPaymentsByStudentId] Error fetching transactions for student:", error);
       return { payments: null, error: error.message };
     }
 
@@ -130,9 +141,10 @@ export async function getPaymentsByStudentId(studentId: string): Promise<{ payme
       return { payments: [], error: null };
     }
 
-    // Transform payments to include student and class names
-    const paymentsWithDetails: PaymentWithDetails[] = data.map((payment: any) => {
-      const enrollment = payment.enrollments;
+    // Transform transactions to include student and class names
+    // Map transaction fields to payment fields for compatibility
+    const paymentsWithDetails: PaymentWithDetails[] = data.map((transaction: any) => {
+      const enrollment = transaction.enrollments;
       const student = enrollment?.students;
       const classRecord = enrollment?.classes;
 
@@ -147,9 +159,17 @@ export async function getPaymentsByStudentId(studentId: string): Promise<{ payme
       // Get class name
       const className = classRecord?.class_name || "Unknown Class";
 
+      // Map transaction fields to payment fields
       return {
-        ...payment,
-        enrollment_id: payment.enrollment_id,
+        id: transaction.id,
+        enrollment_id: transaction.enrollment_id,
+        amount_cents: transaction.amount_paid || transaction.amount_due || 0,
+        stripe_payment_intent_id: transaction.stripe_payment_intent_id,
+        stripe_receipt_url: null, // transactions table doesn't have this field
+        payment_status: transaction.transaction_status || 'pending',
+        paid_at: transaction.payment_date,
+        created_at: transaction.created_at,
+        updated_at: transaction.updated_at,
         student_name: studentName,
         student_id: studentId,
         class_name: className,
@@ -643,6 +663,94 @@ export async function reconcileTransaction(
   } catch (err: any) {
     console.error("[reconcileTransaction] Error:", err);
     return { success: false, error: err.message || "Failed to reconcile transaction" };
+  }
+}
+
+/**
+ * Fetch transactions for a specific enrollment
+ * Returns transactions ordered by: registration_fee, tuition_a, tuition_b
+ */
+export async function getTransactionsByEnrollment(
+  enrollmentId: string
+): Promise<{ transactions: TransactionWithDetails[] | null; error: string | null }> {
+  try {
+    console.log("[getTransactionsByEnrollment] Starting for enrollmentId:", enrollmentId);
+    const supabase = await createSupabaseClient();
+    
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(`
+        *,
+        students (
+          id,
+          full_name
+        ),
+        classes (
+          id,
+          class_id
+        )
+      `)
+      .eq("enrollment_id", enrollmentId)
+      .order("created_at", { ascending: true }); // Order by creation time
+
+    console.log("[getTransactionsByEnrollment] Query result:", { data, error, dataLength: data?.length });
+
+    if (error) {
+      console.error("[getTransactionsByEnrollment] Error fetching transactions:", error);
+      return { transactions: null, error: error.message };
+    }
+
+    if (!data) {
+      console.log("[getTransactionsByEnrollment] No data returned");
+      return { transactions: [], error: null };
+    }
+
+    // Transform transactions
+    const transactionsWithDetails: TransactionWithDetails[] = data.map((transaction: any) => {
+      const student = transaction.students;
+      const classRecord = transaction.classes;
+
+      const studentName = student?.full_name || "Unknown Student";
+      const classIdDisplay = classRecord?.class_id || transaction.class_id || "N/A";
+
+      return {
+        id: transaction.id,
+        invoice_number: transaction.invoice_number,
+        student_id: transaction.student_id,
+        class_id: transaction.class_id,
+        transaction_type: transaction.transaction_type,
+        quantity: transaction.quantity,
+        amount_due: transaction.amount_due,
+        transaction_status: transaction.transaction_status,
+        due_date: transaction.due_date,
+        student_name: studentName,
+        student_email: null, // Not needed for enrollment detail view
+        class_id_display: classIdDisplay,
+        payout_id: transaction.payout_id || null,
+        payout_date: transaction.payout_date || null,
+        reconciled: transaction.reconciled || false,
+        reconciliation_date: transaction.reconciliation_date || null,
+        payment_date: transaction.payment_date || null,
+      };
+    });
+
+    // Sort transactions by type: registration_fee, tuition_a, tuition_b
+    const typeOrder: Record<string, number> = {
+      'registration_fee': 1,
+      'tuition_a': 2,
+      'tuition_b': 3,
+    };
+
+    transactionsWithDetails.sort((a, b) => {
+      const aOrder = typeOrder[a.transaction_type || ''] || 999;
+      const bOrder = typeOrder[b.transaction_type || ''] || 999;
+      return aOrder - bOrder;
+    });
+
+    return { transactions: transactionsWithDetails, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { transactions: null, error: error.message || "Failed to fetch transactions for enrollment" };
   }
 }
 
