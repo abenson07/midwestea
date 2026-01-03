@@ -1,7 +1,9 @@
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { formatCurrency } from '@midwestea/utils';
 import { getStripeClient } from './stripe';
 import Stripe from 'stripe';
 import type { Student, Class, Enrollment, Payment } from '@midwestea/types';
+import { formatDate } from './email';
 
 /**
  * Find or create a student by email
@@ -575,5 +577,275 @@ export async function getEnrollmentByStudentAndClass(
   } catch (err: any) {
     return { enrollment: null, error: err.message || 'Failed to fetch enrollment' };
   }
+}
+
+// ============================================================================
+// Outstanding Invoices - Type Definitions
+// ============================================================================
+
+/**
+ * Outstanding invoice data structure
+ * Represents a pending transaction that needs to be paid
+ */
+export interface OutstandingInvoice {
+  invoiceNumber: number | null;
+  transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b';
+  quantity: number;
+  amountDue: number; // Amount in cents
+  dueDate: string | Date;
+  totalAmount: number; // Calculated: quantity * amount_due (in cents)
+}
+
+/**
+ * Invoice calculation result
+ * Contains summary information about outstanding invoices
+ */
+export interface InvoiceCalculation {
+  invoices: OutstandingInvoice[];
+  totalOutstanding: number; // Total amount in cents
+  count: number;
+}
+
+// ============================================================================
+// Outstanding Invoices - Query Cache
+// ============================================================================
+
+/**
+ * Simple in-memory cache for outstanding invoices queries
+ * Cache key: enrollmentId
+ * Cache value: { data: OutstandingInvoice[], timestamp: number }
+ */
+const outstandingInvoicesCache = new Map<
+  string,
+  { data: OutstandingInvoice[]; timestamp: number }
+>();
+
+/**
+ * Cache TTL in milliseconds (5 minutes)
+ */
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Clear cache entry for a specific enrollment
+ * Call this when invoice data changes (e.g., payment received)
+ */
+export function clearOutstandingInvoicesCache(enrollmentId: string): void {
+  outstandingInvoicesCache.delete(enrollmentId);
+}
+
+/**
+ * Clear all outstanding invoices cache
+ */
+export function clearAllOutstandingInvoicesCache(): void {
+  outstandingInvoicesCache.clear();
+}
+
+// ============================================================================
+// Outstanding Invoices - Helper Functions
+// ============================================================================
+
+/**
+ * Calculate total outstanding amount from invoices
+ * 
+ * @param invoices - Array of outstanding invoices
+ * @returns Total amount in cents
+ */
+export function calculateTotalOutstanding(invoices: OutstandingInvoice[]): number {
+  return invoices.reduce((total, invoice) => {
+    return total + invoice.totalAmount;
+  }, 0);
+}
+
+/**
+ * Format due date to readable string
+ * 
+ * @param date - Date to format (string, Date, or ISO string)
+ * @returns Formatted date string (e.g., "January 15, 2024")
+ */
+export function formatDueDate(date: string | Date): string {
+  return formatDate(date, 'date');
+}
+
+// ============================================================================
+// Outstanding Invoices - Database Query Function
+// ============================================================================
+
+/**
+ * Get outstanding invoices for a specific enrollment
+ * 
+ * Retrieves all pending transactions (invoices) for an enrollment,
+ * ordered by due date ascending. Results are cached for 5 minutes.
+ * 
+ * @param enrollmentId - UUID of the enrollment
+ * @returns Array of outstanding invoices, or empty array if none found
+ * @throws Error if database query fails
+ * 
+ * @example
+ * ```typescript
+ * const invoices = await getOutstandingInvoices('enrollment-uuid');
+ * const total = calculateTotalOutstanding(invoices);
+ * console.log(`Total outstanding: ${formatCurrency(total)}`);
+ * ```
+ */
+export async function getOutstandingInvoices(
+  enrollmentId: string
+): Promise<OutstandingInvoice[]> {
+  const startTime = Date.now();
+  const logContext = {
+    enrollmentId,
+    function: 'getOutstandingInvoices',
+  };
+
+  // Validate input
+  if (!enrollmentId || typeof enrollmentId !== 'string') {
+    const error = new Error('Invalid enrollmentId: must be a non-empty string');
+    console.error('[getOutstandingInvoices] Validation error:', {
+      ...logContext,
+      error: error.message,
+    });
+    throw error;
+  }
+
+  // Check cache first
+  const cached = outstandingInvoicesCache.get(enrollmentId);
+  if (cached) {
+    const cacheAge = Date.now() - cached.timestamp;
+    if (cacheAge < CACHE_TTL_MS) {
+      const queryTime = Date.now() - startTime;
+      console.log('[getOutstandingInvoices] Cache hit:', {
+        ...logContext,
+        cacheAge: `${cacheAge}ms`,
+        queryTime: `${queryTime}ms`,
+        invoiceCount: cached.data.length,
+      });
+      return cached.data;
+    } else {
+      // Cache expired, remove it
+      outstandingInvoicesCache.delete(enrollmentId);
+      console.log('[getOutstandingInvoices] Cache expired:', {
+        ...logContext,
+        cacheAge: `${cacheAge}ms`,
+      });
+    }
+  }
+
+  const supabase = createSupabaseAdminClient();
+
+  try {
+    // Query transactions table for pending invoices
+    // Note: Supabase uses .eq() instead of SQL WHERE, and .order() instead of ORDER BY
+    const { data: transactions, error, status } = await supabase
+      .from('transactions')
+      .select('invoice_number, transaction_type, quantity, amount_due, due_date')
+      .eq('enrollment_id', enrollmentId)
+      .eq('transaction_status', 'pending')
+      .order('due_date', { ascending: true });
+
+    const queryTime = Date.now() - startTime;
+
+    if (error) {
+      // Log error with context
+      console.error('[getOutstandingInvoices] Database query error:', {
+        ...logContext,
+        error: error.message,
+        errorCode: error.code,
+        errorDetails: error.details,
+        errorHint: error.hint,
+        queryTime: `${queryTime}ms`,
+        httpStatus: status,
+      });
+
+      // Handle specific error types
+      if (error.code === 'PGRST116') {
+        // Not found - return empty array (no outstanding invoices)
+        console.log('[getOutstandingInvoices] No outstanding invoices found:', {
+          ...logContext,
+          queryTime: `${queryTime}ms`,
+        });
+        return [];
+      }
+
+      // For other errors, throw
+      throw new Error(
+        `Failed to query outstanding invoices: ${error.message}${error.hint ? ` (${error.hint})` : ''}`
+      );
+    }
+
+    // Transform database results to OutstandingInvoice format
+    const invoices: OutstandingInvoice[] = (transactions || []).map((tx) => {
+      const quantity = tx.quantity || 0;
+      const amountDue = tx.amount_due || 0;
+      const totalAmount = quantity * amountDue;
+
+      return {
+        invoiceNumber: tx.invoice_number,
+        transactionType: tx.transaction_type as 'registration_fee' | 'tuition_a' | 'tuition_b',
+        quantity,
+        amountDue,
+        dueDate: tx.due_date || new Date().toISOString(),
+        totalAmount,
+      };
+    });
+
+    // Cache the results
+    outstandingInvoicesCache.set(enrollmentId, {
+      data: invoices,
+      timestamp: Date.now(),
+    });
+
+    // Log success
+    console.log('[getOutstandingInvoices] Query successful:', {
+      ...logContext,
+      queryTime: `${queryTime}ms`,
+      invoiceCount: invoices.length,
+      totalOutstanding: calculateTotalOutstanding(invoices),
+      cacheHit: false,
+    });
+
+    return invoices;
+  } catch (err: any) {
+    const queryTime = Date.now() - startTime;
+
+    // Log unexpected errors
+    console.error('[getOutstandingInvoices] Unexpected error:', {
+      ...logContext,
+      error: err.message,
+      errorStack: err.stack,
+      queryTime: `${queryTime}ms`,
+    });
+
+    // Re-throw with context
+    throw new Error(
+      `Failed to get outstanding invoices for enrollment ${enrollmentId}: ${err.message}`
+    );
+  }
+}
+
+/**
+ * Get outstanding invoices with calculation summary
+ * 
+ * Convenience function that returns both the invoices and calculated totals
+ * 
+ * @param enrollmentId - UUID of the enrollment
+ * @returns Invoice calculation result with invoices and totals
+ * @throws Error if database query fails
+ * 
+ * @example
+ * ```typescript
+ * const result = await getOutstandingInvoicesWithCalculation('enrollment-uuid');
+ * console.log(`Found ${result.count} invoices totaling ${formatCurrency(result.totalOutstanding)}`);
+ * ```
+ */
+export async function getOutstandingInvoicesWithCalculation(
+  enrollmentId: string
+): Promise<InvoiceCalculation> {
+  const invoices = await getOutstandingInvoices(enrollmentId);
+  const totalOutstanding = calculateTotalOutstanding(invoices);
+
+  return {
+    invoices,
+    totalOutstanding,
+    count: invoices.length,
+  };
 }
 
