@@ -51,26 +51,21 @@ export function Sidebar() {
   const handleDownloadInvoices = async () => {
     setIsDownloading(true);
     try {
-      // Step 1: Sync Stripe transactions
-      console.log('[Sidebar] Syncing Stripe invoices...');
+      console.log('[Sidebar] Exporting transactions to CSV...');
       const basePath = '/app';
-      const syncResponse = await fetch(`${basePath}/api/sync-stripe-invoices`, {
+      const csvResponse = await fetch(`${basePath}/api/export-transactions-csv`, {
         method: 'GET',
       });
 
-      if (!syncResponse.ok) {
-        const errorData = await syncResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Sync failed: ${syncResponse.status}`);
+      // Check content type to see if it's JSON (no invoices) or CSV
+      const contentType = csvResponse.headers.get('Content-Type') || '';
+      
+      if (contentType.includes('application/json')) {
+        // No new invoices to download
+        const data = await csvResponse.json();
+        alert(data.message || 'No new invoices to download');
+        return;
       }
-
-      const syncResult = await syncResponse.json();
-      console.log('[Sidebar] Sync result:', syncResult);
-
-      // Step 2: Export CSV
-      console.log('[Sidebar] Exporting CSV...');
-      const csvResponse = await fetch(`${basePath}/api/export-invoices-csv`, {
-        method: 'GET',
-      });
 
       if (!csvResponse.ok) {
         const errorData = await csvResponse.json().catch(() => ({}));
@@ -80,11 +75,21 @@ export function Sidebar() {
       // Get the CSV blob
       const csvBlob = await csvResponse.blob();
       
+      // Get filename from Content-Disposition header
+      const contentDisposition = csvResponse.headers.get('Content-Disposition');
+      let filename = `midwestea-invoices-${new Date().toISOString().split('T')[0]}.csv`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+      
       // Create download link
       const url = window.URL.createObjectURL(csvBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `invoices_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
