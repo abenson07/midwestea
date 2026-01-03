@@ -361,6 +361,33 @@ export async function getClassType(classId: string): Promise<'course' | 'program
 }
 
 /**
+ * Get the next invoice number from the transactions table
+ * Returns the highest invoice_number + 1, or 1 if no transactions exist
+ */
+export async function getNextTransactionInvoiceNumber(): Promise<number> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('invoice_number')
+    .order('invoice_number', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116 is "not found" which is fine if table is empty
+    throw new Error(`Failed to get next invoice number: ${error.message}`);
+  }
+
+  if (data && data.invoice_number) {
+    return data.invoice_number + 1;
+  }
+
+  // Start at 1 if no transactions exist
+  return 1;
+}
+
+/**
  * Create a transaction record
  */
 export async function createTransaction(data: {
@@ -376,6 +403,7 @@ export async function createTransaction(data: {
   dueDate: string | null;
   amountDue: number | null;
   amountPaid: number | null;
+  invoiceNumber?: number | null;
 }): Promise<any> {
   const supabase = createSupabaseAdminClient();
 
@@ -396,6 +424,7 @@ export async function createTransaction(data: {
       due_date: data.dueDate,
       amount_due: data.amountDue,
       amount_paid: data.amountPaid,
+      invoice_number: data.invoiceNumber ?? null,
     })
     .select()
     .single();

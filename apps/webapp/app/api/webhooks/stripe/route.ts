@@ -14,6 +14,7 @@ import {
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
   updateStudentStripeCustomerId,
+  getNextTransactionInvoiceNumber,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
@@ -221,9 +222,15 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Create transactions based on class type
+      // Step 4: Get the next invoice number (before creating any transactions)
+      // This ensures invoice numbers are assigned sequentially
+      const baseInvoiceNumber = await getNextTransactionInvoiceNumber();
+      console.log('[webhook] Next invoice number:', baseInvoiceNumber);
+
+      // Step 5: Create transactions based on class type
       const now = new Date().toISOString();
       const transactions = [];
+      let invoiceNumberCounter = baseInvoiceNumber;
 
       if (courseType === 'course') {
         // For courses: Create 1 transaction (Registration Fee)
@@ -240,12 +247,13 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
+          invoiceNumber: invoiceNumberCounter++,
         });
         transactions.push(transaction);
-        console.log('[webhook] Created course transaction:', transaction.id);
+        console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
       } else if (courseType === 'program') {
-        // For programs: Create 3 transactions
-        // 1. Registration Fee (paid)
+        // For programs: Create 3 transactions in order:
+        // 1. Registration Fee (paid) - first invoice number
         const regFeeTransaction = await createTransaction({
           enrollmentId: enrollment.id,
           studentId: student.id,
@@ -259,11 +267,12 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
+          invoiceNumber: invoiceNumberCounter++,
         });
         transactions.push(regFeeTransaction);
-        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id);
+        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
 
-        // 2. Tuition A (pending, due 3 weeks before class start)
+        // 2. Tuition A (pending, due 3 weeks before class start) - second invoice number
         let tuitionADueDate: string | null = null;
         if (classStartDate) {
           const startDate = new Date(classStartDate);
@@ -284,11 +293,12 @@ export async function POST(request: NextRequest) {
           dueDate: tuitionADueDate,
           amountDue: price,
           amountPaid: null,
+          invoiceNumber: invoiceNumberCounter++,
         });
         transactions.push(tuitionATransaction);
-        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id);
+        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
 
-        // 3. Tuition B (pending, due 1 week after class start)
+        // 3. Tuition B (pending, due 1 week after class start) - third invoice number
         let tuitionBDueDate: string | null = null;
         if (classStartDate) {
           const startDate = new Date(classStartDate);
@@ -309,9 +319,10 @@ export async function POST(request: NextRequest) {
           dueDate: tuitionBDueDate,
           amountDue: price,
           amountPaid: null,
+          invoiceNumber: invoiceNumberCounter++,
         });
         transactions.push(tuitionBTransaction);
-        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id);
+        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
       } else {
         // Default to course if type cannot be determined
         console.warn('[webhook] Could not determine class type, defaulting to course');
@@ -328,6 +339,7 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
+          invoiceNumber: invoiceNumberCounter++,
         });
         transactions.push(transaction);
       }
