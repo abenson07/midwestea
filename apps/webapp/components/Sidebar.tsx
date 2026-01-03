@@ -24,7 +24,7 @@ const navigation = [
   { name: "Classes", href: "/dashboard/classes", icon: Users },
   { name: "Students", href: "/dashboard/students", icon: GraduationCap },
   { name: "Instructors", href: "/dashboard/instructors", icon: FileText },
-  { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
+  { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
   { name: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
 ];
 

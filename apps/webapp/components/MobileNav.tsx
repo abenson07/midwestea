@@ -11,13 +11,13 @@ import {
     CreditCard,
 } from "lucide-react";
 
-// Order: Courses, Programs, Students, Trainers (Instructors), Payments, Approvals (R to L)
+// Order: Courses, Programs, Students, Trainers (Instructors), Transactions, Approvals (R to L)
 const navigation = [
     { name: "Courses", href: "/dashboard/courses", icon: BookOpen },
     { name: "Programs", href: "/dashboard/programs", icon: FolderOpen },
     { name: "Students", href: "/dashboard/students", icon: GraduationCap },
     { name: "Trainers", href: "/dashboard/instructors", icon: FileText },
-    { name: "Payments", href: "/dashboard/payments", icon: CreditCard },
+    { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
     { name: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
 ];
 
