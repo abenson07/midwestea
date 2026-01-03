@@ -638,13 +638,399 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Handle payment_intent events - IGNORED per user request
-  // Payment processing is now handled via checkout.session.completed
-  if (event.type === 'payment_intent.succeeded' || event.type === 'payment_intent.created') {
-    console.log('[webhook] Ignoring payment_intent event (handled by checkout.session.completed):', event.type);
+  // Handle payment_intent.succeeded event (for direct Payment Intent flow)
+  if (event.type === 'payment_intent.succeeded') {
+    try {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      
+      console.log('[webhook] Processing payment_intent.succeeded:', paymentIntent.id);
+
+      // Extract data from payment intent metadata
+      const classId = paymentIntent.metadata?.classId;
+      const productId = paymentIntent.metadata?.productId;
+      const productName = paymentIntent.metadata?.productName;
+
+      // Extract email and name from billing details or customer
+      let email: string | null = null;
+      let fullName: string | null = null;
+      
+      if (paymentIntent.billing_details?.email) {
+        email = paymentIntent.billing_details.email;
+      }
+      if (paymentIntent.billing_details?.name) {
+        fullName = paymentIntent.billing_details.name;
+      }
+
+      // If no email in billing details, try to get from customer
+      if (!email && paymentIntent.customer) {
+        try {
+          const customerId = typeof paymentIntent.customer === 'string' 
+            ? paymentIntent.customer 
+            : paymentIntent.customer.id;
+          const customer = await stripe.customers.retrieve(customerId);
+          if (typeof customer !== 'deleted' && customer.email) {
+            email = customer.email;
+          }
+          if (typeof customer !== 'deleted' && customer.name && !fullName) {
+            fullName = customer.name;
+          }
+        } catch (err) {
+          console.warn('[webhook] Failed to retrieve customer:', err);
+        }
+      }
+
+      // Validate required data
+      if (!email) {
+        console.error('[webhook] Could not extract email from payment intent');
+        return NextResponse.json(
+          { error: 'Could not extract email from payment intent' },
+          { status: 400 }
+        );
+      }
+
+      if (!classId) {
+        console.error('[webhook] Could not extract classId from payment intent metadata');
+        return NextResponse.json(
+          { error: 'Could not extract classId from payment intent metadata' },
+          { status: 400 }
+        );
+      }
+
+      const paymentIntentId = paymentIntent.id;
+      const amountTotal = paymentIntent.amount; // Amount in cents
+
+      console.log('[webhook] Extracted data:', { email, fullName, classId, paymentIntentId, productId });
+
+      // Safety check: Has this payment intent already been processed?
+      const supabase = createSupabaseAdminClient();
+      const { data: existingTransaction } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('stripe_payment_intent_id', paymentIntentId)
+        .limit(1);
+      
+      if (existingTransaction && existingTransaction.length > 0) {
+        console.log('[webhook] Payment intent already processed, exiting safely:', paymentIntentId);
+        return NextResponse.json({
+          success: true,
+          message: 'Payment intent already processed (idempotency check)',
+          payment_intent_id: paymentIntentId,
+        });
+      }
+
+      // Extract customer ID
+      const customerId = typeof paymentIntent.customer === 'string' 
+        ? paymentIntent.customer 
+        : paymentIntent.customer?.id || null;
+
+      // Step 1: Create or update student
+      const student = await findOrCreateStudent(email);
+      console.log('[webhook] Student found/created:', student.id);
+
+      // Update student name if needed
+      if (fullName) {
+        await updateStudentNameIfNeeded(student.id, fullName);
+        console.log('[webhook] Student name updated if needed');
+      }
+
+      // Update student stripe_customer_id if we have it
+      if (customerId) {
+        await updateStudentStripeCustomerId(student.id, customerId);
+        console.log('[webhook] Student stripe_customer_id updated:', customerId);
+      }
+
+      // Step 2: Fetch class with course information and pricing
+      const { 
+        class: classRecord, 
+        courseType, 
+        classStartDate,
+        registrationFee,
+        price
+      } = await findClassWithCourse(classId);
+      console.log('[webhook] Class found:', classRecord.id, 'Type:', courseType);
+
+      // Step 3: Create enrollment
+      const enrollment = await createEnrollment(student.id, classRecord.id);
+      console.log('[webhook] Enrollment created:', enrollment.id);
+
+      // Step 4: Get the next invoice number (before creating any transactions)
+      const baseInvoiceNumber = await getNextTransactionInvoiceNumber();
+      console.log('[webhook] Next invoice number:', baseInvoiceNumber);
+
+      // Step 5: Create transactions based on class type
+      const now = new Date().toISOString();
+      const transactions = [];
+      let invoiceNumberCounter = baseInvoiceNumber;
+
+      if (courseType === 'course') {
+        // For courses: Create 1 transaction (Registration Fee)
+        const transaction = await createTransaction({
+          enrollmentId: enrollment.id,
+          studentId: student.id,
+          classId: classRecord.id,
+          classType: 'course',
+          transactionType: 'registration_fee',
+          quantity: 1,
+          stripePaymentIntentId: paymentIntentId,
+          transactionStatus: 'paid',
+          paymentDate: now,
+          dueDate: now,
+          amountDue: registrationFee,
+          amountPaid: amountTotal,
+          invoiceNumber: invoiceNumberCounter++,
+        });
+        transactions.push(transaction);
+        console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
+      } else if (courseType === 'program') {
+        // For programs: Create 3 transactions in order:
+        // 1. Registration Fee (paid) - first invoice number
+        const regFeeTransaction = await createTransaction({
+          enrollmentId: enrollment.id,
+          studentId: student.id,
+          classId: classRecord.id,
+          classType: 'program',
+          transactionType: 'registration_fee',
+          quantity: 1,
+          stripePaymentIntentId: paymentIntentId,
+          transactionStatus: 'paid',
+          paymentDate: now,
+          dueDate: now,
+          amountDue: registrationFee,
+          amountPaid: amountTotal,
+          invoiceNumber: invoiceNumberCounter++,
+        });
+        transactions.push(regFeeTransaction);
+        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
+
+        // 2. Tuition A (pending, due 3 weeks before class start) - second invoice number
+        let tuitionADueDate: string | null = null;
+        if (classStartDate) {
+          const startDate = new Date(classStartDate);
+          startDate.setDate(startDate.getDate() - 21); // 3 weeks before
+          tuitionADueDate = startDate.toISOString();
+        }
+
+        const tuitionATransaction = await createTransaction({
+          enrollmentId: enrollment.id,
+          studentId: student.id,
+          classId: classRecord.id,
+          classType: 'program',
+          transactionType: 'tuition_a',
+          quantity: 0.5,
+          stripePaymentIntentId: null,
+          transactionStatus: 'pending',
+          paymentDate: null,
+          dueDate: tuitionADueDate,
+          amountDue: price,
+          amountPaid: null,
+          invoiceNumber: invoiceNumberCounter++,
+        });
+        transactions.push(tuitionATransaction);
+        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
+
+        // 3. Tuition B (pending, due 1 week after class start) - third invoice number
+        let tuitionBDueDate: string | null = null;
+        if (classStartDate) {
+          const startDate = new Date(classStartDate);
+          startDate.setDate(startDate.getDate() + 7); // 1 week after
+          tuitionBDueDate = startDate.toISOString();
+        }
+
+        const tuitionBTransaction = await createTransaction({
+          enrollmentId: enrollment.id,
+          studentId: student.id,
+          classId: classRecord.id,
+          classType: 'program',
+          transactionType: 'tuition_b',
+          quantity: 0.5,
+          stripePaymentIntentId: null,
+          transactionStatus: 'pending',
+          paymentDate: null,
+          dueDate: tuitionBDueDate,
+          amountDue: price,
+          amountPaid: null,
+          invoiceNumber: invoiceNumberCounter++,
+        });
+        transactions.push(tuitionBTransaction);
+        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
+      } else {
+        // Default to course if type cannot be determined
+        console.warn('[webhook] Could not determine class type, defaulting to course');
+        const transaction = await createTransaction({
+          enrollmentId: enrollment.id,
+          studentId: student.id,
+          classId: classRecord.id,
+          classType: 'course',
+          transactionType: 'registration_fee',
+          quantity: 1,
+          stripePaymentIntentId: paymentIntentId,
+          transactionStatus: 'paid',
+          paymentDate: now,
+          dueDate: now,
+          amountDue: registrationFee,
+          amountPaid: amountTotal,
+          invoiceNumber: invoiceNumberCounter++,
+        });
+        transactions.push(transaction);
+      }
+
+      // Step 6: Send enrollment confirmation email (async, non-blocking)
+      const eventId = event.id;
+      const { data: existingEmailLog } = await supabase
+        .from('email_logs')
+        .select('id')
+        .eq('enrollment_id', enrollment.id)
+        .eq('email_type', courseType === 'program' ? 'program_enrollment' : 'course_enrollment')
+        .eq('success', true)
+        .limit(1);
+
+      if (!existingEmailLog || existingEmailLog.length === 0) {
+        // Send email asynchronously without blocking webhook response
+        Promise.resolve().then(async () => {
+          try {
+            const startTime = Date.now();
+            console.log('[webhook] Sending enrollment confirmation email:', {
+              enrollment_id: enrollment.id,
+              student_id: student.id,
+              class_type: courseType || 'course',
+              event_id: eventId,
+            });
+
+            // Get the paid transaction (first transaction for both course and program)
+            const paidTransaction = transactions[0];
+
+            if (courseType === 'course') {
+              // Send course enrollment email
+              const transactionData: CourseEnrollmentTransaction = {
+                invoice_number: paidTransaction.invoice_number,
+                amount_paid: paidTransaction.amount_paid,
+                payment_date: paidTransaction.payment_date,
+              };
+
+              const emailResult = await sendCourseEnrollmentEmail(
+                student,
+                enrollment,
+                classRecord,
+                transactionData
+              );
+
+              const duration = Date.now() - startTime;
+              if (emailResult.success) {
+                console.log('[webhook] Course enrollment email sent successfully:', {
+                  enrollment_id: enrollment.id,
+                  email_id: emailResult.id,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              } else {
+                console.error('[webhook] Failed to send course enrollment email:', {
+                  enrollment_id: enrollment.id,
+                  error: emailResult.error,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              }
+            } else if (courseType === 'program') {
+              // Send program enrollment email
+              const transactionData: ProgramEnrollmentTransaction = {
+                invoice_number: paidTransaction.invoice_number,
+                amount_paid: paidTransaction.amount_paid,
+                payment_date: paidTransaction.payment_date,
+              };
+
+              const emailResult = await sendProgramEnrollmentEmail(
+                student,
+                enrollment,
+                {
+                  class_name: classRecord.class_name,
+                  course_code: classRecord.course_code,
+                  class_start_date: classStartDate,
+                },
+                transactionData
+              );
+
+              const duration = Date.now() - startTime;
+              if (emailResult.success) {
+                console.log('[webhook] Program enrollment email sent successfully:', {
+                  enrollment_id: enrollment.id,
+                  email_id: emailResult.id,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              } else {
+                console.error('[webhook] Failed to send program enrollment email:', {
+                  enrollment_id: enrollment.id,
+                  error: emailResult.error,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              }
+            } else {
+              console.warn('[webhook] Unknown class type, skipping email:', {
+                enrollment_id: enrollment.id,
+                class_type: courseType,
+                event_id: eventId,
+              });
+            }
+          } catch (emailError: any) {
+            // Log error but don't fail webhook
+            console.error('[webhook] Error sending enrollment email:', {
+              enrollment_id: enrollment.id,
+              error: emailError.message,
+              stack: emailError.stack,
+              event_id: eventId,
+            });
+          }
+        }).catch((error) => {
+          // Catch any unhandled promise rejections
+          console.error('[webhook] Unhandled error in email sending promise:', {
+            enrollment_id: enrollment.id,
+            error: error.message,
+            event_id: eventId,
+          });
+        });
+      } else {
+        console.log('[webhook] Email already sent for this enrollment, skipping:', {
+          enrollment_id: enrollment.id,
+          email_type: courseType === 'program' ? 'program_enrollment' : 'course_enrollment',
+          event_id: eventId,
+        });
+      }
+
+      return NextResponse.json({
+        success: true,
+        student_id: student.id,
+        enrollment_id: enrollment.id,
+        class_id: classRecord.id,
+        class_type: courseType || 'course',
+        payment_intent_id: paymentIntentId,
+        product_id: productId,
+        transactions_created: transactions.length,
+        transaction_ids: transactions.map(t => t.id),
+      });
+    } catch (error: any) {
+      console.error('[webhook] Error processing payment_intent.succeeded:', {
+        error: error.message,
+        stack: error.stack,
+        payment_intent_id: (event.data.object as Stripe.PaymentIntent).id,
+      });
+      
+      return NextResponse.json(
+        { 
+          error: 'Failed to process webhook',
+          details: error.message 
+        },
+        { status: 500 }
+      );
+    }
+  }
+
+  // Handle payment_intent.created event - IGNORED (only process succeeded)
+  if (event.type === 'payment_intent.created') {
+    console.log('[webhook] Ignoring payment_intent.created event (will process on payment_intent.succeeded)');
     return NextResponse.json({ 
       received: true, 
-      message: 'Event ignored - handled by checkout.session.completed' 
+      message: 'Event ignored - will process on payment_intent.succeeded' 
     });
   }
 
