@@ -18,6 +18,12 @@ import {
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
+import {
+  sendCourseEnrollmentEmail,
+  sendProgramEnrollmentEmail,
+  type CourseEnrollmentTransaction,
+  type ProgramEnrollmentTransaction,
+} from '@/lib/email';
 
 export const runtime = 'nodejs';
 
@@ -342,6 +348,130 @@ export async function POST(request: NextRequest) {
           invoiceNumber: invoiceNumberCounter++,
         });
         transactions.push(transaction);
+      }
+
+      // Step 6: Send enrollment confirmation email (async, non-blocking)
+      // Check if email was already sent for this event (deduplication)
+      const eventId = event.id;
+      const { data: existingEmailLog } = await supabase
+        .from('email_logs')
+        .select('id')
+        .eq('enrollment_id', enrollment.id)
+        .eq('email_type', courseType === 'program' ? 'program_enrollment' : 'course_enrollment')
+        .eq('success', true)
+        .limit(1);
+
+      if (!existingEmailLog || existingEmailLog.length === 0) {
+        // Send email asynchronously without blocking webhook response
+        Promise.resolve().then(async () => {
+          try {
+            const startTime = Date.now();
+            console.log('[webhook] Sending enrollment confirmation email:', {
+              enrollment_id: enrollment.id,
+              student_id: student.id,
+              class_type: courseType || 'course',
+              event_id: eventId,
+            });
+
+            // Get the paid transaction (first transaction for both course and program)
+            const paidTransaction = transactions[0];
+
+            if (courseType === 'course') {
+              // Send course enrollment email
+              const transactionData: CourseEnrollmentTransaction = {
+                invoice_number: paidTransaction.invoice_number,
+                amount_paid: paidTransaction.amount_paid,
+                payment_date: paidTransaction.payment_date,
+              };
+
+              const emailResult = await sendCourseEnrollmentEmail(
+                student,
+                enrollment,
+                classRecord,
+                transactionData
+              );
+
+              const duration = Date.now() - startTime;
+              if (emailResult.success) {
+                console.log('[webhook] Course enrollment email sent successfully:', {
+                  enrollment_id: enrollment.id,
+                  email_id: emailResult.id,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              } else {
+                console.error('[webhook] Failed to send course enrollment email:', {
+                  enrollment_id: enrollment.id,
+                  error: emailResult.error,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              }
+            } else if (courseType === 'program') {
+              // Send program enrollment email
+              const transactionData: ProgramEnrollmentTransaction = {
+                invoice_number: paidTransaction.invoice_number,
+                amount_paid: paidTransaction.amount_paid,
+                payment_date: paidTransaction.payment_date,
+              };
+
+              const emailResult = await sendProgramEnrollmentEmail(
+                student,
+                enrollment,
+                {
+                  class_name: classRecord.class_name,
+                  course_code: classRecord.course_code,
+                  class_start_date: classStartDate,
+                },
+                transactionData
+              );
+
+              const duration = Date.now() - startTime;
+              if (emailResult.success) {
+                console.log('[webhook] Program enrollment email sent successfully:', {
+                  enrollment_id: enrollment.id,
+                  email_id: emailResult.id,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              } else {
+                console.error('[webhook] Failed to send program enrollment email:', {
+                  enrollment_id: enrollment.id,
+                  error: emailResult.error,
+                  duration_ms: duration,
+                  event_id: eventId,
+                });
+              }
+            } else {
+              console.warn('[webhook] Unknown class type, skipping email:', {
+                enrollment_id: enrollment.id,
+                class_type: courseType,
+                event_id: eventId,
+              });
+            }
+          } catch (emailError: any) {
+            // Log error but don't fail webhook
+            console.error('[webhook] Error sending enrollment email:', {
+              enrollment_id: enrollment.id,
+              error: emailError.message,
+              stack: emailError.stack,
+              event_id: eventId,
+            });
+          }
+        }).catch((error) => {
+          // Catch any unhandled promise rejections
+          console.error('[webhook] Unhandled error in email sending promise:', {
+            enrollment_id: enrollment.id,
+            error: error.message,
+            event_id: eventId,
+          });
+        });
+      } else {
+        console.log('[webhook] Email already sent for this enrollment, skipping:', {
+          enrollment_id: enrollment.id,
+          email_type: courseType === 'program' ? 'program_enrollment' : 'course_enrollment',
+          event_id: eventId,
+        });
       }
 
       return NextResponse.json({

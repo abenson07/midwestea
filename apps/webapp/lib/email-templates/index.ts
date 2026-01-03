@@ -229,32 +229,31 @@ export function renderProgramEnrollmentTemplate(
       .join('');
 
     outstandingInvoicesSection = `
-      <div style="margin-bottom: 30px;">
-        <h2 style="margin: 0 0 15px 0; color: #333333; font-size: 18px; font-weight: 600;">Outstanding Invoices</h2>
-        <p style="margin: 0 0 15px 0; color: #666666; font-size: 14px; line-height: 1.5;">
-          Please ensure all outstanding invoices are paid by their due dates to maintain your enrollment.
-        </p>
-        
-        <!-- Outstanding invoices table -->
-        <table role="presentation" style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden;">
-          <!-- Table header -->
-          <tr style="background-color: #f5f5f5;">
-            <th style="padding: 12px; text-align: left; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Invoice #</th>
-            <th style="padding: 12px; text-align: left; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Description</th>
-            <th style="padding: 12px; text-align: right; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Amount</th>
-            <th style="padding: 12px; text-align: right; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Due Date</th>
-          </tr>
-          
-          <!-- Invoice rows -->
-          ${invoicesRowsHtml}
-          
-          <!-- Total row -->
-          <tr style="background-color: #f9f9f9;">
-            <td colspan="2" style="padding: 12px; text-align: right; color: #333333; font-size: 14px; font-weight: 600;">Total Outstanding:</td>
-            <td colspan="2" style="padding: 12px; text-align: right; color: #333333; font-size: 16px; font-weight: 600;">${formatCurrency(totalOutstanding)}</td>
-          </tr>
-        </table>
-      </div>
+      <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+        <tr>
+          <td style="padding: 0;">
+            <h2 style="margin: 0 0 15px 0; color: #333333; font-size: 18px; font-weight: 600;">Outstanding Invoices</h2>
+            <p style="margin: 0 0 15px 0; color: #666666; font-size: 14px; line-height: 1.5;">
+              Please ensure all outstanding invoices are paid by their due dates to maintain your enrollment.
+            </p>
+            <table role="presentation" style="width: 100%; border-collapse: collapse; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden;">
+              <tr style="background-color: #f5f5f5;">
+                <th style="padding: 12px; text-align: left; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Invoice #</th>
+                <th style="padding: 12px; text-align: left; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Description</th>
+                <th style="padding: 12px; text-align: right; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Amount</th>
+                <th style="padding: 12px; text-align: right; color: #333333; font-size: 14px; font-weight: 600; border-bottom: 1px solid #e0e0e0;">Due Date</th>
+              </tr>
+              ${invoicesRowsHtml}
+              <tr style="background-color: #f9f9f9;">
+                <td style="padding: 12px; text-align: right; color: #333333; font-size: 14px; font-weight: 600;">Total Outstanding:</td>
+                <td style="padding: 12px;"></td>
+                <td style="padding: 12px; text-align: right; color: #333333; font-size: 16px; font-weight: 600;">${formatCurrency(totalOutstanding)}</td>
+                <td style="padding: 12px;"></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     `;
   }
 

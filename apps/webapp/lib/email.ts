@@ -931,3 +931,821 @@ export function logEmailResult(
   });
 }
 
+// ============================================================================
+// Course Enrollment Email Function
+// ============================================================================
+
+/**
+ * Transaction type for course enrollment emails
+ */
+export interface CourseEnrollmentTransaction {
+  invoice_number: number | null;
+  amount_paid: number | null; // Amount in cents
+  payment_date: string | Date | null;
+}
+
+/**
+ * Transaction type for program enrollment emails
+ */
+export interface ProgramEnrollmentTransaction {
+  invoice_number: number | null;
+  amount_paid: number | null; // Amount in cents
+  payment_date: string | Date | null;
+}
+
+/**
+ * Send course enrollment confirmation email
+ * 
+ * @param student - Student record
+ * @param enrollment - Enrollment record
+ * @param classRecord - Class record with course information
+ * @param transaction - Transaction record with payment details
+ * @param options - Optional configuration (preview mode, etc.)
+ * @returns Promise resolving to email send result
+ * 
+ * @example
+ * ```typescript
+ * const result = await sendCourseEnrollmentEmail(
+ *   student,
+ *   enrollment,
+ *   classRecord,
+ *   transaction
+ * );
+ * 
+ * if (result.success) {
+ *   console.log('Enrollment email sent:', result.id);
+ * } else {
+ *   console.error('Failed to send email:', result.error);
+ * }
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Preview mode - returns HTML without sending
+ * const result = await sendCourseEnrollmentEmail(
+ *   student,
+ *   enrollment,
+ *   classRecord,
+ *   transaction,
+ *   { preview: true }
+ * );
+ * console.log('Preview HTML:', result.previewHtml);
+ * ```
+ */
+export async function sendCourseEnrollmentEmail(
+  student: { id: string; first_name: string | null; last_name: string | null },
+  enrollment: { id: string; student_id: string; class_id: string },
+  classRecord: { class_name: string | null; course_code: string | null },
+  transaction: CourseEnrollmentTransaction,
+  options?: { preview?: boolean }
+): Promise<EmailSendResult & { previewHtml?: string }> {
+  // Import here to avoid circular dependencies
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { renderCourseEnrollmentTemplate, getCourseEnrollmentSubject } = await import('./email-templates');
+
+  // Get student email from auth.users
+  const supabase = createSupabaseAdminClient();
+  let studentEmail: string | null = null;
+
+  try {
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(student.id);
+    
+    if (getUserError) {
+      console.error('[sendCourseEnrollmentEmail] Failed to get student email:', getUserError.message);
+      return {
+        success: false,
+        error: `Failed to get student email: ${getUserError.message}`,
+        retries: 0,
+      };
+    }
+
+    if (!authUser?.user?.email) {
+      return {
+        success: false,
+        error: 'Student email not found',
+        retries: 0,
+      };
+    }
+
+    studentEmail = authUser.user.email;
+  } catch (error: any) {
+    console.error('[sendCourseEnrollmentEmail] Error fetching student email:', error);
+    return {
+      success: false,
+      error: `Failed to fetch student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // Validate email before proceeding
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Invalid student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // Prepare template data
+  const studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
+  const courseName = classRecord.class_name || 'Course';
+  const courseCode = classRecord.course_code || '';
+  const amount = transaction.amount_paid || 0;
+  const invoiceNumber = transaction.invoice_number || 0;
+  const paymentDate = transaction.payment_date || new Date();
+
+  // Render email template
+  let html: string;
+  try {
+    html = renderCourseEnrollmentTemplate({
+      studentName,
+      courseName,
+      courseCode,
+      amount,
+      invoiceNumber,
+      paymentDate,
+    });
+  } catch (error: any) {
+    console.error('[sendCourseEnrollmentEmail] Template rendering error:', error);
+    return {
+      success: false,
+      error: `Failed to render email template: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // Generate subject line
+  const subject = getCourseEnrollmentSubject(courseName);
+
+  // Preview mode - return HTML without sending
+  if (options?.preview) {
+    return {
+      success: true,
+      previewHtml: html,
+      retries: 0,
+    };
+  }
+
+  // Send email with retry logic (handled by sendEmail function)
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'course_enrollment' },
+      { name: 'enrollment_id', value: enrollment.id },
+      { name: 'student_id', value: student.id },
+      { name: 'class_id', value: enrollment.class_id },
+    ],
+    metadata: {
+      enrollment_id: enrollment.id,
+      student_id: student.id,
+      class_id: enrollment.class_id,
+      invoice_number: String(invoiceNumber),
+    },
+  });
+
+  // Log to database (if logging is enabled)
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: 'course_enrollment',
+      enrollment_id: enrollment.id,
+      student_id: student.id,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      // Don't fail email sending if logging fails
+      console.error('[sendCourseEnrollmentEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Program Enrollment Email Function
+// ============================================================================
+
+/**
+ * Send program enrollment confirmation email
+ * 
+ * @param student - Student record
+ * @param enrollment - Enrollment record
+ * @param classRecord - Class record with program information
+ * @param paidTransaction - Transaction record for the paid registration fee
+ * @param options - Optional configuration (preview mode, etc.)
+ * @returns Promise resolving to email send result
+ * 
+ * @example
+ * ```typescript
+ * const result = await sendProgramEnrollmentEmail(
+ *   student,
+ *   enrollment,
+ *   classRecord,
+ *   paidTransaction
+ * );
+ * 
+ * if (result.success) {
+ *   console.log('Program enrollment email sent:', result.id);
+ * } else {
+ *   console.error('Failed to send email:', result.error);
+ * }
+ * ```
+ * 
+ * @example
+ * ```typescript
+ * // Preview mode - returns HTML without sending
+ * const result = await sendProgramEnrollmentEmail(
+ *   student,
+ *   enrollment,
+ *   classRecord,
+ *   paidTransaction,
+ *   { preview: true }
+ * );
+ * console.log('Preview HTML:', result.previewHtml);
+ * ```
+ */
+export async function sendProgramEnrollmentEmail(
+  student: { id: string; first_name: string | null; last_name: string | null },
+  enrollment: { id: string; student_id: string; class_id: string },
+  classRecord: { 
+    class_name: string | null; 
+    course_code: string | null;
+    class_start_date: string | Date | null;
+  },
+  paidTransaction: ProgramEnrollmentTransaction,
+  options?: { preview?: boolean }
+): Promise<EmailSendResult & { previewHtml?: string }> {
+  // Import here to avoid circular dependencies
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { 
+    renderProgramEnrollmentTemplate, 
+    getProgramEnrollmentSubject,
+  } = await import('./email-templates');
+  const { 
+    getOutstandingInvoices,
+    type OutstandingInvoice 
+  } = await import('./enrollments');
+
+  // Get student email from auth.users
+  const supabase = createSupabaseAdminClient();
+  let studentEmail: string | null = null;
+
+  try {
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(student.id);
+    
+    if (getUserError) {
+      console.error('[sendProgramEnrollmentEmail] Failed to get student email:', getUserError.message);
+      return {
+        success: false,
+        error: `Failed to get student email: ${getUserError.message}`,
+        retries: 0,
+      };
+    }
+
+    if (!authUser?.user?.email) {
+      return {
+        success: false,
+        error: 'Student email not found',
+        retries: 0,
+      };
+    }
+
+    studentEmail = authUser.user.email;
+  } catch (error: any) {
+    console.error('[sendProgramEnrollmentEmail] Error fetching student email:', error);
+    return {
+      success: false,
+      error: `Failed to fetch student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // Validate email before proceeding
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Invalid student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // Validate financial amounts
+  const amountPaid = paidTransaction.amount_paid || 0;
+  if (typeof amountPaid !== 'number' || amountPaid < 0 || !Number.isFinite(amountPaid)) {
+    return {
+      success: false,
+      error: 'Invalid amount_paid: must be a non-negative finite number',
+      retries: 0,
+    };
+  }
+
+  // Query outstanding invoices
+  let outstandingInvoices: OutstandingInvoice[] = [];
+  try {
+    outstandingInvoices = await getOutstandingInvoices(enrollment.id);
+    
+    // Validate invoice data
+    for (const invoice of outstandingInvoices) {
+      if (typeof invoice.amountDue !== 'number' || invoice.amountDue < 0 || !Number.isFinite(invoice.amountDue)) {
+        console.warn('[sendProgramEnrollmentEmail] Invalid amountDue in invoice:', invoice);
+      }
+      if (typeof invoice.quantity !== 'number' || invoice.quantity < 0 || !Number.isFinite(invoice.quantity)) {
+        console.warn('[sendProgramEnrollmentEmail] Invalid quantity in invoice:', invoice);
+      }
+    }
+  } catch (error: any) {
+    // Log error but don't fail - we can still send email without outstanding invoices
+    console.error('[sendProgramEnrollmentEmail] Failed to get outstanding invoices:', error);
+    // Continue with empty array - email will show no outstanding invoices
+    outstandingInvoices = [];
+  }
+
+  // Prepare template data
+  const studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
+  const programName = classRecord.class_name || 'Program';
+  const courseCode = classRecord.course_code || '';
+  const startDate = classRecord.class_start_date || new Date();
+  const paidAmount = amountPaid;
+  const invoiceNumber = paidTransaction.invoice_number || 0;
+  const paymentDate = paidTransaction.payment_date || new Date();
+
+  // Render email template
+  let html: string;
+  try {
+    html = renderProgramEnrollmentTemplate({
+      studentName,
+      programName,
+      courseCode,
+      startDate,
+      paidAmount,
+      invoiceNumber,
+      paymentDate,
+      outstandingInvoices,
+    });
+  } catch (error: any) {
+    console.error('[sendProgramEnrollmentEmail] Template rendering error:', error);
+    return {
+      success: false,
+      error: `Failed to render email template: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // Generate subject line
+  const subject = getProgramEnrollmentSubject(programName);
+
+  // Preview mode - return HTML without sending
+  if (options?.preview) {
+    return {
+      success: true,
+      previewHtml: html,
+      retries: 0,
+    };
+  }
+
+  // Send email with retry logic (handled by sendEmail function)
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'program_enrollment' },
+      { name: 'enrollment_id', value: enrollment.id },
+      { name: 'student_id', value: student.id },
+      { name: 'class_id', value: enrollment.class_id },
+    ],
+    metadata: {
+      enrollment_id: enrollment.id,
+      student_id: student.id,
+      class_id: enrollment.class_id,
+      invoice_number: String(invoiceNumber),
+      outstanding_invoices_count: String(outstandingInvoices.length),
+    },
+  });
+
+  // Log to database (if logging is enabled)
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: 'program_enrollment',
+      enrollment_id: enrollment.id,
+      student_id: student.id,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      // Don't fail email sending if logging fails
+      console.error('[sendProgramEnrollmentEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Database Email Logging
+// ============================================================================
+
+/**
+ * Email log entry for database
+ */
+export interface EmailLogDatabaseEntry {
+  recipient_email: string;
+  recipient_name?: string;
+  subject: string;
+  email_type: string;
+  enrollment_id?: string;
+  student_id?: string;
+  success: boolean;
+  email_id?: string;
+  error?: string;
+  retries?: number;
+}
+
+/**
+ * Log email attempt to database
+ * 
+ * This function logs email delivery attempts to the email_logs table
+ * for audit trail and monitoring purposes.
+ * 
+ * @param entry - Email log entry data
+ * @returns Promise that resolves when logging is complete
+ * 
+ * @example
+ * ```typescript
+ * await logEmailToDatabase({
+ *   recipient_email: 'student@example.com',
+ *   recipient_name: 'John Doe',
+ *   subject: 'Welcome!',
+ *   email_type: 'course_enrollment',
+ *   enrollment_id: 'enrollment-uuid',
+ *   student_id: 'student-uuid',
+ *   success: true,
+ *   email_id: 'resend_123',
+ *   retries: 0,
+ * });
+ * ```
+ */
+export async function logEmailToDatabase(
+  entry: EmailLogDatabaseEntry
+): Promise<void> {
+  try {
+    // Dynamically import to avoid circular dependencies
+    const { createSupabaseAdminClient } = await import('@midwestea/utils');
+    const supabase = createSupabaseAdminClient();
+
+    const { error } = await supabase
+      .from('email_logs')
+      .insert([
+        {
+          recipient_email: entry.recipient_email,
+          recipient_name: entry.recipient_name || null,
+          subject: entry.subject,
+          email_type: entry.email_type,
+          enrollment_id: entry.enrollment_id || null,
+          student_id: entry.student_id || null,
+          success: entry.success,
+          email_id: entry.email_id || null,
+          error: entry.error || null,
+          retries: entry.retries || 0,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+
+    if (error) {
+      // Log error but don't throw - email logging shouldn't break email sending
+      console.error('[logEmailToDatabase] Failed to log to database:', {
+        error: error.message,
+        errorCode: error.code,
+        recipient_email: entry.recipient_email,
+        email_type: entry.email_type,
+      });
+    } else {
+      console.log('[logEmailToDatabase] Email logged to database:', {
+        recipient_email: entry.recipient_email,
+        email_type: entry.email_type,
+        success: entry.success,
+      });
+    }
+  } catch (error: any) {
+    // Don't throw - email logging failures shouldn't break email sending
+    console.error('[logEmailToDatabase] Exception logging to database:', {
+      error: error.message,
+      recipient_email: entry.recipient_email,
+      email_type: entry.email_type,
+    });
+  }
+}
+
+// ============================================================================
+// Email Monitoring and Metrics
+// ============================================================================
+
+/**
+ * Email delivery metrics
+ */
+export interface EmailDeliveryMetrics {
+  totalSent: number;
+  totalFailed: number;
+  successRate: number; // Percentage (0-100)
+  averageResponseTimeMs: number;
+  failureRate: number; // Percentage (0-100)
+  emailsByType: Record<string, { sent: number; failed: number }>;
+  recentFailures: Array<{
+    id: string;
+    recipient_email: string;
+    email_type: string;
+    error: string;
+    created_at: string;
+  }>;
+}
+
+/**
+ * Get email delivery metrics for a time period
+ * 
+ * @param startDate - Start date for metrics (default: last 24 hours)
+ * @param endDate - End date for metrics (default: now)
+ * @returns Email delivery metrics
+ */
+export async function getEmailDeliveryMetrics(
+  startDate?: Date,
+  endDate?: Date
+): Promise<EmailDeliveryMetrics> {
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const supabase = createSupabaseAdminClient();
+
+  const start = startDate || new Date(Date.now() - 24 * 60 * 60 * 1000); // Default: last 24 hours
+  const end = endDate || new Date();
+
+  // Get all email logs in the time period
+  const { data: logs, error } = await supabase
+    .from('email_logs')
+    .select('*')
+    .gte('created_at', start.toISOString())
+    .lte('created_at', end.toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('[getEmailDeliveryMetrics] Database error:', error);
+    throw new Error(`Failed to fetch email metrics: ${error.message}`);
+  }
+
+  const totalSent = logs?.filter(log => log.success).length || 0;
+  const totalFailed = logs?.filter(log => !log.success).length || 0;
+  const total = totalSent + totalFailed;
+  const successRate = total > 0 ? (totalSent / total) * 100 : 0;
+  const failureRate = total > 0 ? (totalFailed / total) * 100 : 0;
+
+  // Group by email type
+  const emailsByType: Record<string, { sent: number; failed: number }> = {};
+  logs?.forEach(log => {
+    const type = log.email_type || 'unknown';
+    if (!emailsByType[type]) {
+      emailsByType[type] = { sent: 0, failed: 0 };
+    }
+    if (log.success) {
+      emailsByType[type].sent++;
+    } else {
+      emailsByType[type].failed++;
+    }
+  });
+
+  // Get recent failures (last 10)
+  const recentFailures = (logs || [])
+    .filter(log => !log.success)
+    .slice(0, 10)
+    .map(log => ({
+      id: log.id,
+      recipient_email: log.recipient_email,
+      email_type: log.email_type || 'unknown',
+      error: log.error || 'Unknown error',
+      created_at: log.created_at,
+    }));
+
+  return {
+    totalSent,
+    totalFailed,
+    successRate: Math.round(successRate * 100) / 100,
+    averageResponseTimeMs: 0, // Would need to track this separately
+    failureRate: Math.round(failureRate * 100) / 100,
+    emailsByType,
+    recentFailures,
+  };
+}
+
+/**
+ * Check if email system needs alerting based on failure rates
+ * 
+ * @param failureRateThreshold - Failure rate threshold for alerting (default: 10%)
+ * @param timeWindowHours - Time window in hours to check (default: 1 hour)
+ * @returns Alert information if threshold exceeded
+ */
+export async function checkEmailAlerts(
+  failureRateThreshold: number = 10,
+  timeWindowHours: number = 1
+): Promise<{
+  needsAlert: boolean;
+  failureRate: number;
+  totalEmails: number;
+  failedEmails: number;
+  message?: string;
+}> {
+  const startDate = new Date(Date.now() - timeWindowHours * 60 * 60 * 1000);
+  const metrics = await getEmailDeliveryMetrics(startDate);
+
+  const needsAlert = metrics.failureRate >= failureRateThreshold && metrics.totalSent + metrics.totalFailed > 0;
+
+  return {
+    needsAlert,
+    failureRate: metrics.failureRate,
+    totalEmails: metrics.totalSent + metrics.totalFailed,
+    failedEmails: metrics.totalFailed,
+    message: needsAlert
+      ? `Email failure rate (${metrics.failureRate.toFixed(2)}%) exceeds threshold (${failureRateThreshold}%)`
+      : undefined,
+  };
+}
+
+// ============================================================================
+// Admin Utilities
+// ============================================================================
+
+/**
+ * Get email logs with filtering options
+ * 
+ * @param options - Filtering options
+ * @returns Array of email log entries
+ */
+export async function getEmailLogs(options?: {
+  limit?: number;
+  offset?: number;
+  emailType?: string;
+  success?: boolean;
+  enrollmentId?: string;
+  studentId?: string;
+  startDate?: Date;
+  endDate?: Date;
+}): Promise<{
+  logs: EmailLogDatabaseEntry[];
+  total: number;
+}> {
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const supabase = createSupabaseAdminClient();
+
+  let query = supabase
+    .from('email_logs')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: false });
+
+  if (options?.emailType) {
+    query = query.eq('email_type', options.emailType);
+  }
+
+  if (options?.success !== undefined) {
+    query = query.eq('success', options.success);
+  }
+
+  if (options?.enrollmentId) {
+    query = query.eq('enrollment_id', options.enrollmentId);
+  }
+
+  if (options?.studentId) {
+    query = query.eq('student_id', options.studentId);
+  }
+
+  if (options?.startDate) {
+    query = query.gte('created_at', options.startDate.toISOString());
+  }
+
+  if (options?.endDate) {
+    query = query.lte('created_at', options.endDate.toISOString());
+  }
+
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  if (options?.offset) {
+    query = query.range(options.offset, options.offset + (options.limit || 100) - 1);
+  }
+
+  const { data: logs, error, count } = await query;
+
+  if (error) {
+    console.error('[getEmailLogs] Database error:', error);
+    throw new Error(`Failed to fetch email logs: ${error.message}`);
+  }
+
+  return {
+    logs: (logs || []).map(log => ({
+      recipient_email: log.recipient_email,
+      recipient_name: log.recipient_name || undefined,
+      subject: log.subject,
+      email_type: log.email_type,
+      enrollment_id: log.enrollment_id || undefined,
+      student_id: log.student_id || undefined,
+      success: log.success,
+      email_id: log.email_id || undefined,
+      error: log.error || undefined,
+      retries: log.retries || 0,
+    })),
+    total: count || 0,
+  };
+}
+
+/**
+ * Retry sending a failed email by log ID
+ * 
+ * @param logId - ID of the email log entry to retry
+ * @returns Result of retry attempt
+ */
+export async function retryFailedEmail(logId: string): Promise<{
+  success: boolean;
+  message: string;
+  newEmailId?: string;
+}> {
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const supabase = createSupabaseAdminClient();
+
+  // Get the failed email log
+  const { data: log, error: fetchError } = await supabase
+    .from('email_logs')
+    .select('*')
+    .eq('id', logId)
+    .single();
+
+  if (fetchError || !log) {
+    return {
+      success: false,
+      message: `Email log not found: ${fetchError?.message || 'Unknown error'}`,
+    };
+  }
+
+  if (log.success) {
+    return {
+      success: false,
+      message: 'Email was already sent successfully',
+    };
+  }
+
+  // Retry sending the email
+  // Note: This is a simplified retry - in production, you'd want to reconstruct
+  // the original email data from the log or store it separately
+  try {
+    const result = await sendEmail({
+      from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+      to: log.recipient_email,
+      subject: log.subject,
+      html: '<p>This is a retry of a previously failed email.</p>', // Would need original HTML
+      tags: [
+        { name: 'email_type', value: log.email_type },
+        { name: 'retry', value: 'true' },
+      ],
+      metadata: {
+        original_log_id: logId,
+        enrollment_id: log.enrollment_id || '',
+        student_id: log.student_id || '',
+      },
+    });
+
+    if (result.success) {
+      // Update the original log to mark as retried
+      await supabase
+        .from('email_logs')
+        .update({ retries: (log.retries || 0) + 1 })
+        .eq('id', logId);
+
+      return {
+        success: true,
+        message: 'Email retry sent successfully',
+        newEmailId: result.id,
+      };
+    } else {
+      return {
+        success: false,
+        message: `Failed to retry email: ${result.error}`,
+      };
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      message: `Error retrying email: ${error.message}`,
+    };
+  }
+}
+
