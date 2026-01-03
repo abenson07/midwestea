@@ -1,0 +1,435 @@
+# Product Requirements Document: Resend SMTP Integration for MidwestEA
+
+## Executive Summary
+
+This PRD outlines the implementation of Resend as the SMTP service provider for MidwestEA's email communications. The integration will enable reliable OTP delivery through Supabase Auth, automated email account management for new students, and transactional email notifications upon successful enrollment payments.
+
+## Objectives
+
+1. Configure Resend SMTP for Supabase Auth to handle OTP emails reliably
+2. Automate email account creation when new students are registered
+3. Send transactional enrollment confirmation emails triggered by successful Stripe webhook payments
+4. Differentiate email content based on enrollment type (course vs program)
+
+## Background
+
+Currently, MidwestEA uses Supabase's default email service for authentication, which has limitations in production environments. The platform processes student enrollments through Stripe checkout sessions, creating students, enrollments, and transactions automatically via webhook handlers. This PRD addresses the need for:
+
+- More reliable email delivery for authentication
+- Automated email account provisioning
+- Professional transactional emails for enrollment confirmations
+
+## Scope
+
+### In Scope
+
+1. **SMTP Configuration for Supabase Auth**
+   - Configure Resend SMTP credentials in Supabase project settings
+   - Enable custom SMTP for OTP and authentication emails
+   - Test OTP email delivery
+
+2. **Email Account Creation Automation**
+   - Integrate email account creation into student creation workflow
+   - Trigger upon new student registration via `findOrCreateStudent` function
+   - Handle email account creation failures gracefully
+
+3. **Transactional Enrollment Emails**
+   - Send confirmation emails upon successful Stripe payment (checkout.session.completed event)
+   - Differentiate content for courses vs programs
+   - Include relevant enrollment details (start dates, outstanding invoices)
+
+### Out of Scope
+
+- Email template design (assumes basic HTML templates)
+- Email marketing campaigns
+- Email analytics and tracking (beyond basic delivery confirmation)
+- Multi-language email support
+
+## Functional Requirements
+
+### FR1: SMTP Configuration for Supabase Auth
+
+**Requirement:** Configure Resend as the SMTP provider for Supabase Auth to send OTP emails.
+
+**Details:**
+- SMTP Host: `smtp.resend.com`
+- SMTP Port: `465` (SSL/TLS)
+- SMTP Username: `resend`
+- SMTP Password: Resend API Key
+- Sender Email: Configured domain email (e.g., `noreply@midwestea.com`)
+- Sender Name: "MidwestEA Support"
+
+**Configuration Steps:**
+1. Obtain Resend API key from Resend dashboard
+2. Verify sending domain in Resend (if using custom domain)
+3. Navigate to Supabase Project Settings > Authentication > SMTP
+4. Enable "Custom SMTP"
+5. Enter Resend SMTP credentials
+6. Set sender email and name
+7. Save configuration
+8. Test OTP email delivery
+
+**Acceptance Criteria:**
+- OTP emails are delivered through Resend SMTP
+- Email delivery time is under 5 seconds
+- Emails appear in Resend dashboard logs
+- Failed deliveries are logged appropriately
+
+### FR2: Email Account Creation for New Students
+
+**Requirement:** Automatically create email accounts when new students are registered in the system.
+
+**Integration Point:**
+- Function: `findOrCreateStudent()` in `apps/webapp/lib/enrollments.ts`
+- Trigger: When a new student record is created (after auth user creation)
+
+**Implementation Details:**
+- Create email account using Resend API or email service provider API
+- Email format: `{firstname.lastname}@midwestea.com` or `{student_id}@midwestea.com`
+- Store email account details in student record (if needed)
+- Handle email account creation failures without blocking student creation
+- Log email account creation attempts and results
+
+**Email Account Creation Options:**
+1. **Option A:** Use Resend API to create email addresses (if supported)
+2. **Option B:** Integrate with email service provider (Google Workspace, Microsoft 365) via their API
+3. **Option C:** Create email aliases/forwards through Resend
+
+**Acceptance Criteria:**
+- Email account is created automatically when new student is registered
+- Email account creation failures don't prevent student registration
+- Email account details are logged for audit purposes
+- Email account can receive emails sent via Resend
+
+### FR3: Transactional Enrollment Confirmation Emails
+
+**Requirement:** Send transactional emails to students upon successful enrollment payment confirmation via Stripe webhook.
+
+**Integration Point:**
+- File: `apps/webapp/app/api/webhooks/stripe/route.ts`
+- Event: `checkout.session.completed`
+- Trigger: After enrollment and transactions are successfully created
+
+**Email Content Requirements:**
+
+#### FR3.1: Course Enrollment Email
+
+**Content:**
+- Subject: "Welcome to [Course Name] - Enrollment Confirmed"
+- Greeting with student name
+- Confirmation of enrollment
+- Message: "We'll send you a link to complete the course shortly."
+- Course details (name, code)
+- Payment confirmation details
+- Support contact information
+
+**Data Sources:**
+- Student: `first_name`, `last_name`, `email`
+- Class: `class_name`, `course_code`
+- Transaction: `amount_paid`, `invoice_number`, `payment_date`
+
+#### FR3.2: Program Enrollment Email
+
+**Content:**
+- Subject: "Welcome to [Program Name] - Enrollment Confirmed"
+- Greeting with student name
+- Confirmation of enrollment
+- **Class start date** (from `class_start_date`)
+- **Outstanding invoices section:**
+  - List all transactions with `transaction_status = 'pending'`
+  - For each invoice:
+    - Invoice number
+    - Description (transaction_type: tuition_a or tuition_b)
+    - Amount: `quantity * amount_due` (formatted as currency)
+    - Due date (formatted as readable date)
+  - Total outstanding amount
+- Payment confirmation for registration fee
+- Support contact information
+
+**Data Sources:**
+- Student: `first_name`, `last_name`, `email`
+- Class: `class_name`, `course_code`, `class_start_date`
+- Transactions: Query all transactions for enrollment where `transaction_status = 'pending'`
+  - Fields: `invoice_number`, `transaction_type`, `quantity`, `amount_due`, `due_date`
+
+**Query Logic:**
+```sql
+SELECT 
+  invoice_number,
+  transaction_type,
+  quantity,
+  amount_due,
+  due_date,
+  (quantity * amount_due) as total_amount
+FROM transactions
+WHERE enrollment_id = ?
+  AND transaction_status = 'pending'
+ORDER BY due_date ASC
+```
+
+**Email Sending Implementation:**
+- Use Resend API to send emails
+- Create email templates for course and program enrollments
+- Include error handling and retry logic
+- Log email sending attempts and results
+- Don't block webhook processing if email sending fails
+
+**Acceptance Criteria:**
+- Email is sent within 30 seconds of successful payment
+- Course enrollment emails include "link coming shortly" message
+- Program enrollment emails include:
+  - Class start date
+  - Complete list of outstanding invoices with amounts and due dates
+  - Correct calculation: quantity * amount_due for each invoice
+- Email delivery failures are logged but don't affect enrollment
+- Emails appear in Resend dashboard
+- Email content is properly formatted (HTML)
+
+## Technical Requirements
+
+### TR1: Resend API Integration
+
+**Library:** Use Resend SDK for Node.js
+- Package: `resend` (npm)
+- Version: Latest stable
+
+**API Key Management:**
+- Store Resend API key in environment variables: `RESEND_API_KEY`
+- Use secure storage (Cloudflare Workers secrets or environment variables)
+- Never commit API keys to version control
+
+**Email Sending Function:**
+- Create utility function: `apps/webapp/lib/email.ts`
+- Functions:
+  - `sendEnrollmentConfirmationEmail(student, enrollment, class, transactions)`
+  - `createStudentEmailAccount(student)`
+  - Helper functions for email template rendering
+
+### TR2: Database Queries
+
+**Outstanding Invoices Query:**
+- Query transactions table filtered by:
+  - `enrollment_id` = enrollment ID
+  - `transaction_status` = 'pending'
+- Calculate total amount: `quantity * amount_due`
+- Order by `due_date` ascending
+- Include: `invoice_number`, `transaction_type`, `quantity`, `amount_due`, `due_date`
+
+**Class Type Determination:**
+- Use existing `getClassType()` function from `enrollments.ts`
+- Returns: 'course' | 'program' | null
+- Based on `programming_offering` field in courses table
+
+### TR3: Error Handling
+
+**Email Sending Errors:**
+- Catch and log all email sending errors
+- Don't throw errors that would break webhook processing
+- Implement retry logic (max 3 retries with exponential backoff)
+- Log failed email attempts to database or logging service
+
+**Email Account Creation Errors:**
+- Catch and log email account creation failures
+- Continue with student creation even if email account creation fails
+- Alert administrators of persistent failures
+
+### TR4: Logging
+
+**Email Activity Logging:**
+- Log all email sending attempts:
+  - Timestamp
+  - Recipient email
+  - Email type (OTP, enrollment confirmation, etc.)
+  - Status (sent, failed, retried)
+  - Error messages (if failed)
+- Store logs in Supabase `logs` table or external logging service
+
+## Implementation Plan
+
+### Phase 1: SMTP Configuration (Week 1)
+1. Set up Resend account and verify domain
+2. Obtain Resend API key
+3. Configure Supabase Auth SMTP settings
+4. Test OTP email delivery
+5. Document configuration steps
+
+### Phase 2: Email Account Creation (Week 2)
+1. Research email account creation options (Resend API vs email provider API)
+2. Implement email account creation function
+3. Integrate into `findOrCreateStudent()` function
+4. Add error handling and logging
+5. Test with new student registrations
+
+### Phase 3: Transactional Emails (Week 3-4)
+1. Install Resend SDK
+2. Create email utility functions
+3. Design email templates (HTML)
+4. Implement course enrollment email
+5. Implement program enrollment email with outstanding invoices
+6. Integrate into Stripe webhook handler
+7. Add error handling and retry logic
+8. Test with real payment flows
+
+### Phase 4: Testing & Deployment (Week 5)
+1. End-to-end testing:
+   - OTP email delivery
+   - New student email account creation
+   - Course enrollment email
+   - Program enrollment email with multiple outstanding invoices
+2. Load testing for email sending
+3. Monitor email delivery rates
+4. Deploy to production
+5. Monitor and iterate
+
+## Dependencies
+
+### External Services
+- **Resend:** SMTP service and email API
+- **Supabase:** Auth and database platform
+- **Stripe:** Payment processing (existing)
+
+### Internal Dependencies
+- Existing Stripe webhook handler (`apps/webapp/app/api/webhooks/stripe/route.ts`)
+- Student creation function (`apps/webapp/lib/enrollments.ts`)
+- Database schema (students, enrollments, transactions, classes tables)
+
+### Environment Variables
+- `RESEND_API_KEY` - Resend API key for sending emails
+- `RESEND_DOMAIN` - Verified sending domain (optional, for custom domain)
+- `SUPABASE_URL` - Supabase project URL (existing)
+- `SUPABASE_SERVICE_ROLE_KEY` - Supabase service role key (existing)
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook secret (existing)
+
+## Success Metrics
+
+1. **Email Delivery:**
+   - OTP email delivery rate > 99%
+   - Enrollment confirmation email delivery rate > 99%
+   - Average email delivery time < 5 seconds
+
+2. **Email Account Creation:**
+   - Success rate > 95%
+   - Creation time < 2 seconds
+
+3. **User Experience:**
+   - Zero enrollment failures due to email sending errors
+   - Students receive enrollment confirmations within 1 minute of payment
+
+## Risks & Mitigation
+
+### Risk 1: Email Delivery Delays
+**Mitigation:** Implement retry logic and monitor delivery times. Use Resend's webhook for delivery status updates.
+
+### Risk 2: Email Account Creation Failures
+**Mitigation:** Make email account creation non-blocking. Log failures and alert administrators. Implement manual retry mechanism.
+
+### Risk 3: Incorrect Invoice Calculations
+**Mitigation:** Thoroughly test invoice calculations. Use database queries to ensure accuracy. Add unit tests for calculation logic.
+
+### Risk 4: API Rate Limits
+**Mitigation:** Monitor Resend API usage. Implement rate limiting and queuing if needed. Upgrade Resend plan if necessary.
+
+### Risk 5: SMTP Configuration Errors
+**Mitigation:** Document configuration steps thoroughly. Test in staging environment first. Have rollback plan to default Supabase email.
+
+## Future Enhancements
+
+1. Email template customization UI for admins
+2. Email preferences for students (opt-out options)
+3. Automated reminder emails for upcoming invoice due dates
+4. Email analytics dashboard
+5. Multi-language email support
+6. Email scheduling for program start date reminders
+
+## Appendix
+
+### Email Template Examples
+
+#### Course Enrollment Email Template
+```
+Subject: Welcome to [Course Name] - Enrollment Confirmed
+
+Hello [Student Name],
+
+Your enrollment in [Course Name] ([Course Code]) has been confirmed!
+
+We'll send you a link to complete the course shortly. Please keep an eye on your inbox.
+
+Payment Details:
+- Amount Paid: $[Amount]
+- Invoice Number: [Invoice Number]
+- Payment Date: [Date]
+
+If you have any questions, please contact us at support@midwestea.com.
+
+Best regards,
+MidwestEA Team
+```
+
+#### Program Enrollment Email Template
+```
+Subject: Welcome to [Program Name] - Enrollment Confirmed
+
+Hello [Student Name],
+
+Your enrollment in [Program Name] ([Course Code]) has been confirmed!
+
+Program Start Date: [Start Date]
+
+Payment Confirmed:
+- Registration Fee: $[Amount]
+- Invoice Number: [Invoice Number]
+- Payment Date: [Date]
+
+Outstanding Invoices:
+[For each pending transaction:]
+- Invoice #[Invoice Number]: [Transaction Type]
+  Amount: $[Quantity × Amount Due]
+  Due Date: [Due Date]
+
+Total Outstanding: $[Total Amount]
+
+Please ensure all outstanding invoices are paid by their due dates to maintain your enrollment.
+
+If you have any questions, please contact us at support@midwestea.com.
+
+Best regards,
+MidwestEA Team
+```
+
+### Database Schema Reference
+
+**Transactions Table Fields:**
+- `id` (UUID)
+- `enrollment_id` (UUID)
+- `student_id` (UUID)
+- `class_id` (UUID)
+- `class_type` ('course' | 'program')
+- `transaction_type` ('registration_fee' | 'tuition_a' | 'tuition_b')
+- `quantity` (numeric)
+- `amount_due` (integer, cents)
+- `amount_paid` (integer, cents, nullable)
+- `transaction_status` ('paid' | 'pending')
+- `invoice_number` (integer)
+- `due_date` (timestamp)
+- `payment_date` (timestamp, nullable)
+- `stripe_payment_intent_id` (text, nullable)
+
+**Classes Table Fields:**
+- `id` (UUID)
+- `class_id` (text)
+- `class_name` (text)
+- `course_code` (text)
+- `class_start_date` (date)
+- `registration_fee` (integer)
+- `price` (integer)
+
+**Students Table Fields:**
+- `id` (UUID, matches auth.users.id)
+- `first_name` (text)
+- `last_name` (text)
+- `full_name` (text)
+- `email` (from auth.users)
+
+
+
