@@ -214,50 +214,38 @@ function CheckoutDetailsContent() {
     setFullNameError('');
 
     try {
-      // Ensure user exists in auth.users
-      const basePath = typeof window !== 'undefined' 
-        ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-        : '';
-      
-      const ensureUserResponse = await fetch(`${basePath}/api/checkout/ensure-user`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!ensureUserResponse.ok) {
-        const errorData = await ensureUserResponse.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to ensure user exists');
-      }
-
-      const ensureUserResult = await ensureUserResponse.json();
-
-      // Get Stripe payment link for the class
       if (!classData?.class_id) {
         throw new Error('Class data is missing');
       }
 
-      const checkoutResponse = await fetch(`${basePath}/api/checkout/get-payment-link`, {
+      const basePath = typeof window !== 'undefined' 
+        ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+        : '';
+      
+      // Create Stripe checkout session
+      const checkoutResponse = await fetch(`${basePath}/api/checkout/create-checkout-session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          email: email.trim(),
+          fullName: fullName.trim(),
           classId: classData.class_id,
         }),
       });
 
       if (!checkoutResponse.ok) {
         const errorData = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to get payment link');
+        throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
-      const { paymentUrl } = await checkoutResponse.json();
+      const { checkoutUrl } = await checkoutResponse.json();
       
-      if (!paymentUrl) {
-        throw new Error('Payment URL not received from server');
+      if (!checkoutUrl) {
+        throw new Error('Checkout URL not received from server');
       }
 
-      // Redirect to Stripe payment link
-      window.location.href = paymentUrl;
+      // Redirect to Stripe checkout
+      window.location.href = checkoutUrl;
     } catch (err: any) {
       setEmailError(err.message || 'Failed to initiate checkout');
     } finally {

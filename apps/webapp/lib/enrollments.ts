@@ -287,3 +287,171 @@ export async function createPayment(
   return payment as Payment;
 }
 
+/**
+ * Fetch class with course relationship to determine class type
+ * Returns class with course information
+ * Uses course_code to look up the course type (not course_uuid)
+ */
+export async function findClassWithCourse(classId: string): Promise<{
+  class: Class;
+  courseType: 'course' | 'program' | null;
+  classStartDate: string | null;
+}> {
+  const supabase = createSupabaseAdminClient();
+
+  // Fetch class by class_id (text field) - get course_code to look up course
+  const { data: classRecord, error: classError } = await supabase
+    .from('classes')
+    .select('id, class_id, course_code, class_start_date')
+    .eq('class_id', classId)
+    .maybeSingle();
+
+  if (classError) {
+    console.error('[findClassWithCourse] Database error:', classError);
+    throw new Error(`Failed to query class: ${classError.message}`);
+  }
+
+  if (!classRecord) {
+    throw new Error(`Class not found with class_id: ${classId}. Please verify the class exists in the database.`);
+  }
+
+  // Validate that class has required course_code
+  if (!classRecord.course_code) {
+    throw new Error(`Class ${classId} does not have a course_code set. This is required to determine class type.`);
+  }
+
+  // Fetch course by course_code to determine type
+  let courseType: 'course' | 'program' | null = null;
+  const { data: course, error: courseError } = await supabase
+    .from('courses')
+    .select('type')
+    .eq('course_code', classRecord.course_code)
+    .maybeSingle();
+
+  if (courseError) {
+    console.warn('[findClassWithCourse] Failed to fetch course:', courseError.message);
+    // Don't throw - we'll default to 'course' if we can't determine
+  } else if (course) {
+    // Map course type to class type
+    // Assuming 'program' in courses.type means program, otherwise course
+    courseType = (course as any).type === 'program' ? 'program' : 'course';
+  }
+
+  return {
+    class: classRecord as Class,
+    courseType,
+    classStartDate: (classRecord as any).class_start_date || null,
+  };
+}
+
+/**
+ * Determine if a class is a course or program
+ */
+export async function getClassType(classId: string): Promise<'course' | 'program'> {
+  const { courseType } = await findClassWithCourse(classId);
+  
+  // Default to 'course' if we can't determine
+  return courseType || 'course';
+}
+
+/**
+ * Create a transaction record
+ */
+export async function createTransaction(data: {
+  enrollmentId: string;
+  studentId: string;
+  classId: string;
+  classType: 'course' | 'program';
+  transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b';
+  quantity: number;
+  stripePaymentIntentId: string | null;
+  transactionStatus: 'pending' | 'paid' | 'cancelled' | 'refunded';
+  paymentDate: string | null;
+  dueDate: string | null;
+}): Promise<any> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: transaction, error: insertError } = await supabase
+    .from('transactions')
+    .insert({
+      enrollment_id: data.enrollmentId,
+      student_id: data.studentId,
+      class_id: data.classId,
+      class_type: data.classType,
+      transaction_type: data.transactionType,
+      quantity: data.quantity,
+      stripe_payment_intent_id: data.stripePaymentIntentId,
+      quickbooks_invoice_link: null,
+      quickbooks_receipt_link: null,
+      transaction_status: data.transactionStatus,
+      payment_date: data.paymentDate,
+      due_date: data.dueDate,
+    })
+    .select()
+    .single();
+
+  if (insertError) {
+    throw new Error(`Failed to create transaction: ${insertError.message}`);
+  }
+
+  if (!transaction) {
+    throw new Error('Failed to create transaction: no data returned');
+  }
+
+  return transaction;
+}
+
+/**
+ * Check if a payment intent has already been processed
+ */
+export async function isPaymentIntentProcessed(paymentIntentId: string): Promise<boolean> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .limit(1);
+
+  if (error) {
+    // If table doesn't exist or other error, assume not processed
+    console.warn('Error checking for existing transaction:', error.message);
+    return false;
+  }
+
+  return (data?.length || 0) > 0;
+}
+
+/**
+ * Update student's first_name if it differs from the provided full name
+ */
+export async function updateStudentNameIfNeeded(
+  studentId: string,
+  fullName: string
+): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+
+  // Check current name
+  const { data: student, error: fetchError } = await supabase
+    .from('students')
+    .select('first_name')
+    .eq('id', studentId)
+    .single();
+
+  if (fetchError) {
+    throw new Error(`Failed to fetch student: ${fetchError.message}`);
+  }
+
+  // Update if name is different (store full_name in first_name field)
+  if (student && student.first_name !== fullName) {
+    const { error: updateError } = await supabase
+      .from('students')
+      .update({ first_name: fullName })
+      .eq('id', studentId);
+
+    if (updateError) {
+      throw new Error(`Failed to update student name: ${updateError.message}`);
+    }
+  }
+}
+
