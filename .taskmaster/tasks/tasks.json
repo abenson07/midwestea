@@ -2,7 +2,7 @@
   "master": {
     "tasks": [
       {
-        "id": "1",
+        "id": 1,
         "title": "Set up Resend account and configure SMTP for Supabase Auth",
         "description": "Configure Resend as the SMTP provider for Supabase Auth to handle OTP emails reliably",
         "details": "1. Create Resend account at resend.com\n2. Verify sending domain (midwestea.com) in Resend dashboard\n3. Generate Resend API key from dashboard\n4. Navigate to Supabase Project Settings > Authentication > SMTP\n5. Enable 'Custom SMTP' with settings:\n   - SMTP Host: smtp.resend.com\n   - SMTP Port: 465 (SSL/TLS)\n   - SMTP Username: resend\n   - SMTP Password: [Resend API Key]\n   - Sender Email: noreply@midwestea.com\n   - Sender Name: MidwestEA Support\n6. Save configuration and test OTP delivery\n7. Store RESEND_API_KEY in environment variables\n8. Document configuration steps for future reference",
@@ -73,7 +73,7 @@
         "updatedAt": "2026-01-03T23:13:59.124Z"
       },
       {
-        "id": "2",
+        "id": 2,
         "title": "Install Resend SDK and create email utility functions",
         "description": "Set up Resend SDK integration and create core email utility functions for the application",
         "details": "1. Install Resend SDK: npm install resend@latest\n2. Create apps/webapp/lib/email.ts with:\n   - Initialize Resend client with API key from environment\n   - sendEmail() base function with error handling and retry logic (max 3 retries with exponential backoff)\n   - Email template rendering helpers\n   - Logging utilities for email attempts\n3. Add TypeScript types for email templates and data\n4. Implement rate limiting awareness (Resend free tier: 100 emails/day, paid: higher limits)\n5. Add email validation utilities\n6. Create error classes for different email failure types\n7. Add comprehensive JSDoc documentation",
@@ -147,7 +147,7 @@
         "updatedAt": "2026-01-03T23:21:02.552Z"
       },
       {
-        "id": "3",
+        "id": 3,
         "title": "Create HTML email templates for enrollment confirmations",
         "description": "Design and implement responsive HTML email templates for course and program enrollment confirmations",
         "details": "1. Create apps/webapp/lib/email-templates/ directory\n2. Implement course enrollment template:\n   - Subject: 'Welcome to [Course Name] - Enrollment Confirmed'\n   - Responsive HTML design with MidwestEA branding\n   - Include course details, payment confirmation, 'link coming shortly' message\n   - Template variables: studentName, courseName, courseCode, amount, invoiceNumber, paymentDate\n3. Implement program enrollment template:\n   - Subject: 'Welcome to [Program Name] - Enrollment Confirmed'\n   - Include class start date, payment confirmation, outstanding invoices table\n   - Template variables: studentName, programName, courseCode, startDate, paidAmount, outstandingInvoices[]\n4. Use modern HTML email best practices:\n   - Table-based layout for email client compatibility\n   - Inline CSS for styling\n   - Alt text for images\n   - Fallback fonts\n5. Create template rendering functions with proper escaping\n6. Add email preview functionality for development",
@@ -221,7 +221,7 @@
         "updatedAt": "2026-01-03T23:25:10.708Z"
       },
       {
-        "id": "4",
+        "id": 4,
         "title": "Implement database queries for outstanding invoices",
         "description": "Create database query functions to retrieve and calculate outstanding invoice data for program enrollment emails",
         "details": "1. Add to apps/webapp/lib/enrollments.ts:\n   - getOutstandingInvoices(enrollmentId: string) function\n   - Query: SELECT invoice_number, transaction_type, quantity, amount_due, due_date, (quantity * amount_due) as total_amount FROM transactions WHERE enrollment_id = ? AND transaction_status = 'pending' ORDER BY due_date ASC\n2. Add helper functions:\n   - calculateTotalOutstanding(transactions: Transaction[]): number\n   - formatCurrency(amountInCents: number): string\n   - formatDueDate(date: Date): string\n3. Add TypeScript interfaces:\n   - OutstandingInvoice interface\n   - InvoiceCalculation interface\n4. Implement proper error handling for database queries\n5. Add query result caching if needed for performance\n6. Use Supabase client with proper connection pooling\n7. Add comprehensive logging for database operations",
@@ -294,7 +294,7 @@
         "updatedAt": "2026-01-03T23:38:51.599Z"
       },
       {
-        "id": "5",
+        "id": 5,
         "title": "Research and implement email account creation for new students",
         "description": "Research email service provider APIs and implement automated email account creation for new students",
         "details": "1. Research email account creation options:\n   - Option A: Resend email forwarding/aliases (if supported)\n   - Option B: Google Workspace Admin SDK integration\n   - Option C: Microsoft 365 Graph API integration\n   - Option D: Custom email server with API (Postfix/Dovecot)\n2. Based on research, implement chosen solution:\n   - Install required SDK (e.g., googleapis@latest for Google Workspace)\n   - Create createStudentEmailAccount(student) function\n   - Email format: firstname.lastname@midwestea.com or student_id@midwestea.com\n   - Handle duplicate email addresses with numbering\n3. Add to apps/webapp/lib/email.ts:\n   - Email account creation with proper error handling\n   - Logging for audit purposes\n   - Non-blocking implementation (failures don't prevent student creation)\n4. Store additional environment variables as needed:\n   - GOOGLE_WORKSPACE_ADMIN_EMAIL, GOOGLE_SERVICE_ACCOUNT_KEY (if Google)\n   - MICROSOFT_TENANT_ID, MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET (if Microsoft)\n5. Add comprehensive error handling and retry logic",
@@ -308,7 +308,7 @@
         "updatedAt": "2026-01-03T23:40:15.448Z"
       },
       {
-        "id": "6",
+        "id": 6,
         "title": "Integrate email account creation into student registration workflow",
         "description": "Modify the findOrCreateStudent function to automatically create email accounts for new students",
         "details": "1. Modify apps/webapp/lib/enrollments.ts findOrCreateStudent() function:\n   - Add email account creation after successful student creation\n   - Call createStudentEmailAccount(student) asynchronously\n   - Implement try-catch to prevent email failures from blocking student creation\n2. Add logging for email account creation attempts:\n   - Success: log student ID, email created, timestamp\n   - Failure: log student ID, error message, timestamp\n3. Consider adding email account status to student record:\n   - Add email_account_status field ('pending', 'created', 'failed')\n   - Update status based on creation results\n4. Implement background retry mechanism for failed email account creations:\n   - Queue failed attempts for retry\n   - Exponential backoff strategy\n   - Maximum retry attempts (3-5)\n5. Add admin notification for persistent failures\n6. Ensure backward compatibility with existing student records",
@@ -323,7 +323,7 @@
         "updatedAt": "2026-01-03T23:40:15.599Z"
       },
       {
-        "id": "7",
+        "id": 7,
         "title": "Implement course enrollment confirmation email functionality",
         "description": "Create function to send course enrollment confirmation emails with proper template rendering and error handling",
         "details": "1. Add to apps/webapp/lib/email.ts:\n   - sendCourseEnrollmentEmail(student, enrollment, class, transaction) function\n   - Use course enrollment HTML template\n   - Template data mapping:\n     * studentName: student.first_name + ' ' + student.last_name\n     * courseName: class.class_name\n     * courseCode: class.course_code\n     * amount: formatCurrency(transaction.amount_paid)\n     * invoiceNumber: transaction.invoice_number\n     * paymentDate: formatDate(transaction.payment_date)\n2. Implement proper error handling:\n   - Catch and log email sending errors\n   - Don't throw errors that would break webhook processing\n   - Retry logic with exponential backoff (max 3 attempts)\n3. Add email delivery logging:\n   - Log to database or external service\n   - Include: timestamp, recipient, email type, status, error details\n4. Add email validation before sending\n5. Use Resend API with proper headers and metadata\n6. Implement email preview functionality for development/testing",
@@ -334,10 +334,65 @@
           "4"
         ],
         "status": "pending",
-        "subtasks": []
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create sendCourseEnrollmentEmail function with template data mapping",
+            "description": "Implement the main email sending function in apps/webapp/lib/email.ts with proper template data mapping for course enrollment confirmations",
+            "dependencies": [],
+            "details": "Add sendCourseEnrollmentEmail(student, enrollment, class, transaction) function to apps/webapp/lib/email.ts. Map template data: studentName (student.first_name + ' ' + student.last_name), courseName (class.class_name), courseCode (class.course_code), amount (formatCurrency(transaction.amount_paid)), invoiceNumber (transaction.invoice_number), paymentDate (formatDate(transaction.payment_date)). Use course enrollment HTML template with Resend API.",
+            "status": "pending",
+            "testStrategy": "Unit tests with mock student, enrollment, class, and transaction data. Verify template data mapping is correct and email content renders properly."
+          },
+          {
+            "id": 2,
+            "title": "Implement error handling and retry logic with exponential backoff",
+            "description": "Add comprehensive error handling to prevent webhook processing failures and implement retry mechanism",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement try-catch blocks to catch and log email sending errors without throwing exceptions that would break webhook processing. Add retry logic with exponential backoff (max 3 attempts) for failed email sends. Use setTimeout or similar mechanism for retry delays. Log all retry attempts and final outcomes.",
+            "status": "pending",
+            "testStrategy": "Test error scenarios with mocked API failures, network timeouts, and invalid responses. Verify retry logic executes correctly with proper delays and maximum attempt limits."
+          },
+          {
+            "id": 3,
+            "title": "Add email delivery logging to database or external service",
+            "description": "Implement logging system to track email delivery status and maintain audit trail",
+            "dependencies": [
+              1
+            ],
+            "details": "Create email delivery logging functionality that records timestamp, recipient email, email type (course enrollment), delivery status, and error details if any. Log to database table or external logging service. Include enrollment_id and student_id for traceability. Ensure logging doesn't impact email sending performance.",
+            "status": "pending",
+            "testStrategy": "Verify logs are created for successful and failed email sends. Test log data accuracy and completeness. Ensure logging operations don't cause email sending failures."
+          },
+          {
+            "id": 4,
+            "title": "Add email validation and Resend API integration with proper headers",
+            "description": "Implement email address validation and configure Resend API with appropriate headers and metadata",
+            "dependencies": [
+              1
+            ],
+            "details": "Add email validation before sending to check for valid email format and domain. Configure Resend API client with proper headers including API key, content-type, and any required metadata. Set up email metadata for tracking and categorization (email type, enrollment info). Ensure API configuration follows Resend best practices.",
+            "status": "pending",
+            "testStrategy": "Test with various email formats including invalid addresses. Verify Resend API calls include correct headers and metadata. Test API authentication and error responses."
+          },
+          {
+            "id": 5,
+            "title": "Implement email preview functionality for development and testing",
+            "description": "Create email preview system for development environment to test email templates without sending actual emails",
+            "dependencies": [
+              1,
+              4
+            ],
+            "details": "Add email preview functionality that renders email templates with sample data for development and testing purposes. Create preview endpoint or function that returns HTML content without sending emails. Include toggle mechanism to switch between preview mode and actual sending based on environment. Support previewing with different sample data sets.",
+            "status": "pending",
+            "testStrategy": "Test preview functionality with various sample data combinations. Verify HTML rendering matches expected email appearance. Test environment-based toggling between preview and actual sending modes."
+          }
+        ]
       },
       {
-        "id": "8",
+        "id": 8,
         "title": "Implement program enrollment confirmation email functionality",
         "description": "Create function to send program enrollment confirmation emails including outstanding invoices calculation and display",
         "details": "1. Add to apps/webapp/lib/email.ts:\n   - sendProgramEnrollmentEmail(student, enrollment, class, paidTransaction) function\n   - Query outstanding invoices using getOutstandingInvoices(enrollment.id)\n   - Template data mapping:\n     * studentName: student.first_name + ' ' + student.last_name\n     * programName: class.class_name\n     * courseCode: class.course_code\n     * startDate: formatDate(class.class_start_date)\n     * paidAmount: formatCurrency(paidTransaction.amount_paid)\n     * invoiceNumber: paidTransaction.invoice_number\n     * paymentDate: formatDate(paidTransaction.payment_date)\n     * outstandingInvoices: formatted invoice array with calculations\n     * totalOutstanding: sum of all outstanding amounts\n2. Implement invoice formatting:\n   - Map transaction_type to readable descriptions\n   - Calculate individual amounts: quantity * amount_due\n   - Format due dates as readable strings\n   - Calculate total outstanding amount\n3. Add comprehensive error handling and logging\n4. Ensure accurate financial calculations with proper rounding\n5. Add data validation for all financial amounts",
@@ -351,7 +406,7 @@
         "subtasks": []
       },
       {
-        "id": "9",
+        "id": 9,
         "title": "Integrate enrollment confirmation emails into Stripe webhook handler",
         "description": "Modify the Stripe webhook handler to trigger appropriate enrollment confirmation emails based on class type",
         "details": "1. Modify apps/webapp/app/api/webhooks/stripe/route.ts:\n   - Add email sending after successful enrollment and transaction creation\n   - In checkout.session.completed handler, after createEnrollmentAndTransactions()\n2. Implement class type detection:\n   - Use existing getClassType() function to determine 'course' vs 'program'\n   - Route to appropriate email function based on type\n3. Add email sending logic:\n   - For courses: call sendCourseEnrollmentEmail()\n   - For programs: call sendProgramEnrollmentEmail()\n   - Wrap in try-catch to prevent email failures from breaking webhook\n4. Implement async email sending:\n   - Don't block webhook response waiting for email\n   - Use Promise.resolve() or background job queue if needed\n5. Add comprehensive logging:\n   - Log email sending attempts and results\n   - Include enrollment ID, student ID, email type in logs\n6. Ensure webhook responds within Stripe's timeout limits (10 seconds)\n7. Add webhook event deduplication to prevent duplicate emails",
@@ -365,7 +420,7 @@
         "subtasks": []
       },
       {
-        "id": "10",
+        "id": 10,
         "title": "Implement comprehensive logging and monitoring system",
         "description": "Create logging infrastructure for email operations and implement monitoring for email delivery and system health",
         "details": "1. Create email activity logging system:\n   - Add email_logs table to Supabase:\n     * id (UUID), timestamp, recipient_email, email_type, status, error_message, retry_count, enrollment_id, student_id\n   - Implement logEmailActivity() function in email.ts\n   - Log all email operations: OTP, enrollment confirmations, email account creation\n2. Add monitoring and alerting:\n   - Track email delivery rates and response times\n   - Monitor Resend API usage and rate limits\n   - Alert on high failure rates or API errors\n   - Dashboard for email metrics (optional)\n3. Implement health check endpoints:\n   - /api/health/email - test email sending capability\n   - /api/health/resend - check Resend API connectivity\n4. Add performance monitoring:\n   - Track email sending duration\n   - Monitor database query performance\n   - Log webhook processing times\n5. Create admin utilities:\n   - Retry failed emails manually\n   - View email logs and statistics\n   - Test email templates with sample data\n6. Add proper log rotation and cleanup for production\n7. Implement structured logging with proper log levels",
@@ -385,7 +440,9 @@
       "completedCount": 4,
       "tags": [
         "master"
-      ]
+      ],
+      "created": "2026-01-03T23:40:38.620Z",
+      "description": "Tasks for master context"
     }
   }
 }
