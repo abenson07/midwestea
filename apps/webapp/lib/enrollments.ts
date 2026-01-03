@@ -81,6 +81,7 @@ export async function findOrCreateStudent(
       id: authUserId,
       first_name: null,
       last_name: null,
+      full_name: null,
       phone: null,
       stripe_customer_id: null,
       has_required_info: false,
@@ -296,13 +297,16 @@ export async function findClassWithCourse(classId: string): Promise<{
   class: Class;
   courseType: 'course' | 'program' | null;
   classStartDate: string | null;
+  registrationFee: number | null;
+  price: number | null;
 }> {
   const supabase = createSupabaseAdminClient();
 
   // Fetch class by class_id (text field) - get course_code to look up course
+  // Also fetch registration_fee and price for amount calculations
   const { data: classRecord, error: classError } = await supabase
     .from('classes')
-    .select('id, class_id, course_code, class_start_date')
+    .select('id, class_id, course_code, class_start_date, registration_fee, price')
     .eq('class_id', classId)
     .maybeSingle();
 
@@ -341,6 +345,8 @@ export async function findClassWithCourse(classId: string): Promise<{
     class: classRecord as Class,
     courseType,
     classStartDate: (classRecord as any).class_start_date || null,
+    registrationFee: (classRecord as any).registration_fee || null,
+    price: (classRecord as any).price || null,
   };
 }
 
@@ -368,6 +374,8 @@ export async function createTransaction(data: {
   transactionStatus: 'pending' | 'paid' | 'cancelled' | 'refunded';
   paymentDate: string | null;
   dueDate: string | null;
+  amountDue: number | null;
+  amountPaid: number | null;
 }): Promise<any> {
   const supabase = createSupabaseAdminClient();
 
@@ -386,6 +394,8 @@ export async function createTransaction(data: {
       transaction_status: data.transactionStatus,
       payment_date: data.paymentDate,
       due_date: data.dueDate,
+      amount_due: data.amountDue,
+      amount_paid: data.amountPaid,
     })
     .select()
     .single();
@@ -423,7 +433,7 @@ export async function isPaymentIntentProcessed(paymentIntentId: string): Promise
 }
 
 /**
- * Update student's first_name if it differs from the provided full name
+ * Update student's full_name if it differs from the provided full name
  */
 export async function updateStudentNameIfNeeded(
   studentId: string,
@@ -434,7 +444,7 @@ export async function updateStudentNameIfNeeded(
   // Check current name
   const { data: student, error: fetchError } = await supabase
     .from('students')
-    .select('first_name')
+    .select('full_name')
     .eq('id', studentId)
     .single();
 
@@ -442,16 +452,35 @@ export async function updateStudentNameIfNeeded(
     throw new Error(`Failed to fetch student: ${fetchError.message}`);
   }
 
-  // Update if name is different (store full_name in first_name field)
-  if (student && student.first_name !== fullName) {
+  // Update if name is different (store in full_name field)
+  if (student && (student as any).full_name !== fullName) {
     const { error: updateError } = await supabase
       .from('students')
-      .update({ first_name: fullName })
+      .update({ full_name: fullName })
       .eq('id', studentId);
 
     if (updateError) {
       throw new Error(`Failed to update student name: ${updateError.message}`);
     }
+  }
+}
+
+/**
+ * Update student's Stripe customer ID
+ */
+export async function updateStudentStripeCustomerId(
+  studentId: string,
+  stripeCustomerId: string
+): Promise<void> {
+  const supabase = createSupabaseAdminClient();
+
+  const { error: updateError } = await supabase
+    .from('students')
+    .update({ stripe_customer_id: stripeCustomerId })
+    .eq('id', studentId);
+
+  if (updateError) {
+    throw new Error(`Failed to update student stripe_customer_id: ${updateError.message}`);
   }
 }
 

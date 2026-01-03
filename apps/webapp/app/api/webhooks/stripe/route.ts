@@ -13,6 +13,7 @@ import {
   createTransaction,
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
+  updateStudentStripeCustomerId,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
@@ -186,6 +187,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Extract customer ID and amount from session
+      const customerId = typeof session.customer === 'string' 
+        ? session.customer 
+        : session.customer?.id || null;
+      const amountTotal = session.amount_total || 0; // Amount in cents
+
       // Step 1: Create or update student
       const student = await findOrCreateStudent(email);
       console.log('[webhook] Student found/created:', student.id);
@@ -194,8 +201,20 @@ export async function POST(request: NextRequest) {
       await updateStudentNameIfNeeded(student.id, fullName);
       console.log('[webhook] Student name updated if needed');
 
-      // Step 2: Fetch class with course information
-      const { class: classRecord, courseType, classStartDate } = await findClassWithCourse(classId);
+      // Update student stripe_customer_id if we have it
+      if (customerId) {
+        await updateStudentStripeCustomerId(student.id, customerId);
+        console.log('[webhook] Student stripe_customer_id updated:', customerId);
+      }
+
+      // Step 2: Fetch class with course information and pricing
+      const { 
+        class: classRecord, 
+        courseType, 
+        classStartDate,
+        registrationFee,
+        price
+      } = await findClassWithCourse(classId);
       console.log('[webhook] Class found:', classRecord.id, 'Type:', courseType);
 
       // Step 3: Create enrollment
@@ -219,6 +238,8 @@ export async function POST(request: NextRequest) {
           transactionStatus: 'paid',
           paymentDate: now,
           dueDate: now,
+          amountDue: registrationFee,
+          amountPaid: amountTotal,
         });
         transactions.push(transaction);
         console.log('[webhook] Created course transaction:', transaction.id);
@@ -236,6 +257,8 @@ export async function POST(request: NextRequest) {
           transactionStatus: 'paid',
           paymentDate: now,
           dueDate: now,
+          amountDue: registrationFee,
+          amountPaid: amountTotal,
         });
         transactions.push(regFeeTransaction);
         console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id);
@@ -259,6 +282,8 @@ export async function POST(request: NextRequest) {
           transactionStatus: 'pending',
           paymentDate: null,
           dueDate: tuitionADueDate,
+          amountDue: price,
+          amountPaid: null,
         });
         transactions.push(tuitionATransaction);
         console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id);
@@ -282,6 +307,8 @@ export async function POST(request: NextRequest) {
           transactionStatus: 'pending',
           paymentDate: null,
           dueDate: tuitionBDueDate,
+          amountDue: price,
+          amountPaid: null,
         });
         transactions.push(tuitionBTransaction);
         console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id);
@@ -299,6 +326,8 @@ export async function POST(request: NextRequest) {
           transactionStatus: 'paid',
           paymentDate: now,
           dueDate: now,
+          amountDue: registrationFee,
+          amountPaid: amountTotal,
         });
         transactions.push(transaction);
       }
