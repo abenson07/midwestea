@@ -14,6 +14,7 @@ export interface PaymentWithDetails extends Payment {
 
 /**
  * Fetch all payments with joins to enrollments, students, and classes
+ * NOTE: Now uses transactions table instead of payments table
  */
 export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | null; error: string | null }> {
   try {
@@ -21,7 +22,7 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
     const supabase = await createSupabaseClient();
     console.log("[getPayments] Supabase client created");
     const { data, error } = await supabase
-      .from("payments")
+      .from("transactions")
       .select(`
         *,
         enrollments (
@@ -35,7 +36,7 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
     console.log("[getPayments] Query result:", { data, error, dataLength: data?.length });
 
     if (error) {
-      console.error("[getPayments] Error fetching payments:", error);
+      console.error("[getPayments] Error fetching transactions:", error);
       return { payments: null, error: error.message };
     }
 
@@ -44,9 +45,10 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
       return { payments: [], error: null };
     }
 
-    // Transform payments to include student and class names
-    const paymentsWithDetails: PaymentWithDetails[] = data.map((payment: any) => {
-      const enrollment = payment.enrollments;
+    // Transform transactions to include student and class names
+    // Map transaction fields to payment fields for compatibility
+    const paymentsWithDetails: PaymentWithDetails[] = data.map((transaction: any) => {
+      const enrollment = transaction.enrollments;
       const student = enrollment?.students;
       const classRecord = enrollment?.classes;
 
@@ -63,9 +65,17 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
       // Get class name
       const className = classRecord?.class_name || "Unknown Class";
 
+      // Map transaction fields to payment fields
       return {
-        ...payment,
-        enrollment_id: payment.enrollment_id,
+        id: transaction.id,
+        enrollment_id: transaction.enrollment_id,
+        amount_cents: transaction.amount_paid || transaction.amount_due || 0,
+        stripe_payment_intent_id: transaction.stripe_payment_intent_id,
+        stripe_receipt_url: null, // transactions table doesn't have this field
+        payment_status: transaction.transaction_status || 'pending',
+        paid_at: transaction.payment_date,
+        created_at: transaction.created_at,
+        updated_at: transaction.updated_at,
         student_name: studentName,
         class_name: className,
       };

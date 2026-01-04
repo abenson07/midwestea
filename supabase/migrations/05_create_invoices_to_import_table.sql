@@ -45,3 +45,5 @@ CREATE POLICY "Authenticated users can read invoices"
 -- Create a sequence for invoice numbers starting at 100001
 CREATE SEQUENCE IF NOT EXISTS invoice_number_seq START 100001;
 
+
+

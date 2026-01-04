@@ -9,3 +9,5 @@ CREATE INDEX IF NOT EXISTS idx_invoices_to_import_category ON invoices_to_import
 -- Create index on subcategory for filtering
 CREATE INDEX IF NOT EXISTS idx_invoices_to_import_subcategory ON invoices_to_import(subcategory);
 
+
+

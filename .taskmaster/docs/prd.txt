@@ -1,0 +1,29 @@
+# Product Requirements Document
+
+## Project Overview
+MidwestEA - Educational Administration Platform
+
+## Current Features
+- Student management
+- Class/course management
+- Payment processing (Stripe integration)
+- Enrollment tracking
+- Admin dashboard
+- Instructor portal
+- Student portal
+- Checkout flow
+- Webflow integration
+- QuickBooks integration
+
+## Architecture
+- Monorepo structure with multiple Next.js apps
+- Supabase backend
+- Cloudflare Workers deployment
+- Stripe for payments
+- Webflow for public-facing website
+
+## Future Enhancements
+[Add your planned features and requirements here]
+
+
+

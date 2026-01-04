@@ -19,3 +19,5 @@ UPDATE courses SET stripe_payment_link = 'https://buy.stripe.com/5kQ14naZp6ll3Fj
 UPDATE courses SET stripe_payment_link = 'https://buy.stripe.com/7sYbJ10kL5hh5NrbmG6Vq0g' WHERE course_code = 'OXY';
 UPDATE courses SET stripe_payment_link = 'https://buy.stripe.com/cNi9AT5F5cJJfo14Yi6Vq0f' WHERE course_code = 'PEDS';
 
+
+

@@ -4,11 +4,20 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
+  // #region agent log
+  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:6',message:'POST handler entry',data:{url:request.url,method:request.method},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  // #endregion
   try {
     let body;
     try {
       body = await request.json();
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:11',message:'Request body parsed',data:{hasEmail:!!body?.email,hasFullName:!!body?.fullName,hasClassId:!!body?.classId,classId:body?.classId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
     } catch (parseError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:13',message:'JSON parse error',data:{error:parseError?.message,type:parseError?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       console.error('Error parsing request body:', parseError);
       return NextResponse.json(
         { error: 'Invalid request body. Expected JSON.' },
@@ -41,8 +50,14 @@ export async function POST(request: NextRequest) {
 
     // Get Stripe secret key from environment
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:43',message:'Environment check - Stripe',data:{hasStripeKey:!!stripeSecretKey,stripeKeyPrefix:stripeSecretKey?.substring(0,7)||'none'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     
     if (!stripeSecretKey) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:46',message:'Missing STRIPE_SECRET_KEY',data:{availableStripeVars:Object.keys(process.env).filter(k=>k.includes('STRIPE'))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.error('STRIPE_SECRET_KEY is not configured');
       console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('STRIPE')));
       return NextResponse.json(
@@ -54,8 +69,14 @@ export async function POST(request: NextRequest) {
     // Check Supabase environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:56',message:'Environment check - Supabase',data:{hasUrl:!!supabaseUrl,hasServiceKey:!!supabaseServiceKey,urlPrefix:supabaseUrl?.substring(0,20)||'none'},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     
     if (!supabaseUrl || !supabaseServiceKey) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:59',message:'Missing Supabase credentials',data:{hasUrl:!!supabaseUrl,hasServiceKey:!!supabaseServiceKey,availableSupabaseVars:Object.keys(process.env).filter(k=>k.includes('SUPABASE'))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.error('Missing Supabase credentials:', {
         hasUrl: !!supabaseUrl,
         hasServiceKey: !!supabaseServiceKey,
@@ -69,8 +90,17 @@ export async function POST(request: NextRequest) {
 
     let stripe: Stripe;
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:72',message:'Initializing Stripe client',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       stripe = getStripeClient(stripeSecretKey);
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:74',message:'Stripe client initialized',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
     } catch (stripeError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:76',message:'Stripe client init error',data:{error:stripeError?.message,type:stripeError?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('Error initializing Stripe client:', stripeError);
       return NextResponse.json(
         { error: 'Payment service configuration error' },
@@ -80,17 +110,32 @@ export async function POST(request: NextRequest) {
 
     let supabase;
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:83',message:'Initializing Supabase client',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       supabase = createSupabaseAdminClient();
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:85',message:'Testing Supabase connection',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       // Test the connection by making a simple query
       const { error: testError } = await supabase.from('classes').select('id').limit(1);
       if (testError) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:87',message:'Supabase connection test failed',data:{error:testError?.message,code:testError?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         console.error('Supabase connection test failed:', testError);
         return NextResponse.json(
           { error: `Database connection error: ${testError.message}` },
           { status: 500 }
         );
       }
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:92',message:'Supabase connection test passed',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
     } catch (supabaseError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:94',message:'Supabase client init error',data:{error:supabaseError?.message,type:supabaseError?.name,stack:supabaseError?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       console.error('Error initializing Supabase client:', {
         error: supabaseError,
         message: supabaseError?.message,
@@ -105,6 +150,9 @@ export async function POST(request: NextRequest) {
     // Fetch class from database to get stripe_price_id
     let classRecord;
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:108',message:'Querying class from database',data:{classId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       console.log(`Fetching class with class_id: ${classId}`);
       const { data, error: classError } = await supabase
         .from('classes')
@@ -113,6 +161,9 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (classError) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:115',message:'Class query error',data:{classId,error:classError?.message,code:classError?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.error('Supabase query error:', {
           error: classError,
           message: classError.message,
@@ -127,6 +178,9 @@ export async function POST(request: NextRequest) {
       }
 
       if (!data) {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:130',message:'Class not found - no data',data:{classId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         console.error(`No class record found for class_id: ${classId}`);
         return NextResponse.json(
           { error: `Class not found with class_id: ${classId}` },
@@ -134,9 +188,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:137',message:'Class found',data:{classId,hasStripePriceId:!!data.stripe_price_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       console.log(`Found class record:`, { id: data.id, class_id: data.class_id, has_stripe_price_id: !!data.stripe_price_id });
       classRecord = data;
     } catch (dbError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:139',message:'Database query exception',data:{classId,error:dbError?.message,type:dbError?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
       console.error('Database query error:', {
         error: dbError,
         message: dbError?.message,
@@ -160,6 +220,9 @@ export async function POST(request: NextRequest) {
     // Create or find Stripe customer by email
     let customerId: string;
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:163',message:'Looking up Stripe customer',data:{email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       const customers = await stripe.customers.list({
         email: email,
         limit: 1,
@@ -167,8 +230,14 @@ export async function POST(request: NextRequest) {
 
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:169',message:'Found existing Stripe customer',data:{customerId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         console.log(`Found existing Stripe customer: ${customerId}`);
       } else {
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:173',message:'Creating new Stripe customer',data:{email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         // Create new customer
         console.log(`Creating new Stripe customer for email: ${email}`);
         const customer = await stripe.customers.create({
@@ -176,9 +245,15 @@ export async function POST(request: NextRequest) {
           name: fullName,
         });
         customerId = customer.id;
+        // #region agent log
+        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:179',message:'Created Stripe customer',data:{customerId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
         console.log(`Created Stripe customer: ${customerId}`);
       }
     } catch (stripeCustomerError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:181',message:'Stripe customer error',data:{error:stripeCustomerError?.message,type:stripeCustomerError?.type,code:stripeCustomerError?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('Stripe customer error:', {
         error: stripeCustomerError,
         message: stripeCustomerError?.message,
@@ -205,6 +280,9 @@ export async function POST(request: NextRequest) {
     // Create checkout session
     let session;
     try {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:208',message:'Creating Stripe checkout session',data:{classId,stripePriceId:classRecord.stripe_price_id,customerId,successUrl:`${origin}${basePath}/checkout/success`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.log(`Creating Stripe checkout session for class ${classId} with price ${classRecord.stripe_price_id}`);
       console.log(`Success URL: ${origin}${basePath}/checkout/success`);
       console.log(`Cancel URL: ${origin}${basePath}/checkout/details?classID=${classId}`);
@@ -226,8 +304,14 @@ export async function POST(request: NextRequest) {
         cancel_url: `${origin}${basePath}/checkout/details?classID=${classId}`,
       });
       
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:229',message:'Checkout session created',data:{sessionId:session.id,hasUrl:!!session.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.log(`Checkout session created successfully: ${session.id}`);
     } catch (stripeSessionError: any) {
+      // #region agent log
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:231',message:'Stripe checkout session error',data:{error:stripeSessionError?.message,type:stripeSessionError?.type,code:stripeSessionError?.code,param:stripeSessionError?.param},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       console.error('Stripe checkout session creation error:', {
         error: stripeSessionError,
         message: stripeSessionError?.message,
@@ -254,6 +338,9 @@ export async function POST(request: NextRequest) {
       checkoutUrl: session.url,
     });
   } catch (error: any) {
+    // #region agent log
+    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:257',message:'Unexpected error in catch-all',data:{error:error?.message,type:error?.name,code:error?.code,stack:error?.stack?.substring(0,300)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
     console.error('Unexpected error creating checkout session:', {
       error: error,
       message: error?.message,

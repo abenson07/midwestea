@@ -9,3 +9,5 @@ FROM courses
 WHERE classes.course_code = courses.course_code
   AND courses.stripe_payment_link IS NOT NULL;
 
+
+

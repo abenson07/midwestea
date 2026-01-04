@@ -17,3 +17,5 @@ ALTER TABLE logs
     'webflow_synced'
   ));
 
+
+

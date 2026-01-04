@@ -121,3 +121,5 @@ The error suggests `findClassWithCourse('PARA-002')` is failing. Check:
 - Validates `course_uuid` exists before proceeding
 - Better error messages
 
+
+

@@ -42,15 +42,15 @@ export async function GET(request: NextRequest) {
 
     console.log('[sync-stripe-invoices] Found', paymentIntents.data.length, 'payment intents');
 
-    // Get existing payment intent IDs from payments table to avoid duplicates
-    const { data: existingPayments, error: paymentsError } = await supabase
-      .from('payments')
+    // Get existing payment intent IDs from transactions table to avoid duplicates
+    const { data: existingTransactions, error: transactionsError } = await supabase
+      .from('transactions')
       .select('stripe_payment_intent_id')
       .not('stripe_payment_intent_id', 'is', null);
 
     const existingPaymentIntentIds = new Set(
-      (existingPayments || [])
-        .map(p => p.stripe_payment_intent_id)
+      (existingTransactions || [])
+        .map(t => t.stripe_payment_intent_id)
         .filter(Boolean)
     );
 

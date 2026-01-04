@@ -9,3 +9,5 @@ CREATE INDEX IF NOT EXISTS idx_transactions_downloaded ON transactions(downloade
 -- Set existing transactions to downloaded = false (they haven't been exported yet)
 UPDATE transactions SET downloaded = FALSE WHERE downloaded IS NULL;
 
+
+
