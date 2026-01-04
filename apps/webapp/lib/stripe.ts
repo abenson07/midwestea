@@ -16,6 +16,104 @@ export function getStripeClient(secretKey?: string): Stripe {
   });
 }
 
+/**
+ * Create a Stripe customer using raw fetch (for Cloudflare Workers compatibility)
+ * This bypasses the Stripe SDK's HTTP client which doesn't work in Workers
+ */
+export async function createStripeCustomerWithFetch(
+  email: string,
+  name: string,
+  secretKey?: string
+): Promise<{ id: string }> {
+  const key = secretKey || process.env.STRIPE_SECRET_KEY;
+  
+  if (!key) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+  }
+
+  const response = await fetch('https://api.stripe.com/v1/customers', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      email,
+      name,
+    }).toString(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText };
+    }
+    throw new Error(`Stripe API error: ${errorData.error?.message || errorData.message || `HTTP ${response.status}`}`);
+  }
+
+  const customer = await response.json();
+  return { id: customer.id };
+}
+
+/**
+ * Create a Stripe checkout session using raw fetch (for Cloudflare Workers compatibility)
+ * This bypasses the Stripe SDK's HTTP client which doesn't work in Workers
+ */
+export async function createStripeCheckoutSessionWithFetch(
+  customerId: string,
+  priceId: string,
+  successUrl: string,
+  cancelUrl: string,
+  metadata: Record<string, string>,
+  secretKey?: string
+): Promise<{ id: string; url: string | null }> {
+  const key = secretKey || process.env.STRIPE_SECRET_KEY;
+  
+  if (!key) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+  }
+
+  const params = new URLSearchParams({
+    customer: customerId,
+    'line_items[0][price]': priceId,
+    'line_items[0][quantity]': '1',
+    mode: 'payment',
+    success_url: successUrl,
+    cancel_url: cancelUrl,
+  });
+
+  // Add metadata
+  Object.entries(metadata).forEach(([key, value]) => {
+    params.append(`metadata[${key}]`, value);
+  });
+
+  const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText };
+    }
+    throw new Error(`Stripe API error: ${errorData.error?.message || errorData.message || `HTTP ${response.status}`}`);
+  }
+
+  const session = await response.json();
+  return { id: session.id, url: session.url };
+}
+
 // Product and price data types
 export interface ProductWithPrice {
   product: Stripe.Product;

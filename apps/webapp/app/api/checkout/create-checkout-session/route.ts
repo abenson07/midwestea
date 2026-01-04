@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripeClient } from '@/lib/stripe';
+import { getStripeClient, createStripeCustomerWithFetch, createStripeCheckoutSessionWithFetch } from '@/lib/stripe';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import Stripe from 'stripe';
 
@@ -267,12 +267,10 @@ export async function POST(request: NextRequest) {
       debugInfo.push({step:'creating_customer_direct',location:'route.ts:260',data:{email,fullName,startTime:createStartTime}});
       // #endregion
       
-      console.log(`Creating Stripe customer for email: ${email} (skipping lookup to avoid connection issues)`);
-      const customer: Stripe.Customer = await Promise.race([
-        stripe.customers.create({
-          email: email,
-          name: fullName,
-        }),
+      console.log(`Creating Stripe customer for email: ${email} (using raw fetch for Workers compatibility)`);
+      // Use raw fetch instead of Stripe SDK for Cloudflare Workers compatibility
+      const customer = await Promise.race([
+        createStripeCustomerWithFetch(email, fullName, stripeSecretKey),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Customer create timeout after 20s')), 20000))
       ]);
       
@@ -418,26 +416,25 @@ export async function POST(request: NextRequest) {
       debugInfo.push({step:'creating_checkout_session',location:'route.ts:309',data:{classId,stripePriceId:classRecord.stripe_price_id,customerId,successUrl:`${origin}${basePath}/checkout/success`}});
       fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:208',message:'Creating Stripe checkout session',data:{classId,stripePriceId:classRecord.stripe_price_id,customerId,successUrl:`${origin}${basePath}/checkout/success`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
-      console.log(`Creating Stripe checkout session for class ${classId} with price ${classRecord.stripe_price_id}`);
+      console.log(`Creating Stripe checkout session for class ${classId} with price ${classRecord.stripe_price_id} (using raw fetch for Workers compatibility)`);
       console.log(`Success URL: ${origin}${basePath}/checkout/success`);
       console.log(`Cancel URL: ${origin}${basePath}/checkout/details?classID=${classId}`);
       
-      session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        line_items: [
-          {
-            price: classRecord.stripe_price_id,
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        metadata: {
+      // Use raw fetch instead of Stripe SDK for Cloudflare Workers compatibility
+      const sessionResult = await createStripeCheckoutSessionWithFetch(
+        customerId,
+        classRecord.stripe_price_id,
+        `${origin}${basePath}/checkout/success`,
+        `${origin}${basePath}/checkout/details?classID=${classId}`,
+        {
           full_name: fullName,
           class_id: classId,
         },
-        success_url: `${origin}${basePath}/checkout/success`,
-        cancel_url: `${origin}${basePath}/checkout/details?classID=${classId}`,
-      });
+        stripeSecretKey
+      );
+      
+      // Convert to format expected by rest of code
+      session = { id: sessionResult.id, url: sessionResult.url };
       
       // #region agent log
       debugInfo.push({step:'checkout_session_created',location:'route.ts:337',data:{sessionId:session.id,hasUrl:!!session.url}});
