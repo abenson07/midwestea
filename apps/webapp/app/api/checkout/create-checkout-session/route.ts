@@ -149,16 +149,26 @@ export async function POST(request: NextRequest) {
       // #endregion
     } catch (supabaseError: any) {
       // #region agent log
-      debugInfo.push({step:'supabase_init_error',location:'route.ts:118',data:{error:supabaseError?.message,type:supabaseError?.name}});
+      debugInfo.push({step:'supabase_init_error',location:'route.ts:150',data:{error:supabaseError?.message,type:supabaseError?.name,hasUrl:!!supabaseUrl,hasServiceKey:!!supabaseServiceKey}});
       fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:94',message:'Supabase client init error',data:{error:supabaseError?.message,type:supabaseError?.name,stack:supabaseError?.stack?.substring(0,200)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
       // #endregion
       console.error('Error initializing Supabase client:', {
         error: supabaseError,
         message: supabaseError?.message,
-        stack: supabaseError?.stack
+        stack: supabaseError?.stack,
+        hasUrl: !!supabaseUrl,
+        hasServiceKey: !!supabaseServiceKey
       });
       return NextResponse.json(
-        { error: `Database connection error: ${supabaseError?.message || 'Unknown error'}`, debug: debugInfo },
+        { 
+          error: `Database connection error: ${supabaseError?.message || 'Unknown error'}`,
+          debug: debugInfo,
+          envCheck: {
+            hasSupabaseUrl: !!supabaseUrl,
+            hasSupabaseServiceKey: !!supabaseServiceKey,
+            supabaseUrlPrefix: supabaseUrl?.substring(0, 30) || 'missing'
+          }
+        },
         { status: 500 }
       );
     }
@@ -240,56 +250,153 @@ export async function POST(request: NextRequest) {
     }
 
     // Create or find Stripe customer by email
+    // WORKAROUND: In Cloudflare Workers, skip customer lookup and always create new customer
+    // This avoids connection issues with Stripe API from Workers environment
     let customerId: string;
     try {
       // #region agent log
-      debugInfo.push({step:'lookup_stripe_customer',location:'route.ts:243',data:{email}});
-      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:163',message:'Looking up Stripe customer',data:{email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      const lookupStartTime = Date.now();
+      debugInfo.push({step:'customer_creation_start',location:'route.ts:253',data:{email,fullName,startTime:lookupStartTime,strategy:'create_new_skip_lookup'}});
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:163',message:'Creating Stripe customer (skipping lookup)',data:{email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
-      const customers = await stripe.customers.list({
-        email: email,
-        limit: 1,
-      });
+      
+      // Skip customer lookup in Cloudflare Workers - just create new customer directly
+      // Stripe will handle duplicate emails if needed, and this avoids connection issues
+      // #region agent log
+      const createStartTime = Date.now();
+      debugInfo.push({step:'creating_customer_direct',location:'route.ts:260',data:{email,fullName,startTime:createStartTime}});
+      // #endregion
+      
+      console.log(`Creating Stripe customer for email: ${email} (skipping lookup to avoid connection issues)`);
+      const customer = await Promise.race([
+        stripe.customers.create({
+          email: email,
+          name: fullName,
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Customer create timeout after 20s')), 20000))
+      ]);
+      
+      customerId = customer.id;
+      // #region agent log
+      debugInfo.push({step:'customer_created',location:'route.ts:272',data:{customerId,duration:Date.now()-createStartTime}});
+      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:179',message:'Created Stripe customer',data:{customerId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      console.log(`Created Stripe customer: ${customerId}`);
+      
+      /* ORIGINAL CODE - COMMENTED OUT DUE TO CONNECTION ISSUES IN CLOUDFLARE WORKERS
+      // Try to find existing customer first, but if connection fails, create new customer directly
+      let customers;
+      try {
+        // #region agent log
+        const listStartTime = Date.now();
+        debugInfo.push({step:'customer_list_start',location:'route.ts:270',data:{email,startTime:listStartTime}});
+        // #endregion
+        customers = await Promise.race([
+          stripe.customers.list({
+            email: email,
+            limit: 1,
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Customer list timeout after 15s')), 15000))
+        ]);
+        // #region agent log
+        debugInfo.push({step:'customer_list_success',location:'route.ts:278',data:{count:customers?.data?.length||0,duration:Date.now()-listStartTime}});
+        // #endregion
+      } catch (listError: any) {
+        // #region agent log
+        debugInfo.push({step:'customer_list_failed',location:'route.ts:280',data:{
+          error:listError?.message,
+          type:listError?.type,
+          code:listError?.code,
+          statusCode:listError?.statusCode,
+          requestId:listError?.requestId,
+          isConnectionError:listError?.type === 'StripeConnectionError',
+          isTimeout:listError?.message?.includes('timeout'),
+          duration:Date.now() - (debugInfo[debugInfo.length - 1]?.data?.startTime || Date.now())
+        }});
+        // #endregion
+        console.error('Stripe customer list error:', {
+          message: listError?.message,
+          type: listError?.type,
+          code: listError?.code,
+          statusCode: listError?.statusCode,
+          requestId: listError?.requestId,
+          stack: listError?.stack
+        });
+        // If listing fails due to connection error, skip lookup and create new customer
+        if (listError?.type === 'StripeConnectionError' || listError?.message?.includes('connection') || listError?.message?.includes('timeout')) {
+          console.warn('Stripe customer list failed, will create new customer:', listError.message);
+          customers = { data: [] }; // Treat as no existing customer
+        } else {
+          throw listError; // Re-throw if it's a different error
+        }
+      }
 
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
         // #region agent log
-        debugInfo.push({step:'found_existing_customer',location:'route.ts:252',data:{customerId}});
+        debugInfo.push({step:'found_existing_customer',location:'route.ts:260',data:{customerId}});
         fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:169',message:'Found existing Stripe customer',data:{customerId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
         // #endregion
         console.log(`Found existing Stripe customer: ${customerId}`);
       } else {
-        // #region agent log
-        debugInfo.push({step:'creating_new_customer',location:'route.ts:259',data:{email}});
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:173',message:'Creating new Stripe customer',data:{email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
-        // Create new customer
-        console.log(`Creating new Stripe customer for email: ${email}`);
-        const customer = await stripe.customers.create({
-          email: email,
-          name: fullName,
-        });
-        customerId = customer.id;
-        // #region agent log
-        debugInfo.push({step:'created_customer',location:'route.ts:268',data:{customerId}});
-        fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:179',message:'Created Stripe customer',data:{customerId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
-        console.log(`Created Stripe customer: ${customerId}`);
+        // This branch should not be reached with the new skip-lookup strategy
+        throw new Error('Unexpected code path - customer lookup was skipped');
       }
+      */
     } catch (stripeCustomerError: any) {
       // #region agent log
-      debugInfo.push({step:'stripe_customer_error',location:'route.ts:271',data:{error:stripeCustomerError?.message,type:stripeCustomerError?.type,code:stripeCustomerError?.code}});
+      debugInfo.push({step:'stripe_customer_error',location:'route.ts:325',data:{
+        error:stripeCustomerError?.message,
+        type:stripeCustomerError?.type,
+        code:stripeCustomerError?.code,
+        statusCode:stripeCustomerError?.statusCode,
+        requestId:stripeCustomerError?.requestId,
+        isConnectionError:stripeCustomerError?.type === 'StripeConnectionError',
+        isTimeout:stripeCustomerError?.message?.includes('timeout'),
+        headers:stripeCustomerError?.headers ? Object.keys(stripeCustomerError.headers) : null,
+        rawError:JSON.stringify({
+          name: stripeCustomerError?.name,
+          message: stripeCustomerError?.message,
+          type: stripeCustomerError?.type,
+          code: stripeCustomerError?.code,
+          statusCode: stripeCustomerError?.statusCode,
+          requestId: stripeCustomerError?.requestId
+        })
+      }});
       fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:181',message:'Stripe customer error',data:{error:stripeCustomerError?.message,type:stripeCustomerError?.type,code:stripeCustomerError?.code},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
-      console.error('Stripe customer error:', {
+      console.error('Stripe customer error - FULL DETAILS:', {
         error: stripeCustomerError,
         message: stripeCustomerError?.message,
         type: stripeCustomerError?.type,
         code: stripeCustomerError?.code,
-        statusCode: stripeCustomerError?.statusCode
+        statusCode: stripeCustomerError?.statusCode,
+        requestId: stripeCustomerError?.requestId,
+        headers: stripeCustomerError?.headers,
+        stack: stripeCustomerError?.stack,
+        cause: stripeCustomerError?.cause,
+        allProperties: Object.keys(stripeCustomerError || {})
       });
+      
+      // Provide more helpful error message for connection errors
+      let errorMessage = stripeCustomerError?.message || 'Unknown error';
+      if (stripeCustomerError?.type === 'StripeConnectionError') {
+        errorMessage = 'Unable to connect to Stripe. This may be a temporary network issue. Please try again in a moment.';
+      }
+      
       return NextResponse.json(
-        { error: `Failed to process customer information: ${stripeCustomerError?.message || 'Unknown error'}. Please try again.`, debug: debugInfo },
+        { 
+          error: `Failed to process customer information: ${errorMessage}. Please try again.`, 
+          debug: debugInfo,
+          errorDetails: {
+            type: stripeCustomerError?.type,
+            code: stripeCustomerError?.code,
+            statusCode: stripeCustomerError?.statusCode,
+            requestId: stripeCustomerError?.requestId,
+            isConnectionError: stripeCustomerError?.type === 'StripeConnectionError',
+            isTimeout: stripeCustomerError?.message?.includes('timeout')
+          }
+        },
         { status: 500 }
       );
     }

@@ -8,8 +8,12 @@ export function getStripeClient(secretKey?: string): Stripe {
     throw new Error('STRIPE_SECRET_KEY is not set');
   }
 
+  // Enhanced configuration for Cloudflare Workers environment
   return new Stripe(key, {
     typescript: true,
+    timeout: 30000, // 30 second timeout
+    maxNetworkRetries: 3, // Retry up to 3 times on network errors
+    apiVersion: '2024-11-20.acacia', // Use a specific API version for consistency
   });
 }
 
