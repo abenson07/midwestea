@@ -413,18 +413,19 @@ export async function POST(request: NextRequest) {
     let session;
     try {
       // #region agent log
-      debugInfo.push({step:'creating_checkout_session',location:'route.ts:309',data:{classId,stripePriceId:classRecord.stripe_price_id,customerId,successUrl:`${origin}${basePath}/checkout/success`}});
+      debugInfo.push({step:'creating_checkout_session',location:'route.ts:309',data:{classId,stripePriceId:classRecord.stripe_price_id,customerId,successUrl:`${origin}${basePath}/purchase-confirmation/general`}});
       fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'create-checkout-session/route.ts:208',message:'Creating Stripe checkout session',data:{classId,stripePriceId:classRecord.stripe_price_id,customerId,successUrl:`${origin}${basePath}/checkout/success`},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
       // #endregion
       console.log(`Creating Stripe checkout session for class ${classId} with price ${classRecord.stripe_price_id} (using raw fetch for Workers compatibility)`);
-      console.log(`Success URL: ${origin}${basePath}/checkout/success`);
+      const successUrl = `${origin}${basePath}/purchase-confirmation/general`;
+      console.log(`Success URL: ${successUrl}`);
       console.log(`Cancel URL: ${origin}${basePath}/checkout/details?classID=${classId}`);
       
       // Use raw fetch instead of Stripe SDK for Cloudflare Workers compatibility
       const sessionResult = await createStripeCheckoutSessionWithFetch(
         customerId,
         classRecord.stripe_price_id,
-        `${origin}${basePath}/checkout/success`,
+        successUrl,
         `${origin}${basePath}/checkout/details?classID=${classId}`,
         {
           full_name: fullName,
