@@ -13,7 +13,6 @@ export function getStripeClient(secretKey?: string): Stripe {
     typescript: true,
     timeout: 30000, // 30 second timeout
     maxNetworkRetries: 3, // Retry up to 3 times on network errors
-    apiVersion: '2024-11-20.acacia', // Use a specific API version for consistency
   });
 }
 

@@ -268,12 +268,12 @@ export async function POST(request: NextRequest) {
       // #endregion
       
       console.log(`Creating Stripe customer for email: ${email} (skipping lookup to avoid connection issues)`);
-      const customer = await Promise.race([
+      const customer: Stripe.Customer = await Promise.race([
         stripe.customers.create({
           email: email,
           name: fullName,
         }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Customer create timeout after 20s')), 20000))
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Customer create timeout after 20s')), 20000))
       ]);
       
       customerId = customer.id;
