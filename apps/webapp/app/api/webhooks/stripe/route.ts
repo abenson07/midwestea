@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
 
       // Step 5: Create transactions based on class type
       const now = new Date().toISOString();
-      const transactions = [];
+      const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
       let invoiceNumberCounter = baseInvoiceNumber;
 
       if (courseType === 'course') {
@@ -537,7 +537,7 @@ export async function POST(request: NextRequest) {
       let startingAfter: string | undefined = undefined;
 
       while (hasMore) {
-        const balanceTransactions = await stripe.balanceTransactions.list({
+        const balanceTransactions: Awaited<ReturnType<typeof stripe.balanceTransactions.list>> = await stripe.balanceTransactions.list({
           payout: payoutId,
           expand: ['data.source'],
           limit: 100, // Stripe allows up to 100 per page
@@ -650,28 +650,22 @@ export async function POST(request: NextRequest) {
       const productId = paymentIntent.metadata?.productId;
       const productName = paymentIntent.metadata?.productName;
 
-      // Extract email and name from billing details or customer
+      // Extract email and name from customer
+      // Note: PaymentIntent doesn't have billing_details directly - that's on Charge
       let email: string | null = null;
       let fullName: string | null = null;
-      
-      if (paymentIntent.billing_details?.email) {
-        email = paymentIntent.billing_details.email;
-      }
-      if (paymentIntent.billing_details?.name) {
-        fullName = paymentIntent.billing_details.name;
-      }
 
-      // If no email in billing details, try to get from customer
-      if (!email && paymentIntent.customer) {
+      // Get email and name from customer
+      if (paymentIntent.customer) {
         try {
           const customerId = typeof paymentIntent.customer === 'string' 
             ? paymentIntent.customer 
             : paymentIntent.customer.id;
           const customer = await stripe.customers.retrieve(customerId);
-          if (typeof customer !== 'deleted' && customer.email) {
+          if (!customer.deleted && 'email' in customer && customer.email) {
             email = customer.email;
           }
-          if (typeof customer !== 'deleted' && customer.name && !fullName) {
+          if (!customer.deleted && 'name' in customer && customer.name && !fullName) {
             fullName = customer.name;
           }
         } catch (err) {
@@ -759,7 +753,7 @@ export async function POST(request: NextRequest) {
 
       // Step 5: Create transactions based on class type
       const now = new Date().toISOString();
-      const transactions = [];
+      const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
       let invoiceNumberCounter = baseInvoiceNumber;
 
       if (courseType === 'course') {

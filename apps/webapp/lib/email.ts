@@ -1,4 +1,6 @@
 import { Resend } from 'resend';
+import type { OutstandingInvoice as EnrollmentOutstandingInvoice } from './enrollments';
+import type { OutstandingInvoice as TemplateOutstandingInvoice } from './email-templates';
 
 /**
  * Email utility functions for sending transactional emails via Resend
@@ -553,7 +555,7 @@ export async function sendEmail(
         subject: options.subject,
         html: options.html,
         text: options.text,
-        reply_to: options.replyTo,
+        replyTo: options.replyTo,
         cc: options.cc,
         bcc: options.bcc,
         tags: options.tags,
@@ -1191,8 +1193,7 @@ export async function sendProgramEnrollmentEmail(
     getProgramEnrollmentSubject,
   } = await import('./email-templates');
   const { 
-    getOutstandingInvoices,
-    type OutstandingInvoice 
+    getOutstandingInvoices
   } = await import('./enrollments');
 
   // Get student email from auth.users
@@ -1251,9 +1252,22 @@ export async function sendProgramEnrollmentEmail(
   }
 
   // Query outstanding invoices
-  let outstandingInvoices: OutstandingInvoice[] = [];
+  let outstandingInvoices: TemplateOutstandingInvoice[] = [];
   try {
-    outstandingInvoices = await getOutstandingInvoices(enrollment.id);
+    const enrollmentInvoices = await getOutstandingInvoices(enrollment.id);
+    
+    // Map to template format and filter out invoices with null invoice numbers
+    outstandingInvoices = enrollmentInvoices
+      .filter((invoice): invoice is EnrollmentOutstandingInvoice & { invoiceNumber: number } => 
+        invoice.invoiceNumber !== null && invoice.transactionType !== 'registration_fee'
+      )
+      .map((invoice) => ({
+        invoiceNumber: invoice.invoiceNumber,
+        transactionType: invoice.transactionType as 'tuition_a' | 'tuition_b',
+        quantity: invoice.quantity,
+        amountDue: invoice.amountDue,
+        dueDate: invoice.dueDate,
+      }));
     
     // Validate invoice data
     for (const invoice of outstandingInvoices) {

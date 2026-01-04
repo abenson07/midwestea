@@ -59,8 +59,14 @@ export interface ProgramEnrollmentTemplateData {
  * @returns Template HTML string
  */
 function loadTemplate(templateName: string): string {
+  // Use process.cwd() for Next.js compatibility
+  // Templates are in lib/email-templates/ relative to project root
   const templatePath = path.join(
-    __dirname,
+    process.cwd(),
+    'apps',
+    'webapp',
+    'lib',
+    'email-templates',
     `${templateName}.html`
   );
   

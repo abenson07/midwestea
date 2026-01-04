@@ -201,6 +201,8 @@ export interface TransactionWithDetails {
   reconciled?: boolean;
   reconciliation_date?: string | null;
   payment_date?: string | null;
+  created_at?: string | null;
+  stripe_payment_intent_id?: string | null;
 }
 
 /**
@@ -317,6 +319,7 @@ export async function getTransactions(): Promise<{ transactions: TransactionWith
         reconciled: transaction.reconciled || false,
         reconciliation_date: transaction.reconciliation_date || null,
         payment_date: transaction.payment_date || null,
+        stripe_payment_intent_id: transaction.stripe_payment_intent_id || null,
       };
     });
 
@@ -420,7 +423,10 @@ export async function getPayoutsToReconcile(): Promise<{
     }
 
     // Get unique student IDs to fetch emails
-    const studentIds = [...new Set(data.map((t: any) => t.student_id || t.students?.id).filter(Boolean))];
+    const studentIds = [...new Set(data.map((t: any) => {
+      const students = t.students as any;
+      return t.student_id || (Array.isArray(students) ? students[0]?.id : students?.id);
+    }).filter(Boolean))];
     const emailMap = new Map<string, string | null>();
     
     if (studentIds.length > 0) {
@@ -469,7 +475,8 @@ export async function getPayoutsToReconcile(): Promise<{
       const payoutId = transaction.payout_id;
       if (!payoutId) continue;
 
-      const studentId = transaction.student_id || transaction.students?.id;
+      const students = transaction.students as any;
+      const studentId = transaction.student_id || (Array.isArray(students) ? students[0]?.id : students?.id);
       const studentEmail = studentId ? emailMap.get(studentId) || null : null;
       
       const quantity = transaction.quantity || 1;
@@ -561,7 +568,10 @@ export async function getReconciledPayouts(): Promise<{
     }
 
     // Get unique student IDs to fetch emails
-    const studentIds = [...new Set(data.map((t: any) => t.student_id || t.students?.id).filter(Boolean))];
+    const studentIds = [...new Set(data.map((t: any) => {
+      const students = t.students as any;
+      return t.student_id || (Array.isArray(students) ? students[0]?.id : students?.id);
+    }).filter(Boolean))];
     const emailMap = new Map<string, string | null>();
     
     if (studentIds.length > 0) {
@@ -605,7 +615,8 @@ export async function getReconciledPayouts(): Promise<{
 
     // Transform data
     const transactions: PayoutTransaction[] = data.map((transaction: any) => {
-      const studentId = transaction.student_id || transaction.students?.id;
+      const students = transaction.students as any;
+      const studentId = transaction.student_id || (Array.isArray(students) ? students[0]?.id : students?.id);
       const studentEmail = studentId ? emailMap.get(studentId) || null : null;
       
       const quantity = transaction.quantity || 1;
@@ -809,6 +820,8 @@ export async function getTransactionsWithPayoutId(): Promise<{
         reconciled: transaction.reconciled || false,
         reconciliation_date: transaction.reconciliation_date || null,
         payment_date: transaction.payment_date || null,
+        created_at: transaction.created_at || null,
+        stripe_payment_intent_id: transaction.stripe_payment_intent_id || null,
       };
     });
 
@@ -884,6 +897,7 @@ export async function getTransactionsByEnrollment(
         reconciled: transaction.reconciled || false,
         reconciliation_date: transaction.reconciliation_date || null,
         payment_date: transaction.payment_date || null,
+        stripe_payment_intent_id: transaction.stripe_payment_intent_id || null,
       };
     });
 

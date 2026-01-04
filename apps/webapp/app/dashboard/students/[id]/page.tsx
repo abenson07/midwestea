@@ -108,7 +108,7 @@ function StudentDetailContent() {
         const tuitionBPaid = tuitionB?.transaction_status === 'paid';
 
         // Check if all are paid
-        const allTransactions = [regFee, tuitionA, tuitionB].filter(Boolean);
+        const allTransactions = [regFee, tuitionA, tuitionB].filter((t): t is TransactionWithDetails => t !== undefined);
         const allPaid = allTransactions.every(t => t.transaction_status === 'paid');
 
         if (allPaid) {
@@ -159,7 +159,7 @@ function StudentDetailContent() {
         }
 
         // Fetch transactions for each enrollment and calculate payment status
-        const classesWithStatus: ClassWithEnrollment[] = await Promise.all(
+        const classesWithStatus: (ClassWithEnrollment | null)[] = await Promise.all(
             enrollments.map(async (enrollment: any) => {
                 const classRecord = enrollment.classes;
                 if (!classRecord) return null;
@@ -401,7 +401,7 @@ function StudentDetailContent() {
         setSaving(false);
     };
 
-    const formatDate = (dateString: string | null) => {
+    const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return "—";
         const date = new Date(dateString);
         return date.toLocaleDateString();
