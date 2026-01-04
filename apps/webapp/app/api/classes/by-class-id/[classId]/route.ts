@@ -57,6 +57,33 @@ export async function GET(
       );
     }
 
+    // Calculate invoice due dates based on class_start_date if it exists
+    if (classData.class_start_date) {
+      try {
+        const startDate = new Date(classData.class_start_date);
+        
+        // Invoice 1: due 3 weeks (21 days) before class_start_date
+        const invoice1DueDate = new Date(startDate);
+        invoice1DueDate.setDate(invoice1DueDate.getDate() - 21);
+        
+        // Invoice 2: due 1 week (7 days) after class_start_date
+        const invoice2DueDate = new Date(startDate);
+        invoice2DueDate.setDate(invoice2DueDate.getDate() + 7);
+        
+        // Format dates as YYYY-MM-DD strings
+        const formatDateString = (date: Date): string => {
+          return date.toISOString().split('T')[0];
+        };
+        
+        // Override invoice dates in the response
+        (classData as any).invoice_1_due_date = formatDateString(invoice1DueDate);
+        (classData as any).invoice_2_due_date = formatDateString(invoice2DueDate);
+      } catch (error) {
+        console.error('Error calculating invoice dates:', error);
+        // Continue without modifying dates if calculation fails
+      }
+    }
+
     return NextResponse.json({ class: classData });
   } catch (error: any) {
     console.error('Error in class API:', error);

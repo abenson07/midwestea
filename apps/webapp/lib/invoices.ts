@@ -68,11 +68,36 @@ export async function createRegistrationFeeInvoices(
   // #endregion
   const supabase = createSupabaseAdminClient();
 
-  // Get invoice due dates from class (use payment date + 30 days as fallback)
-  const invoice1DueDate = (classRecord as any)['invoice_1_due_date'];
-  const invoice2DueDate = (classRecord as any)['invoice_2_due_date'];
+  // Get invoice due dates from class, or calculate from class_start_date
+  let invoice1DueDate = (classRecord as any)['invoice_1_due_date'];
+  let invoice2DueDate = (classRecord as any)['invoice_2_due_date'];
   
-  // Fallback to 30 days and 60 days from payment date if not set
+  // Calculate dates from class_start_date if not set and class_start_date exists
+  if ((!invoice1DueDate || !invoice2DueDate) && classRecord.class_start_date) {
+    try {
+      const startDate = new Date(classRecord.class_start_date);
+      
+      // Invoice 1: due 3 weeks (21 days) before class_start_date
+      const calculatedDate1 = new Date(startDate);
+      calculatedDate1.setDate(calculatedDate1.getDate() - 21);
+      
+      // Invoice 2: due 1 week (7 days) after class_start_date
+      const calculatedDate2 = new Date(startDate);
+      calculatedDate2.setDate(calculatedDate2.getDate() + 7);
+      
+      // Format dates as YYYY-MM-DD strings
+      const formatDateString = (date: Date): string => {
+        return date.toISOString().split('T')[0];
+      };
+      
+      invoice1DueDate = invoice1DueDate || formatDateString(calculatedDate1);
+      invoice2DueDate = invoice2DueDate || formatDateString(calculatedDate2);
+    } catch (error) {
+      console.error('[invoices] Error calculating invoice dates from class_start_date:', error);
+    }
+  }
+  
+  // Fallback to 30 days and 60 days from payment date if still not set
   const fallbackDate1 = new Date(paymentDate);
   fallbackDate1.setDate(fallbackDate1.getDate() + 30);
   const fallbackDate2 = new Date(paymentDate);
