@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent, Suspense } from "react";
+import { useState, useEffect, FormEvent, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOTP, resendOTP, getSession } from "@/lib/auth";
 import { Logo } from "@midwestea/ui";
@@ -10,10 +10,11 @@ function OTPForm() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
 
-  const [otp, setOtp] = useState("");
+  const [otpDigits, setOtpDigits] = useState<string[]>(Array(8).fill(""));
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Check if already authenticated
   useEffect(() => {
@@ -36,28 +37,91 @@ function OTPForm() {
     return () => clearTimeout(timer);
   }, [email, router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numbers, no length limit
-    const digits = value.replace(/\D/g, "");
-    setOtp(digits);
-    setError("");
+  const focusInput = (index: number) => {
+    if (inputRefs.current[index]) {
+      inputRefs.current[index]?.focus();
+    }
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+  const handleDigitChange = (index: number, value: string) => {
+    // Only allow digits
+    const digit = value.replace(/\D/g, "").slice(-1); // Take only the last character if multiple
+    
+    if (digit) {
+      const newDigits = [...otpDigits];
+      newDigits[index] = digit;
+      setOtpDigits(newDigits);
+      setError("");
+
+      // Auto-advance to next input
+      if (index < 7) {
+        focusInput(index + 1);
+      }
+    } else {
+      // Clear current input
+      const newDigits = [...otpDigits];
+      newDigits[index] = "";
+      setOtpDigits(newDigits);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (!otpDigits[index] && index > 0) {
+        // If current input is empty, go back and clear previous
+        const newDigits = [...otpDigits];
+        newDigits[index - 1] = "";
+        setOtpDigits(newDigits);
+        focusInput(index - 1);
+      } else if (otpDigits[index]) {
+        // If current input has value, clear it
+        const newDigits = [...otpDigits];
+        newDigits[index] = "";
+        setOtpDigits(newDigits);
+      }
+    } else if (e.key === "Delete") {
+      // Clear current input without moving
+      const newDigits = [...otpDigits];
+      newDigits[index] = "";
+      setOtpDigits(newDigits);
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      e.preventDefault();
+      focusInput(index - 1);
+    } else if (e.key === "ArrowRight" && index < 7) {
+      e.preventDefault();
+      focusInput(index + 1);
+    }
+  };
+
+  const handlePaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData("text").trim();
-    const digits = pastedData.replace(/\D/g, "");
-    setOtp(digits);
-    setError("");
+    const digits = pastedData.replace(/\D/g, "").slice(0, 8); // Extract up to 8 digits
+    
+    if (digits) {
+      const newDigits = [...otpDigits];
+      // Fill inputs starting from the current index
+      for (let i = 0; i < digits.length && (index + i) < 8; i++) {
+        newDigits[index + i] = digits[i];
+      }
+      setOtpDigits(newDigits);
+      setError("");
+
+      // Focus the input after the last filled digit
+      const nextIndex = Math.min(index + digits.length, 7);
+      focusInput(nextIndex);
+    }
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    if (!otp || otp.length === 0) {
-      setError("Please enter the OTP code");
+    // Join all digits together
+    const otp = otpDigits.join("");
+
+    if (!otp || otp.length !== 8) {
+      setError("Please enter the complete 8-digit code");
       return;
     }
 
@@ -87,14 +151,16 @@ function OTPForm() {
         } else {
           setError("Session not established. Please try again.");
           setLoading(false);
-          setOtp("");
+          setOtpDigits(Array(8).fill(""));
+          focusInput(0);
         }
       }
     } else {
       setError(result.error || "Invalid OTP code");
       setLoading(false);
       // Clear OTP on error
-      setOtp("");
+      setOtpDigits(Array(8).fill(""));
+      focusInput(0);
     }
   };
 
@@ -121,90 +187,99 @@ function OTPForm() {
   };
 
   return (
-    <div className="bg-white flex items-center justify-center relative w-full h-screen">
-      <div className="flex flex-col grow h-full items-center px-16 py-0 relative shrink-0 w-full">
-        {/* Navbar */}
-        <div className="flex flex-col h-[72px] items-start justify-center overflow-clip relative shrink-0 w-full">
+    <div className="min-h-screen flex items-center justify-center bg-white md:bg-gray-50 p-4">
+      {/* Background image - only visible on desktop */}
+      <div className="hidden md:block fixed inset-0 overflow-hidden pointer-events-none">
+        <img
+          src="https://cdn.prod.website-files.com/6906768723b00f56b0a6a28e/6912436c1ee78552087a3a09_ccp.avif"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      </div>
+
+      {/* OTP Card */}
+      <div className="w-full md:w-auto md:min-w-[400px] bg-white rounded-lg md:shadow-lg p-8 md:p-10 relative z-10">
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
           <Logo />
         </div>
 
-        {/* Content */}
-        <div className="flex flex-col gap-8 grow items-center justify-center min-h-0 min-w-0 relative shrink-0 w-full">
-          {/* Section Title */}
-          <div className="flex flex-col gap-6 items-center max-w-[480px] relative shrink-0 text-black text-center w-full">
-            <p className="font-bold leading-[1.2] relative shrink-0 text-[48px] w-full">
-              OTP
-            </p>
-            <p className="font-normal leading-[1.5] relative shrink-0 text-[18px] w-full">
-              Enter the OTP we sent to your email
-            </p>
-          </div>
+        {/* Welcome Text */}
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login</h1>
+          <p className="text-gray-600">Check your email for the code</p>
+        </div>
 
-          {/* Form */}
-          <div className="flex flex-col gap-6 items-center justify-center max-w-[480px] relative shrink-0 w-full">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6 w-full">
-              {/* OTP Input */}
-              <div className="flex flex-col gap-2 items-start relative shrink-0 w-full">
-                <label
-                  htmlFor="otp"
-                  className="font-normal leading-[1.5] relative shrink-0 text-black text-[16px] w-full"
-                >
-                  OTP Code*
-                </label>
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* OTP Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label htmlFor="otp-0" className="block text-sm font-medium text-gray-700 mb-3">
+              Verification code
+            </label>
+            <div className="flex gap-2 justify-center">
+              {otpDigits.map((digit, index) => (
                 <input
-                  id="otp"
+                  key={index}
+                  id={`otp-${index}`}
                   type="text"
                   inputMode="numeric"
-                  value={otp}
-                  onChange={handleInputChange}
-                  onPaste={handlePaste}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={(e) => handlePaste(index, e)}
                   disabled={loading}
-                  placeholder="Enter OTP code"
-                  className="border border-black border-solid box-border flex gap-2 items-center p-3 shrink-0 w-full h-[72px] text-center text-xl font-semibold focus:outline-none focus:ring-2 focus:ring-black disabled:opacity-50 rounded-lg"
+                  maxLength={1}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  className="w-12 h-14 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-center text-2xl font-semibold disabled:opacity-50"
                 />
-              </div>
-
-              {/* Error Message */}
-              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-
-              {/* Buttons */}
-              <div className="flex flex-col gap-6 items-center relative shrink-0">
-                <div className="flex flex-col gap-4 items-start relative shrink-0 w-[480px]">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-black border border-black border-solid box-border flex gap-2 items-center justify-center px-6 py-3 relative shrink-0 w-full text-white text-[16px] font-normal leading-[1.5] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-800 transition-colors"
-                  >
-                    {loading ? "Verifying..." : "Confirm"}
-                  </button>
-                </div>
-                <div className="flex font-normal gap-[5px] items-center leading-[1.5] relative shrink-0 text-black text-[16px] text-center whitespace-pre">
-                  <p className="relative shrink-0">Didn&apos;t get the code?</p>
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resendLoading}
-                    className="underline relative shrink-0 cursor-pointer hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {resendLoading ? "Sending..." : "Send a new one"}
-                  </button>
-                </div>
-              </div>
-            </form>
+              ))}
+            </div>
+            {email && (
+              <p className="mt-2 text-sm text-gray-500 text-center">
+                Code sent to {email}
+              </p>
+            )}
           </div>
+
+          <button
+            type="submit"
+            disabled={loading || otpDigits.some(d => !d)}
+            className="w-full bg-gray-900 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading ? "Verifying..." : "Continue"}
+          </button>
+        </form>
+
+        {/* Resend OTP */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendLoading}
+            className="text-sm text-gray-600 hover:text-gray-900 underline disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {resendLoading ? "Sending..." : "Didn't get the code? Send a new one"}
+          </button>
         </div>
 
-        {/* Footer */}
-        <div className="flex gap-[5px] h-[72px] items-center relative shrink-0 w-full">
-          <p className="font-normal leading-[1.5] relative shrink-0 text-black text-[14px] text-center whitespace-pre">
-            © 2022 Relume
-          </p>
+        {/* Back to midwestea.com link */}
+        <div className="mt-6 text-center">
+          <a
+            href="https://midwestea.com"
+            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            ← Back to midwestea.com
+          </a>
         </div>
-      </div>
-
-      {/* Placeholder Image */}
-      <div className="grow h-full min-h-0 min-w-0 relative shrink-0 bg-gray-100">
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300" />
       </div>
     </div>
   );
