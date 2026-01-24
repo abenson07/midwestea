@@ -1,0 +1,300 @@
+{
+  "checklist": {
+    "critical_api_keys": {
+      "stripe": {
+        "title": "Stripe Production Keys",
+        "items": [
+          {
+            "id": "stripe-1",
+            "task": "Switch STRIPE_SECRET_KEY from sk_test_ to sk_live_ (production)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "stripe-2",
+            "task": "Switch NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY from pk_test_ to pk_live_ (production)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "stripe-3",
+            "task": "Create production webhook endpoint in Stripe Dashboard",
+            "completed": false,
+            "notes": "Go to Stripe Dashboard → Developers → Webhooks. Add endpoint: https://yourdomain.com/api/webhooks/stripe (or /app/api/webhooks/stripe if using base path)"
+          },
+          {
+            "id": "stripe-4",
+            "task": "Update STRIPE_WEBHOOK_SECRET with production webhook secret (whsec_...)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "stripe-5",
+            "task": "Test webhook endpoint using Settings page in admin dashboard",
+            "completed": false,
+            "notes": ""
+          }
+        ]
+      },
+      "resend_email": {
+        "title": "Resend Email Verification",
+        "items": [
+          {
+            "id": "resend-1",
+            "task": "Test email delivery in production (send a test enrollment email)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "resend-2",
+            "task": "Verify SMTP settings in Supabase use production credentials",
+            "completed": false,
+            "notes": ""
+          }
+        ]
+      }
+    },
+    "infrastructure": {
+      "environment_variables": {
+        "title": "Environment Variables - Final Check",
+        "description": "Verify all are set in production (Webflow Cloud or your hosting platform)",
+        "public_variables": [
+          {
+            "id": "env-pub-1",
+            "name": "NEXT_PUBLIC_SUPABASE_URL",
+            "description": "Production Supabase project URL",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "env-pub-2",
+            "name": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+            "description": "Production Supabase anonymous key",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "env-pub-3",
+            "name": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+            "description": "Production Stripe publishable key (pk_live_...)",
+            "completed": false,
+            "notes": ""
+          }
+        ],
+        "secret_variables": [
+          {
+            "id": "env-sec-1",
+            "name": "SUPABASE_SERVICE_ROLE_KEY",
+            "description": "Production Supabase service role key",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-2",
+            "name": "STRIPE_SECRET_KEY",
+            "description": "Production Stripe secret key (sk_live_...)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-3",
+            "name": "STRIPE_WEBHOOK_SECRET",
+            "description": "Production Stripe webhook secret (whsec_...)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-4",
+            "name": "RESEND_API_KEY",
+            "description": "Production Resend API key",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-5",
+            "name": "EMAIL_FROM",
+            "description": "Email sender address (e.g., noreply@midwestea.com)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-6",
+            "name": "WEBFLOW_API_TOKEN",
+            "description": "Webflow API token (if using Webflow sync)",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-7",
+            "name": "WEBFLOW_SITE_ID",
+            "description": "Webflow site ID (if using Webflow sync)",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "env-sec-8",
+            "name": "WEBFLOW_CLASSES_COLLECTION_ID",
+            "description": "Webflow classes collection ID (if using Webflow sync)",
+            "completed": true,
+            "notes": ""
+          }
+        ]
+      }
+    },
+    "testing": {
+      "end_to_end": {
+        "title": "End-to-End Testing",
+        "items": [
+          {
+            "id": "test-1",
+            "task": "Test complete checkout flow with real payment (small test amount)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "test-2",
+            "task": "Verify enrollment emails are sent and received",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "test-3",
+            "task": "Verify Stripe webhook processing (use Settings page to test)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "test-4",
+            "task": "Test payment reconciliation flow",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "test-5",
+            "task": "Verify RLS policies work correctly (users can only access their own data)",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "test-6",
+            "task": "Test admin authentication and access control",
+            "completed": false,
+            "notes": ""
+          }
+        ]
+      }
+    },
+    "monitoring": {
+      "title": "Monitoring Setup",
+      "items": [
+        {
+          "id": "monitor-1",
+          "task": "Set up error monitoring (e.g., Sentry, LogRocket, or similar)",
+          "completed": false,
+          "notes": ""
+        },
+        {
+          "id": "monitor-2",
+          "task": "Monitor Stripe webhook delivery in Stripe Dashboard",
+          "completed": false,
+          "notes": ""
+        },
+        {
+          "id": "monitor-3",
+          "task": "Monitor email delivery in Resend dashboard",
+          "completed": false,
+          "notes": ""
+        },
+        {
+          "id": "monitor-4",
+          "task": "Set up alerts for failed webhooks or payments",
+          "completed": false,
+          "notes": ""
+        }
+      ]
+    },
+    "additional": {
+      "rate_limits": {
+        "title": "Rate Limits",
+        "items": [
+          {
+            "id": "rate-1",
+            "task": "Verify Resend rate limits are sufficient (free tier: 100 emails/day)",
+            "completed": true,
+            "notes": ""
+          },
+          {
+            "id": "rate-2",
+            "task": "Monitor Stripe API rate limits",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "rate-3",
+            "task": "Plan for scaling if needed",
+            "completed": true,
+            "notes": ""
+          }
+        ]
+      },
+      "backup_recovery": {
+        "title": "Backup and Recovery",
+        "items": [
+          {
+            "id": "backup-1",
+            "task": "Ensure database backups are configured in Supabase",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "backup-2",
+            "task": "Test database restore procedure",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "backup-3",
+            "task": "Document data recovery procedures",
+            "completed": false,
+            "notes": ""
+          }
+        ]
+      },
+      "documentation": {
+        "title": "Documentation",
+        "items": [
+          {
+            "id": "doc-1",
+            "task": "Document production URLs and endpoints",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "doc-2",
+            "task": "Document rollback procedures",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "doc-3",
+            "task": "Document how to rotate keys/credentials",
+            "completed": false,
+            "notes": ""
+          },
+          {
+            "id": "doc-4",
+            "task": "Create runbook for common production issues",
+            "completed": false,
+            "notes": ""
+          }
+        ]
+      }
+    }
+  },
+  "metadata": {
+    "last_updated": "2025-01-29",
+    "version": "1.0",
+    "notes": "Production readiness checklist - mark items as completed by setting 'completed' to true"
+  }
+}
+
