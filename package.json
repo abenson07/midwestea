@@ -11,7 +11,6 @@
     "apply-migrations:api": "tsx scripts/apply-migrations-via-api.ts",
     "list-tables": "tsx scripts/list-tables.ts",
     "setup-logs": "tsx scripts/setup-and-apply-logs-migration.ts",
-    "insert-daily-log": "tsx scripts/insert-daily-log.ts",
     "test-resend-key": "tsx scripts/test-resend-api-key.ts",
     "test-otp-email": "tsx scripts/test-otp-email.ts",
     "test-email-templates": "tsx scripts/test-email-templates.ts",

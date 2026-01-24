@@ -28,9 +28,6 @@ import {
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:16',message:'Stripe webhook POST received',data:{hasSignature:!!request.headers.get('stripe-signature')},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   
   // Get the raw body as text - critical for Stripe signature verification
   // Read as ArrayBuffer first to ensure we get the exact raw bytes without any transformation
@@ -83,23 +80,13 @@ export async function POST(request: NextRequest) {
     // Important: body must be the raw string, signature must be from headers
     // If this fails, the body was likely modified before reaching this handler
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:50',message:'Event constructed successfully',data:{eventType:event.type,eventId:event.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
   } catch (err: any) {
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:52',message:'Webhook signature verification failed',data:{error:err.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     console.error('[webhook] Webhook signature verification failed:', err.message);
     return NextResponse.json(
       { error: `Webhook signature verification failed: ${err.message}` },
       { status: 400 }
     );
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:60',message:'Webhook event received',data:{eventType:event.type,eventId:event.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
 
   // Handle checkout.session.completed event (for payment links)
   if (event.type === 'checkout.session.completed') {
@@ -1029,9 +1016,6 @@ export async function POST(request: NextRequest) {
   }
 
   // Return success for other event types (we only handle payment_intent.succeeded)
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'webhooks/stripe/route.ts:208',message:'Unhandled event type',data:{eventType:event.type,eventId:event.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
   console.log('[webhook] Received unhandled event type:', event.type);
   return NextResponse.json({ received: true });
 }

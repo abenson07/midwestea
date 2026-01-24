@@ -80,10 +80,9 @@ export async function GET(request: NextRequest) {
       return stringValue;
     }
 
-    // Helper function to format amount (keep as cents, or convert to dollars based on QuickBooks format)
-    // QuickBooks typically expects amounts in dollars, but check your sample CSV format
+    // Helper function to format amount (keep as cents, or convert to dollars)
     function formatAmount(cents: number): string {
-      // Convert cents to dollars for QuickBooks
+      // Convert cents to dollars
       return (cents / 100).toFixed(2);
     }
 

@@ -22,9 +22,6 @@ export interface InvoiceToImport {
  * Get the next invoice number from the sequence
  */
 async function getNextInvoiceNumber(): Promise<number> {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:24',message:'getNextInvoiceNumber called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
   const supabase = createSupabaseAdminClient();
   
   // Use a database function to get the next invoice number
@@ -35,10 +32,6 @@ async function getNextInvoiceNumber(): Promise<number> {
     .order('invoice_number', { ascending: false })
     .limit(1)
     .single();
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:35',message:'getNextInvoiceNumber query result',data:{hasError:!!error,errorCode:error?.code,errorMessage:error?.message,hasData:!!data,currentMax:data?.invoice_number},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
 
   if (error && error.code !== 'PGRST116') {
     // PGRST116 is "not found" which is fine if table is empty
@@ -55,7 +48,7 @@ async function getNextInvoiceNumber(): Promise<number> {
 
 /**
  * Create invoice records for a registration fee payment
- * Creates 2 invoices (invoice 1 and invoice 2) as per the old QuickBooks approach
+ * Creates 2 invoices (invoice 1 and invoice 2)
  */
 export async function createRegistrationFeeInvoices(
   paymentId: string,
@@ -63,9 +56,6 @@ export async function createRegistrationFeeInvoices(
   customerEmail: string,
   paymentDate: Date
 ): Promise<InvoiceToImport[]> {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:53',message:'createRegistrationFeeInvoices called',data:{paymentId,classId:classRecord.id,classIdText:classRecord.class_id,customerEmail,price:classRecord.price,registrationFee:classRecord.registration_fee},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
   const supabase = createSupabaseAdminClient();
 
   // Get invoice due dates from class, or calculate from class_start_date
@@ -199,18 +189,10 @@ export async function createRegistrationFeeInvoices(
     paymentId,
   });
 
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:159',message:'About to insert invoices to database',data:{count:invoicesToInsert.length,invoiceNumbers:invoicesToInsert.map(i=>i.invoice_number),paymentId,classId:invoicesToInsert[0].class_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
-
   const { data: insertedInvoices, error } = await supabase
     .from('invoices_to_import')
     .insert(invoicesToInsert)
     .select();
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:164',message:'Database insert result',data:{hasError:!!error,errorCode:error?.code,errorMessage:error?.message,errorDetails:error?.details,errorHint:error?.hint,insertedCount:insertedInvoices?.length,insertedInvoiceNumbers:insertedInvoices?.map(i=>i.invoice_number)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
 
   if (error) {
     const errorDetails = {

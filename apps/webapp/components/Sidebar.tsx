@@ -14,6 +14,7 @@ import {
   CreditCard,
   Download,
   Loader2,
+  Settings,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Instructors", href: "/dashboard/instructors", icon: FileText },
   { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
   { name: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export function Sidebar() {
