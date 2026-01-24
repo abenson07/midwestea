@@ -11,3 +11,7 @@ UPDATE transactions SET downloaded = FALSE WHERE downloaded IS NULL;
 
 
 
+
+
+
+

@@ -398,7 +398,7 @@ export async function getClassType(classId: string): Promise<'course' | 'program
 
 /**
  * Get the next invoice number from the transactions table
- * Returns the highest invoice_number + 1, or 1 if no transactions exist
+ * Returns the highest invoice_number + 1, or 1000 if no transactions exist
  */
 export async function getNextTransactionInvoiceNumber(): Promise<number> {
   const supabase = createSupabaseAdminClient();
@@ -419,8 +419,8 @@ export async function getNextTransactionInvoiceNumber(): Promise<number> {
     return data.invoice_number + 1;
   }
 
-  // Start at 1 if no transactions exist
-  return 1;
+  // Start at 1000 if no transactions exist
+  return 1000;
 }
 
 /**

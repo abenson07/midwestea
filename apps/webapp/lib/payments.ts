@@ -62,11 +62,16 @@ export async function getPayments(): Promise<{ payments: PaymentWithDetails[] | 
       // Get class name
       const className = classRecord?.class_name || "Unknown Class";
 
+      // Calculate amount the same way as transactions table: quantity * amount_due
+      const quantity = transaction.quantity || 1;
+      const amountDue = transaction.amount_due || 0;
+      const calculatedAmount = quantity * amountDue;
+
       // Map transaction fields to payment fields
       return {
         id: transaction.id,
         enrollment_id: transaction.enrollment_id,
-        amount_cents: transaction.amount_paid || transaction.amount_due || 0,
+        amount_cents: calculatedAmount,
         stripe_payment_intent_id: transaction.stripe_payment_intent_id,
         stripe_receipt_url: null, // transactions table doesn't have this field
         payment_status: transaction.transaction_status || 'pending',
@@ -159,11 +164,16 @@ export async function getPaymentsByStudentId(studentId: string): Promise<{ payme
       // Get class name
       const className = classRecord?.class_name || "Unknown Class";
 
+      // Calculate amount the same way as transactions table: quantity * amount_due
+      const quantity = transaction.quantity || 1;
+      const amountDue = transaction.amount_due || 0;
+      const calculatedAmount = quantity * amountDue;
+
       // Map transaction fields to payment fields
       return {
         id: transaction.id,
         enrollment_id: transaction.enrollment_id,
-        amount_cents: transaction.amount_paid || transaction.amount_due || 0,
+        amount_cents: calculatedAmount,
         stripe_payment_intent_id: transaction.stripe_payment_intent_id,
         stripe_receipt_url: null, // transactions table doesn't have this field
         payment_status: transaction.transaction_status || 'pending',

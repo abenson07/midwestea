@@ -21,3 +21,7 @@ UPDATE courses SET stripe_payment_link = 'https://buy.stripe.com/cNi9AT5F5cJJfo1
 
 
 
+
+
+
+

@@ -673,6 +673,24 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Fallback: Try to get email from charge billing_details if not found in customer
+      if (!email && paymentIntent.latest_charge) {
+        try {
+          const chargeId = typeof paymentIntent.latest_charge === 'string' 
+            ? paymentIntent.latest_charge 
+            : paymentIntent.latest_charge.id;
+          const charge = await stripe.charges.retrieve(chargeId);
+          if (charge.billing_details?.email) {
+            email = charge.billing_details.email;
+          }
+          if (charge.billing_details?.name && !fullName) {
+            fullName = charge.billing_details.name;
+          }
+        } catch (err) {
+          console.warn('[webhook] Failed to retrieve charge:', err);
+        }
+      }
+
       // Validate required data
       if (!email) {
         console.error('[webhook] Could not extract email from payment intent');
