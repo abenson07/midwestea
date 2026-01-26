@@ -187,7 +187,7 @@ function CheckoutConfirmContent() {
 
   // Use 'class_image' as the field name in the database
   const imageUrlValue = (classData as any)['class_image'] || undefined;
-  const hasRegistrationFee = !!(classData.registration_fee && classData.registration_fee > 0);
+  const hasTuition = !!(classData.price && classData.price > 0);
   const invoice1DueDate = (classData as any)['invoice_1_due_date'] || undefined;
   const invoice2DueDate = (classData as any)['invoice_2_due_date'] || undefined;
 
@@ -242,11 +242,11 @@ function CheckoutConfirmContent() {
       wrapperClassName="checkout-payment-schedule-wrapper"
     >
       <CheckoutPaymentSchedule
-        hasRegistrationFee={hasRegistrationFee}
-        registrationFee={hasRegistrationFee ? classData.registration_fee || undefined : undefined}
+        hasTuition={hasTuition}
+        registrationFee={classData.registration_fee || undefined}
         price={classData.price || undefined}
-        invoice1DueDate={hasRegistrationFee ? invoice1DueDate : undefined}
-        invoice2DueDate={hasRegistrationFee ? invoice2DueDate : undefined}
+        invoice1DueDate={hasTuition ? invoice1DueDate : undefined}
+        invoice2DueDate={hasTuition ? invoice2DueDate : undefined}
       />
     </CheckoutLayout>
   );

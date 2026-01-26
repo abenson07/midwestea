@@ -594,7 +594,7 @@ function CheckoutDetailsContent() {
 
         {/* Payment Schedule */}
         <CheckoutPaymentSchedule
-          hasRegistrationFee={!!(classData.registration_fee && classData.registration_fee > 0)}
+          hasTuition={!!(classData.price && classData.price > 0)}
           registrationFee={classData.registration_fee || undefined}
           price={classData.price || undefined}
           invoice1DueDate={(classData as any)['invoice_1_due_date'] || undefined}

@@ -1,7 +1,7 @@
 'use client';
 
 interface CheckoutPaymentScheduleProps {
-  hasRegistrationFee: boolean;
+  hasTuition: boolean;
   registrationFee?: number; // in cents
   price?: number; // in cents
   invoice1DueDate?: string;
@@ -9,7 +9,7 @@ interface CheckoutPaymentScheduleProps {
 }
 
 export default function CheckoutPaymentSchedule({
-  hasRegistrationFee,
+  hasTuition,
   registrationFee,
   price,
   invoice1DueDate,
@@ -29,8 +29,8 @@ export default function CheckoutPaymentSchedule({
     return `$${(amount / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  if (!hasRegistrationFee) {
-    // Simple payment: just show the price due today
+  if (!hasTuition) {
+    // Simple payment: just show the registration fee due today
     return (
       <div
         className="checkout-payment-schedule"
@@ -87,7 +87,7 @@ export default function CheckoutPaymentSchedule({
                 color: 'var(--semantics-text, #191920)'
               }}
             >
-              {price ? formatCurrency(price) : '$0.00'}
+              {registrationFee ? formatCurrency(registrationFee) : '$0.00'} {registrationFee ? 'registration fee' : ''}
             </p>
             <p
               style={{
@@ -106,7 +106,7 @@ export default function CheckoutPaymentSchedule({
     );
   }
 
-  // Has registration fee: show registration fee + two installment payments
+  // Has tuition: show registration fee + two installment payments
   const halfPrice = price ? Math.floor(price / 2) : 0;
   const remainder = price ? price - halfPrice : 0;
 
