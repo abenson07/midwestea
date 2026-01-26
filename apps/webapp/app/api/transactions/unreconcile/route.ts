@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 
+export const runtime = 'nodejs';
+
 /**
  * POST /api/transactions/unreconcile
  * Undo reconciliation for a transaction (set reconciled = false)

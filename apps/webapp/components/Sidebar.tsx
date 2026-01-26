@@ -8,7 +8,6 @@ import {
   Users,
   GraduationCap,
   CheckSquare,
-  FileText,
   LogOut,
   FolderOpen,
   CreditCard,
@@ -24,9 +23,7 @@ const navigation = [
   { name: "Programs", href: "/dashboard/programs", icon: FolderOpen },
   { name: "Classes", href: "/dashboard/classes", icon: Users },
   { name: "Students", href: "/dashboard/students", icon: GraduationCap },
-  { name: "Instructors", href: "/dashboard/instructors", icon: FileText },
   { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
-  { name: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
