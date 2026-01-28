@@ -9,25 +9,36 @@ export interface AuthResponse {
 }
 
 /**
- * Send OTP to email address
+ * Send OTP to email address (admin users only)
+ * Calls API route that checks admin status before sending OTP
  */
 export async function signInWithOTP(email: string): Promise<AuthResponse> {
   try {
-    const supabase = await createSupabaseClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: true,
+    // Determine base path - in production it's /app, in dev it might be empty
+    const basePath = typeof window !== 'undefined' 
+      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+      : '';
+    
+    const response = await fetch(`${basePath}/api/auth/send-otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ email }),
     });
 
-    if (error) {
-      return { success: false, error: error.message };
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { 
+        success: false, 
+        error: data.error || 'Failed to send OTP' 
+      };
     }
 
     return { success: true };
   } catch (err) {
-    const error = err as AuthError;
+    const error = err as Error;
     return { success: false, error: error.message || "Failed to send OTP" };
   }
 }
