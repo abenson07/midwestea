@@ -66,10 +66,13 @@ export async function GET(
         classData.enrollment_start <= today &&
         classData.enrollment_close >= today);
     if (!enrollmentOpen) {
-      return NextResponse.json(
-        { error: 'Enrollment for this class has closed.' },
-        { status: 410 }
-      );
+      const body: { error: string; courseCode?: string } = {
+        error: 'Enrollment for this class has closed.',
+      };
+      if (classData.course_code) {
+        body.courseCode = classData.course_code;
+      }
+      return NextResponse.json(body, { status: 410 });
     }
 
     // Calculate invoice due dates based on class_start_date if it exists

@@ -81,6 +81,25 @@ function CheckoutDetailsContent() {
         
         if (!classResponse.ok) {
           const errorData = await classResponse.json().catch(() => ({ error: 'Unknown error' }));
+          // 410 = enrollment closed: redirect to an open class in same course, or to waitlist
+          if (classResponse.status === 410 && errorData.courseCode) {
+            const classesResponse = await fetch(`${basePath}/api/classes/by-course-code/${errorData.courseCode}`);
+            if (classesResponse.ok) {
+              const classesResult = await classesResponse.json();
+              const openClasses = classesResult.classes || [];
+              if (openClasses.length > 0) {
+                const firstClass = openClasses[0];
+                const params = new URLSearchParams();
+                params.set('classID', firstClass.classId);
+                if (emailParam) params.set('email', emailParam);
+                if (fullNameParam) params.set('fullName', fullNameParam);
+                router.replace(`/checkout/details?${params.toString()}`);
+                return;
+              }
+            }
+            router.replace(`/checkout/waitlist?courseCode=${encodeURIComponent(errorData.courseCode)}`);
+            return;
+          }
           throw new Error(errorData.error || 'Failed to load class information');
         }
 
@@ -235,6 +254,7 @@ function CheckoutDetailsContent() {
 
       if (!checkoutResponse.ok) {
         const errorData = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
+        // #region agent log
         throw new Error(errorData.error || 'Failed to create checkout session');
       }
 
