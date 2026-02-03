@@ -57,6 +57,21 @@ export async function GET(
       );
     }
 
+    // Reject if enrollment window is closed (enrollment_start <= today <= enrollment_close, or is_online)
+    const today = new Date().toISOString().split('T')[0];
+    const enrollmentOpen =
+      classData.is_online === true ||
+      (classData.enrollment_start &&
+        classData.enrollment_close &&
+        classData.enrollment_start <= today &&
+        classData.enrollment_close >= today);
+    if (!enrollmentOpen) {
+      return NextResponse.json(
+        { error: 'Enrollment for this class has closed.' },
+        { status: 410 }
+      );
+    }
+
     // Calculate invoice due dates based on class_start_date if it exists
     if (classData.class_start_date) {
       try {

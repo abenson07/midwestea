@@ -34,11 +34,12 @@ export async function GET(
     }
 
     const supabase = createSupabaseAdminClient();
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-    // Fetch all classes for this course code
+    // Fetch all classes for this course code (include enrollment dates for filtering)
     const { data: classes, error } = await supabase
       .from('classes')
-      .select('id, class_id, class_name, class_start_date, location, is_online')
+      .select('id, class_id, class_name, class_start_date, location, is_online, enrollment_start, enrollment_close')
       .eq('course_code', courseCode)
       .order('class_start_date', { ascending: true });
 
@@ -49,6 +50,15 @@ export async function GET(
         { status: 500, headers }
       );
     }
+
+    // Only include classes whose enrollment window is open: enrollment_start <= today <= enrollment_close, or is_online
+    const openEnrollmentClasses = (classes || []).filter((classItem) => {
+      if (classItem.is_online === true) return true;
+      if (classItem.enrollment_start && classItem.enrollment_close) {
+        return classItem.enrollment_start <= today && classItem.enrollment_close >= today;
+      }
+      return false;
+    });
 
     // Format dates for display
     const formatDate = (dateString: string | null): string => {
@@ -62,7 +72,7 @@ export async function GET(
     };
 
     // Format response
-    const formattedClasses = (classes || []).map((classItem) => ({
+    const formattedClasses = openEnrollmentClasses.map((classItem) => ({
       id: classItem.id,
       classId: classItem.class_id || '',
       className: classItem.class_name || '',
