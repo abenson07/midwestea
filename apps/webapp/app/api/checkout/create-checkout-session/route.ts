@@ -111,11 +111,22 @@ export async function POST(request: NextRequest) {
     let classRecord;
     try {
       console.log(`Fetching class with class_id: ${classId}`);
-      const { data, error: classError } = await supabase
+      let { data, error: classError } = await supabase
         .from('classes')
         .select('stripe_price_id, id, class_id')
         .eq('class_id', classId)
-        .single();
+        .maybeSingle();
+
+      if (!data && !classError) {
+        const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
+          .from('classes')
+          .select('stripe_price_id, id, class_id')
+          .ilike('class_id', classId)
+          .maybeSingle();
+
+        data = caseInsensitiveData;
+        classError = caseInsensitiveError;
+      }
 
       if (classError) {
         console.error('Supabase query error:', {
