@@ -66,6 +66,14 @@ export async function GET(
         classData.enrollment_start <= today &&
         classData.enrollment_close >= today);
     if (!enrollmentOpen) {
+      console.log('[by-class-id] 410 enrollment closed:', {
+        classId,
+        courseCode: classData.course_code,
+        enrollment_start: classData.enrollment_start,
+        enrollment_close: classData.enrollment_close,
+        is_online: classData.is_online,
+        today,
+      });
       const body: { error: string; courseCode?: string } = {
         error: 'Enrollment for this class has closed.',
       };

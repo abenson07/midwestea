@@ -46,6 +46,7 @@
     const hashParams = parseHashParams();
     
     if (hashParams.course_code) {
+      console.log('[Course Detail] getCourseValues from URL hash:', hashParams);
       return {
         courseCode: hashParams.course_code,
         classId: hashParams.class_id || null
@@ -63,6 +64,7 @@
       const classId = cmsButton.getAttribute('data-class-id');
       
       if (courseCode) {
+        console.log('[Course Detail] getCourseValues from CMS button:', { courseCode, classId });
         return {
           courseCode: courseCode,
           classId: classId || null
@@ -76,6 +78,7 @@
       const classId = localStorage.getItem('webflow_class_id');
       
       if (courseCode) {
+        console.log('[Course Detail] getCourseValues from localStorage:', { courseCode, classId });
         return {
           courseCode: courseCode,
           classId: classId || null
@@ -85,6 +88,7 @@
       console.error('Course Detail: Error reading from localStorage:', error);
     }
     
+    console.log('[Course Detail] getCourseValues: no values found (URL, CMS, localStorage)');
     return null;
   }
 
@@ -135,6 +139,7 @@
     // Update href to point to checkout page with lowercase classId
     const checkoutUrl = '/app/checkout/details?classID=' + encodeURIComponent(classId.toLowerCase());
     button.setAttribute('href', checkoutUrl);
+    console.log('[Course Detail] Checkout button href set:', checkoutUrl, 'courseCode:', courseCode, 'classId:', classId);
     
     return true;
   }
@@ -146,6 +151,7 @@
     // Wait a bit for CMS bindings to populate
     setTimeout(function() {
       const values = getCourseValues();
+      console.log('[Course Detail] init values:', values, 'pathname:', window.location.pathname);
       
       // Find all checkout buttons using data attribute
       const checkoutButtons = document.querySelectorAll('[data-checkout-button]');

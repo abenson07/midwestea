@@ -60,6 +60,8 @@ export async function GET(
       return false;
     });
 
+    console.log('[by-course-code] courseCode:', courseCode, 'totalClasses:', (classes || []).length, 'openEnrollmentCount:', openEnrollmentClasses.length, 'openClassIds:', openEnrollmentClasses.map((c) => c.class_id));
+
     // Format dates for display
     const formatDate = (dateString: string | null): string => {
       if (!dateString) return '';

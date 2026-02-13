@@ -77,26 +77,33 @@ function CheckoutDetailsContent() {
           : '';
         
         // Fetch the specific class
+        console.log('[checkout/details] Fetching class by ID:', classIDParam);
         const classResponse = await fetch(`${basePath}/api/classes/by-class-id/${classIDParam}`);
         
         if (!classResponse.ok) {
           const errorData = await classResponse.json().catch(() => ({ error: 'Unknown error' }));
+          console.log('[checkout/details] Class fetch failed:', { status: classResponse.status, classIDParam, errorData });
           // 410 = enrollment closed: redirect to an open class in same course, or to waitlist
           if (classResponse.status === 410 && errorData.courseCode) {
+            console.log('[checkout/details] 410 with courseCode, checking for open classes:', errorData.courseCode);
             const classesResponse = await fetch(`${basePath}/api/classes/by-course-code/${errorData.courseCode}`);
+            console.log('[checkout/details] by-course-code response:', { ok: classesResponse.ok, status: classesResponse.status });
             if (classesResponse.ok) {
               const classesResult = await classesResponse.json();
               const openClasses = classesResult.classes || [];
+              console.log('[checkout/details] Open classes for course:', { courseCode: errorData.courseCode, count: openClasses.length, classIds: openClasses.map((c: { classId: string }) => c.classId) });
               if (openClasses.length > 0) {
                 const firstClass = openClasses[0];
                 const params = new URLSearchParams();
                 params.set('classID', firstClass.classId);
                 if (emailParam) params.set('email', emailParam);
                 if (fullNameParam) params.set('fullName', fullNameParam);
+                console.log('[checkout/details] Redirecting to open class:', firstClass.classId);
                 router.replace(`/checkout/details?${params.toString()}`);
                 return;
               }
             }
+            console.log('[checkout/details] No open classes, redirecting to waitlist:', errorData.courseCode);
             router.replace(`/checkout/waitlist?courseCode=${encodeURIComponent(errorData.courseCode)}`);
             return;
           }
@@ -105,6 +112,7 @@ function CheckoutDetailsContent() {
 
         const classResult = await classResponse.json();
         const fetchedClass = classResult.class;
+        console.log('[checkout/details] Class loaded successfully:', { classId: fetchedClass.class_id, courseCode: fetchedClass.course_code });
         
         // Cache this class
         updateCache({ [fetchedClass.class_id]: fetchedClass });
