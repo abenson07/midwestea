@@ -26,18 +26,22 @@ export async function POST(request: NextRequest) {
 
     // Use admin client to check if email exists in admins table
     const supabase = createSupabaseAdminClient();
-    
+    const normalizedEmail = email.toLowerCase().trim();
+
     // Check if email exists in admins table (not deleted)
+    // Use ilike for case-insensitive match - stored email may have different casing
     const { data: admin, error: adminError } = await supabase
       .from('admins')
       .select('id, email')
-      .eq('email', email.toLowerCase().trim())
+      .ilike('email', normalizedEmail)
       .is('deleted_at', null)
-      .single();
+      .maybeSingle();
 
     // If admin not found, return generic error without revealing admin check
     if (adminError || !admin) {
-      // Return generic error message to avoid revealing admin status
+      if (adminError) {
+        console.error('[auth/send-otp] Admin lookup error:', adminError.message, 'code:', adminError.code);
+      }
       return NextResponse.json(
         { success: false, error: 'Failed to send OTP. Please check your email address.' },
         { status: 403 }
@@ -46,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Admin found - send OTP using Supabase Auth
     const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       options: {
         shouldCreateUser: true,
       },

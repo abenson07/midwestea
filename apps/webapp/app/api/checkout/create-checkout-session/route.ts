@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
       console.error('STRIPE_SECRET_KEY is not configured');
       console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('STRIPE')));
       return NextResponse.json(
+        { error: 'Payment configuration is missing. Please contact support.' },
         { status: 500 }
       );
     }
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
         availableEnvVars: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
       });
       return NextResponse.json(
+        { error: 'Database configuration is missing. Please contact support.' },
         { status: 500 }
       );
     }
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
     } catch (stripeError: any) {
       console.error('Error initializing Stripe client:', stripeError);
       return NextResponse.json(
+        { error: 'Payment service could not be initialized. Please try again.' },
         { status: 500 }
       );
     }
@@ -83,6 +86,7 @@ export async function POST(request: NextRequest) {
       if (testError) {
         console.error('Supabase connection test failed:', testError);
         return NextResponse.json(
+          { error: 'Database connection failed. Please try again.' },
           { status: 500 }
         );
       }
@@ -137,6 +141,7 @@ export async function POST(request: NextRequest) {
           hint: classError.hint
         });
         return NextResponse.json(
+          { error: 'Class not found. Please check the link and try again.' },
           { status: 404 }
         );
       }
@@ -144,6 +149,7 @@ export async function POST(request: NextRequest) {
       if (!data) {
         console.error(`No class record found for class_id: ${classId}`);
         return NextResponse.json(
+          { error: 'Class not found. Please check the link and try again.' },
           { status: 404 }
         );
       }
@@ -158,6 +164,7 @@ export async function POST(request: NextRequest) {
         name: dbError?.name
       });
       return NextResponse.json(
+        { error: 'Database error. Please try again.' },
         { status: 500 }
       );
     }
@@ -165,6 +172,7 @@ export async function POST(request: NextRequest) {
     if (!classRecord.stripe_price_id) {
       console.error(`Class ${classId} missing stripe_price_id`);
       return NextResponse.json(
+        { error: 'Class is missing price configuration. Please contact support.' },
         { status: 400 }
       );
     }
@@ -295,7 +303,6 @@ export async function POST(request: NextRequest) {
       
       // Convert to format expected by rest of code
       session = { id: sessionResult.id, url: sessionResult.url };
-      
       console.log(`Checkout session created successfully: ${session.id}`);
     } catch (stripeSessionError: any) {
       console.error('Stripe checkout session creation error:', {
@@ -307,6 +314,7 @@ export async function POST(request: NextRequest) {
         param: stripeSessionError?.param
       });
       return NextResponse.json(
+        { error: stripeSessionError?.message || 'Failed to create checkout session. Please try again.' },
         { status: 500 }
       );
     }
@@ -314,13 +322,12 @@ export async function POST(request: NextRequest) {
     if (!session.url) {
       console.error('Checkout session created but no URL returned');
       return NextResponse.json(
+        { error: 'Checkout URL could not be generated. Please try again or contact support.' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({
-      checkoutUrl: session.url,
-    });
+    return NextResponse.json({ checkoutUrl: session.url });
   } catch (error: any) {
     console.error('Unexpected error creating checkout session:', {
       error: error,

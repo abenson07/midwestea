@@ -260,13 +260,13 @@ function CheckoutDetailsContent() {
         }),
       });
 
+      const data = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
+
       if (!checkoutResponse.ok) {
-        const errorData = await checkoutResponse.json().catch(() => ({ error: 'Unknown error' }));
-        // #region agent log
-        throw new Error(errorData.error || 'Failed to create checkout session');
+        throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      const { checkoutUrl } = await checkoutResponse.json();
+      const { checkoutUrl } = data;
       
       if (!checkoutUrl) {
         throw new Error('Checkout URL not received from server');
