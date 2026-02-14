@@ -11,8 +11,7 @@ export interface StudentWithEmail extends Student {
 
 /**
  * Fetch all students from the students table
- * Note: Email is stored in auth.users, so we'll attempt to get it via auth admin API
- * Uses full_name field from the database
+ * Uses full_name and email from the database
  */
 export async function getStudents(): Promise<{ students: StudentWithEmail[] | null; error: string | null }> {
   try {
@@ -36,14 +35,15 @@ export async function getStudents(): Promise<{ students: StudentWithEmail[] | nu
       return { students: [], error: null };
     }
 
-    // Transform students to include name from full_name field
+    // Transform students to include name from full_name field and email from students table
     const studentsWithEmail: StudentWithEmail[] = data.map((student) => {
       const name = student.full_name || "Unknown Student";
-      
+      const email = student.email ?? null;
+
       return {
         ...student,
         name,
-        email: null, // Email will need to be fetched separately or via database view
+        email,
       };
     });
 
@@ -80,36 +80,9 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
       return { student: null, error: null };
     }
 
-    // Transform student to include name from full_name field
+    // Transform student to include name from full_name field and email from students table
     const name = data.full_name || "Unknown Student";
-
-    // Fetch email from auth via API route
-    let email: string | null = null;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const basePath = typeof window !== 'undefined' 
-          ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-          : '';
-        
-        const emailResponse = await fetch(`${basePath}/api/students/${id}/email`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (emailResponse.ok) {
-          const emailResult = await emailResponse.json();
-          if (emailResult.success) {
-            email = emailResult.email;
-          }
-        }
-      }
-    } catch (emailError) {
-      console.warn("[getStudentById] Failed to fetch email:", emailError);
-      // Don't fail the whole request if email fetch fails
-    }
+    const email = data.email ?? null;
 
     const studentWithEmail: StudentWithEmail = {
       ...data,
@@ -153,18 +126,19 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
       return { students: [], error: null };
     }
 
-    // Transform enrollments to extract students
+    // Transform enrollments to extract students with name and email from students table
     const studentsWithEmail: StudentWithEmail[] = data
       .map((enrollment: any) => {
         const student = enrollment.students;
         if (!student) return null;
 
         const name = student.full_name || "Unknown Student";
+        const email = student.email ?? null;
 
         return {
           ...student,
           name,
-          email: null, // Email will need to be fetched separately or via database view
+          email,
         };
       })
       .filter((student): student is StudentWithEmail => student !== null);

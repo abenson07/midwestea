@@ -13,8 +13,7 @@ export interface StudentWithEmail extends Student {
 
 /**
  * Fetch all students from the students table
- * Note: Email is stored in auth.users, so we'll attempt to get it via auth admin API
- * For now, we'll return students with name formatted from first_name + last_name
+ * Uses first_name/last_name for name and email from the database
  */
 export async function getStudents(): Promise<{ students: StudentWithEmail[] | null; error: string | null }> {
   try {
@@ -38,18 +37,19 @@ export async function getStudents(): Promise<{ students: StudentWithEmail[] | nu
       return { students: [], error: null };
     }
 
-    // Transform students to include formatted name and attempt to get email
+    // Transform students to include formatted name and email from students table
     const studentsWithEmail: StudentWithEmail[] = data.map((student) => {
       const firstName = student.first_name || "";
       const lastName = student.last_name || "";
       const name = firstName || lastName 
         ? `${firstName} ${lastName}`.trim() 
         : "Unknown Student";
-      
+      const email = student.email ?? null;
+
       return {
         ...student,
         name,
-        email: null, // Email will need to be fetched separately or via database view
+        email,
       };
     });
 
@@ -89,7 +89,7 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
       return { students: [], error: null };
     }
 
-    // Transform enrollments to extract students
+    // Transform enrollments to extract students with name and email from students table
     const studentsWithEmail: StudentWithEmail[] = data
       .map((enrollment: any) => {
         const student = enrollment.students;
@@ -100,11 +100,12 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
         const name = firstName || lastName 
           ? `${firstName} ${lastName}`.trim() 
           : "Unknown Student";
+        const email = student.email ?? null;
 
         return {
           ...student,
           name,
-          email: null, // Email will need to be fetched separately or via database view
+          email,
         };
       })
       .filter((student): student is StudentWithEmail => student !== null);

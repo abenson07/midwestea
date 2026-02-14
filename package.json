@@ -15,6 +15,7 @@
     "test-otp-email": "tsx scripts/test-otp-email.ts",
     "test-email-templates": "tsx scripts/test-email-templates.ts",
     "render-email-preview": "tsx scripts/render-email-preview.ts",
+    "export-stripe-transactions": "tsx scripts/export-stripe-transactions.ts",
     "webflow": "webflow",
     "webflow:auth:login": "webflow auth login",
     "webflow:cloud:init": "webflow cloud init",
@@ -22,6 +23,7 @@
     "webflow:cloud:list": "webflow cloud list"
   },
   "devDependencies": {
+    "stripe": "^14.21.0",
     "@supabase/supabase-js": "^2.39.0",
     "@webflow/webflow-cli": "^1.8.49",
     "dotenv": "^16.4.5",

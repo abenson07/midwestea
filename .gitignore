@@ -29,6 +29,9 @@ pnpm-debug.log*
 .env*.local
 .env.local
 
+# Exported data (contains customer PII)
+stripe-transactions-export.csv
+
 # Vercel
 .vercel
 
