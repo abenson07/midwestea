@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassesByStudentId, type Class } from "@/lib/classes";
-import { getStudentById, updateStudent, type StudentWithEmail } from "@/lib/students";
+import { getStudentById, getStudentEmailFromAuth, updateStudent, type StudentWithEmail } from "@/lib/students";
 import { getPaymentsByStudentId, type PaymentWithDetails, getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
 import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { DataTable } from "@/components/ui/DataTable";
@@ -70,8 +70,10 @@ function StudentDetailContent() {
         if (fetchError) {
             setError(fetchError);
         } else if (fetchedStudent) {
-            setStudent(fetchedStudent);
-            setOriginalStudent(fetchedStudent); // Store original for comparison
+            const emailFromAuth = await getStudentEmailFromAuth(studentId);
+            const studentWithEmail = { ...fetchedStudent, email: emailFromAuth ?? fetchedStudent.email ?? null };
+            setStudent(studentWithEmail);
+            setOriginalStudent(studentWithEmail);
         }
         setLoading(false);
     };

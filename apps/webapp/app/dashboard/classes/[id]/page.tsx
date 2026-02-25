@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, updateClass, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
-import { getStudentsByClassId, getStudents } from "@/lib/students";
+import { getStudentsByClassId, getStudents, getStudentEmailFromAuth } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
-import { formatCurrency } from "@midwestea/utils";
+import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 
 // Student type for UI display
@@ -40,7 +40,17 @@ function ClassDetailContent() {
     const [allStudents, setAllStudents] = useState<Student[]>([]);
     const [selectedStudentId, setSelectedStudentId] = useState<string>("");
     const [addingStudent, setAddingStudent] = useState(false);
-    
+    const [studentSearchQuery, setStudentSearchQuery] = useState("");
+    const [studentDropdownOpen, setStudentDropdownOpen] = useState(false);
+    const studentDropdownRef = useRef<HTMLDivElement>(null);
+
+    // Add new student form (in sidebar)
+    const [newStudentName, setNewStudentName] = useState("");
+    const [newStudentEmail, setNewStudentEmail] = useState("");
+    const [newStudentPhone, setNewStudentPhone] = useState("");
+    const [creatingStudent, setCreatingStudent] = useState(false);
+    const [createStudentError, setCreateStudentError] = useState<string | null>(null);
+
     // Modal state
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [programs, setPrograms] = useState<any[]>([]);
@@ -58,6 +68,18 @@ function ClassDetailContent() {
         loadPrograms();
         loadCourses();
     }, [classId]);
+
+    // Close student dropdown when clicking outside
+    useEffect(() => {
+        if (!studentDropdownOpen) return;
+        const handleClickOutside = (e: MouseEvent) => {
+            if (studentDropdownRef.current && !studentDropdownRef.current.contains(e.target as Node)) {
+                setStudentDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [studentDropdownOpen]);
 
     // Load navigation context from query params
     useEffect(() => {
@@ -152,10 +174,13 @@ function ClassDetailContent() {
     const loadAllStudents = async () => {
         const { students: fetchedStudents } = await getStudents();
         if (fetchedStudents) {
-            setAllStudents(fetchedStudents.map((s) => ({
+            const emailsFromAuth = await Promise.all(
+                fetchedStudents.map((s) => getStudentEmailFromAuth(s.id))
+            );
+            setAllStudents(fetchedStudents.map((s, i) => ({
                 id: s.id,
                 name: s.name || "Unknown Student",
-                email: s.email || "N/A",
+                email: emailsFromAuth[i] ?? s.email ?? "N/A",
             })));
         }
     };
@@ -171,6 +196,10 @@ function ClassDetailContent() {
                 return;
             }
 
+            const basePath = typeof window !== 'undefined' 
+                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                : '';
+
             // Create enrollment
             const { error: enrollError } = await supabase
                 .from("enrollments")
@@ -185,10 +214,6 @@ function ClassDetailContent() {
                 return;
             }
 
-            // Log the action
-            const basePath = typeof window !== 'undefined' 
-                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-                : '';
             await fetch(`${basePath}/api/logs/student-enrollment`, {
                 method: 'POST',
                 headers: {
@@ -203,14 +228,74 @@ function ClassDetailContent() {
             });
 
             await loadStudents();
+            await loadAllStudents();
             setIsAddStudentOpen(false);
             setSelectedStudentId("");
+            setStudentSearchQuery("");
         } catch (err: any) {
             alert(`Failed to add student: ${err.message}`);
         } finally {
             setAddingStudent(false);
         }
     };
+
+    const handleCreateNewStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newStudentName.trim() || !newStudentEmail.trim() || !classId) return;
+        setCreatingStudent(true);
+        setCreateStudentError(null);
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setCreateStudentError("Not authenticated");
+                return;
+            }
+            const basePath = typeof window !== 'undefined' 
+                ? (window.location.pathname.startsWith('/app') ? '/app' : '')
+                : '';
+            const res = await fetch(`${basePath}/api/students/create`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    email: newStudentEmail.trim(),
+                    fullName: newStudentName.trim(),
+                    phone: newStudentPhone.trim() || undefined,
+                    classId,
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) {
+                setCreateStudentError(data.error || "Failed to create student");
+                return;
+            }
+            setNewStudentName("");
+            setNewStudentEmail("");
+            setNewStudentPhone("");
+            setCreateStudentError(null);
+            await loadStudents();
+            await loadAllStudents();
+        } catch (err: any) {
+            setCreateStudentError(err.message || "Failed to create student");
+        } finally {
+            setCreatingStudent(false);
+        }
+    };
+
+    const availableStudents = useMemo(() => 
+        allStudents.filter(s => !students.some(es => es.id === s.id)),
+        [allStudents, students]
+    );
+    const searchLower = studentSearchQuery.trim().toLowerCase();
+    const filteredStudents = useMemo(() => {
+        if (!searchLower) return availableStudents;
+        return availableStudents.filter(
+            s => (s.name?.toLowerCase().includes(searchLower)) || (s.email?.toLowerCase().includes(searchLower))
+        );
+    }, [availableStudents, searchLower]);
 
     const handleRemoveStudent = async (studentId: string) => {
         if (!confirm("Are you sure you want to remove this student from the class?")) return;
@@ -581,34 +666,76 @@ function ClassDetailContent() {
                 onClose={() => {
                     setIsAddStudentOpen(false);
                     setSelectedStudentId("");
+                    setStudentSearchQuery("");
+                    setStudentDropdownOpen(false);
+                    setCreateStudentError(null);
                 }}
                 title="Add Student to Class"
             >
-                <div className="space-y-4">
-                    <div>
+                <div className="space-y-6">
+                    {/* Select existing student - searchable */}
+                    <div ref={studentDropdownRef} className="relative">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Select Student</label>
-                        <select
-                            value={selectedStudentId}
-                            onChange={(e) => setSelectedStudentId(e.target.value)}
-                            onFocus={loadAllStudents}
+                        <input
+                            type="text"
+                            placeholder="Search by name or email..."
+                            value={studentSearchQuery}
+                            onChange={(e) => {
+                                setStudentSearchQuery(e.target.value);
+                                setStudentDropdownOpen(true);
+                            }}
+                            onFocus={() => {
+                                loadAllStudents();
+                                setStudentDropdownOpen(true);
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === "Escape") setStudentDropdownOpen(false);
+                            }}
                             className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
-                        >
-                            <option value="">-- Select a student --</option>
-                            {allStudents
-                                .filter(s => !students.find(es => es.id === s.id))
-                                .map((student) => (
-                                    <option key={student.id} value={student.id}>
-                                        {student.name} ({student.email})
-                                    </option>
-                                ))}
-                        </select>
+                            aria-label="Search students by name or email"
+                        />
+                        {studentDropdownOpen && (
+                            <div
+                                className="absolute z-10 mt-1 w-full rounded-md border border-gray-300 bg-white shadow-lg max-h-60 overflow-auto"
+                                role="listbox"
+                            >
+                                {filteredStudents.length === 0 ? (
+                                    <div className="px-3 py-2 text-sm text-gray-500">
+                                        {availableStudents.length === 0 ? "No students available to add." : "No matches."}
+                                    </div>
+                                ) : (
+                                    filteredStudents.map((student) => (
+                                        <button
+                                            key={student.id}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={selectedStudentId === student.id}
+                                            onClick={() => {
+                                                setSelectedStudentId(student.id);
+                                                setStudentSearchQuery("");
+                                                setStudentDropdownOpen(false);
+                                            }}
+                                            className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none ${selectedStudentId === student.id ? "bg-gray-50 font-medium" : ""}`}
+                                        >
+                                            {student.name} ({student.email})
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                        {selectedStudentId && (
+                            <p className="mt-1 text-xs text-gray-500">
+                                Selected: {availableStudents.find(s => s.id === selectedStudentId)?.name}
+                            </p>
+                        )}
                     </div>
-                    <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                    <div className="flex justify-end gap-3">
                         <button
                             type="button"
                             onClick={() => {
                                 setIsAddStudentOpen(false);
                                 setSelectedStudentId("");
+                                setStudentSearchQuery("");
                             }}
                             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                         >
@@ -622,6 +749,54 @@ function ClassDetailContent() {
                         >
                             {addingStudent ? "Adding..." : "Add Student"}
                         </button>
+                    </div>
+
+                    {/* Add new student */}
+                    <div className="pt-4 border-t border-gray-200">
+                        <h3 className="text-sm font-medium text-gray-900 mb-3">Add new student</h3>
+                        {createStudentError && (
+                            <div className="mb-3 bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
+                                {createStudentError}
+                            </div>
+                        )}
+                        <form onSubmit={handleCreateNewStudent} className="space-y-3">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Name *</label>
+                                <input
+                                    type="text"
+                                    value={newStudentName}
+                                    onChange={(e) => setNewStudentName(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Email *</label>
+                                <input
+                                    type="email"
+                                    value={newStudentEmail}
+                                    onChange={(e) => setNewStudentEmail(e.target.value)}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                <input
+                                    type="tel"
+                                    value={newStudentPhone}
+                                    onChange={(e) => setNewStudentPhone(formatPhone(e.target.value))}
+                                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-black focus:ring-black sm:text-sm p-2"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={creatingStudent || !newStudentName.trim() || !newStudentEmail.trim()}
+                                className="w-full px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
+                            >
+                                {creatingStudent ? "Creating..." : "Create & Enroll Student"}
+                            </button>
+                        </form>
                     </div>
                 </div>
             </DetailSidebar>

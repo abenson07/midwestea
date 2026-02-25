@@ -55,6 +55,27 @@ export async function getStudents(): Promise<{ students: StudentWithEmail[] | nu
 }
 
 /**
+ * Fetch a student's email from auth (auth.users) via the admin email API.
+ * Client-side only; requires an active session (admin).
+ */
+export async function getStudentEmailFromAuth(id: string): Promise<string | null> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) return null;
+    const basePath = typeof window !== "undefined" && window.location.pathname.startsWith("/app") ? "/app" : "";
+    const response = await fetch(`${basePath}/api/students/${id}/email`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    return result.success && result.email != null ? result.email : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Fetch a single student by ID
  */
 export async function getStudentById(id: string): Promise<{ student: StudentWithEmail | null; error: string | null }> {
