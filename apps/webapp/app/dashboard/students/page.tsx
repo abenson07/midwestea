@@ -61,11 +61,32 @@ function StudentsPageContent() {
         setLoading(true);
         setError("");
         try {
-            console.log("[StudentsPageContent] Loading students...");
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            const basePath = typeof window !== "undefined" && window.location.pathname.startsWith("/app") ? "/app" : "";
+
+            if (session?.access_token) {
+                const res = await fetch(`${basePath}/api/students`, {
+                    headers: { Authorization: `Bearer ${session.access_token}` },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.students)) {
+                        const transformed: Student[] = data.students.map((s: { id: string; name?: string; email?: string | null; phone?: string | null }) => ({
+                            id: s.id,
+                            name: s.name || "Unknown Student",
+                            email: s.email ?? "N/A",
+                            phone: s.phone ?? null,
+                        }));
+                        setStudents(transformed);
+                        setLoading(false);
+                        return transformed;
+                    }
+                }
+            }
+
             const { students: fetchedStudents, error: fetchError } = await getStudents();
-            console.log("[StudentsPageContent] Students response:", { fetchedStudents, fetchError });
             if (fetchError) {
-                console.error("[StudentsPageContent] Error loading students:", fetchError);
                 setError(fetchError);
                 setStudents([]);
                 return [];
@@ -80,7 +101,6 @@ function StudentsPageContent() {
                     email: emailsFromAuth[i] ?? s.email ?? "N/A",
                     phone: s.phone,
                 }));
-                console.log("[StudentsPageContent] Transformed students:", transformedStudents);
                 setStudents(transformedStudents);
                 return transformedStudents;
             }
@@ -178,6 +198,7 @@ function StudentsPageContent() {
 
         setSaving(true);
         setSaveError(null);
+        const emailArg = selectedStudent.email === "N/A" ? undefined : selectedStudent.email;
         const { success, error: updateError } = await updateStudent(
             selectedStudent.id,
             selectedStudent.name || null,
@@ -186,7 +207,7 @@ function StudentsPageContent() {
             undefined,
             undefined,
             undefined,
-            selectedStudent.email && selectedStudent.email !== "N/A" ? selectedStudent.email : undefined
+            emailArg
         );
         setSaving(false);
 

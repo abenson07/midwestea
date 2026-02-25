@@ -72,24 +72,31 @@ export async function POST(
     const body = await request.json();
     const { email } = body;
 
-    // Validate required fields
-    if (!email || typeof email !== 'string') {
+    if (typeof email !== 'string') {
       return NextResponse.json(
         { success: false, error: 'Missing or invalid email field' },
         { status: 400 }
       );
     }
 
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      return NextResponse.json(
+        { success: false, error: 'Email cannot be removed. Please enter a valid email address.' },
+        { status: 400 }
+      );
+    }
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(trimmedEmail)) {
       return NextResponse.json(
         { success: false, error: 'Invalid email format' },
         { status: 400 }
       );
     }
     
-    console.log(`[update-email] Attempting to update email for user ${studentId} to ${email}`);
+    console.log(`[update-email] Attempting to update email for user ${studentId} to ${trimmedEmail}`);
 
     // First, verify the user exists
     const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserById(studentId);
@@ -112,7 +119,7 @@ export async function POST(
     console.log(`[update-email] User found. Current email: ${existingUser.user.email}`);
 
     // Check if email is the same (no update needed)
-    if (existingUser.user.email === email) {
+    if (existingUser.user.email === trimmedEmail) {
       console.log(`[update-email] Email unchanged, skipping update`);
       return NextResponse.json({
         success: true,
@@ -125,7 +132,7 @@ export async function POST(
     try {
       console.log(`[update-email] Calling updateUserById with:`, {
         studentId,
-        email: email.trim(),
+        email: trimmedEmail,
         email_confirm: true
       });
       
@@ -133,7 +140,7 @@ export async function POST(
       const { data: usersWithEmail, error: checkError } = await supabase.auth.admin.listUsers();
       if (!checkError && usersWithEmail) {
         const emailInUse = usersWithEmail.users.find(
-          u => u.email === email.trim() && u.id !== studentId
+          u => u.email === trimmedEmail && u.id !== studentId
         );
         if (emailInUse) {
           return NextResponse.json(
@@ -147,7 +154,7 @@ export async function POST(
       const { data: updatedUser, error: updateError } = await supabase.auth.admin.updateUserById(
         studentId,
         { 
-          email: email.trim(),
+          email: trimmedEmail,
           email_confirm: true 
         }
       );

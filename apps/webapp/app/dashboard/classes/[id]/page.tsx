@@ -151,11 +151,13 @@ function ClassDetailContent() {
                 console.error("[ClassDetailContent] Error loading students:", fetchError);
                 setStudents([]);
             } else if (fetchedStudents) {
-                // Transform to match UI Student type
-                const transformedStudents: Student[] = fetchedStudents.map((s) => ({
+                const emailsFromAuth = await Promise.all(
+                    fetchedStudents.map((s) => getStudentEmailFromAuth(s.id))
+                );
+                const transformedStudents: Student[] = fetchedStudents.map((s, i) => ({
                     id: s.id,
                     name: s.name || "Unknown Student",
-                    email: s.email || "N/A",
+                    email: emailsFromAuth[i] ?? s.email ?? "N/A",
                 }));
                 console.log("[ClassDetailContent] Transformed students for class:", transformedStudents);
                 setStudents(transformedStudents);

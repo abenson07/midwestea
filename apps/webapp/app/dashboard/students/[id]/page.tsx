@@ -410,8 +410,25 @@ function StudentDetailContent() {
     };
 
     const classColumns = [
-        { header: "Class ID", accessorKey: "class_id" as keyof ClassWithEnrollment, className: "font-medium" },
-        { header: "Class Name", accessorKey: "class_name" as keyof ClassWithEnrollment },
+        {
+            header: "Class ID",
+            accessorKey: "class_id" as keyof ClassWithEnrollment,
+            className: "font-medium",
+            cell: (item: ClassWithEnrollment) => (
+                <Link href={`/dashboard/classes/${item.id}`} className="text-black font-medium hover:underline">
+                    {item.class_id}
+                </Link>
+            ),
+        },
+        {
+            header: "Class Name",
+            accessorKey: "class_name" as keyof ClassWithEnrollment,
+            cell: (item: ClassWithEnrollment) => (
+                <Link href={`/dashboard/classes/${item.id}`} className="text-black hover:underline">
+                    {item.class_name}
+                </Link>
+            ),
+        },
         {
             header: "Enrolled Date",
             accessorKey: "enrolled_at" as keyof ClassWithEnrollment,

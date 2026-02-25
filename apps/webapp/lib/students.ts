@@ -187,8 +187,8 @@ export async function updateStudent(
   try {
     const supabase = await createSupabaseClient();
     
-    // If email is provided and not null/empty, update it via API route (requires admin access)
-    if (email !== undefined && email !== null && email.trim() !== '') {
+    // If email was provided (including empty when user cleared the field), call update-email API
+    if (email !== undefined) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
@@ -199,7 +199,8 @@ export async function updateStudent(
           ? (window.location.pathname.startsWith('/app') ? '/app' : '')
           : '';
         
-        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${email.trim()}`);
+        const emailValue = email !== null ? String(email).trim() : '';
+        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${emailValue || '(empty)'}`);
         
         const emailResponse = await fetch(`${basePath}/api/students/${id}/update-email`, {
           method: 'POST',
@@ -207,11 +208,10 @@ export async function updateStudent(
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ email: email.trim() }),
+          body: JSON.stringify({ email: emailValue }),
         });
 
         console.log(`[updateStudent] Email API response status: ${emailResponse.status}`);
-
         if (!emailResponse.ok) {
           let errorMessage = `HTTP ${emailResponse.status}: Failed to update email`;
           try {
