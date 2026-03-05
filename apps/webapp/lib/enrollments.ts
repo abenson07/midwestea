@@ -29,36 +29,49 @@ export async function findOrCreateStudent(
     if (authError) {
       // If listing fails, we'll try to create the user anyway
       console.warn('Failed to list auth users, will attempt to create new user:', authError.message);
-    } else {
-      existingAuthUser = authUsers.users.find((user) => user.email === email);
-    }
-  } catch (error: any) {
-    // If there's an error listing users, log it but continue to try creating
-    console.warn('Error listing auth users, will attempt to create new user:', error.message);
-  }
-
-  let authUserId: string;
-
-  if (existingAuthUser) {
-    // Auth user exists, use their ID
-    authUserId = existingAuthUser.id;
   } else {
-    // Create new auth user
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
-      email,
-      email_confirm: true, // Auto-confirm email for checkout flow
-    });
+    existingAuthUser = authUsers.users.find((user) => user.email === email);
+  }
+} catch (error: any) {
+  // If there's an error listing users, log it but continue to try creating
+  console.warn('Error listing auth users, will attempt to create new user:', error.message);
+}
 
-    if (createError) {
+let authUserId: string;
+
+if (existingAuthUser) {
+  // Auth user exists, use their ID
+  authUserId = existingAuthUser.id;
+} else {
+  // Create new auth user
+  const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: true, // Auto-confirm email for checkout flow
+  });
+
+  if (createError) {
+    // User may already exist (e.g. listUsers pagination missed them) — try listing with pagination
+    const perPage = 1000;
+    for (let page = 1; page <= 5; page++) {
+      const { data: pageData } = await supabase.auth.admin.listUsers({ page, perPage });
+      const found = pageData?.users?.find((u) => u.email === email);
+      if (found) {
+        authUserId = found.id;
+        existingAuthUser = found;
+        break;
+      }
+      if (!pageData?.users?.length) break;
+    }
+    if (!authUserId) {
       throw new Error(`Failed to create auth user: ${createError.message}`);
     }
-
+  } else {
     if (!newUser.user) {
       throw new Error('Failed to create auth user: no user returned');
     }
-
     authUserId = newUser.user.id;
   }
+}
 
   // Now check if student record exists
   const { data: student, error: studentError } = await supabase

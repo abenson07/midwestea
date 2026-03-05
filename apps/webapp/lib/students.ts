@@ -214,8 +214,9 @@ export async function updateStudent(
         console.log(`[updateStudent] Email API response status: ${emailResponse.status}`);
         if (!emailResponse.ok) {
           let errorMessage = `HTTP ${emailResponse.status}: Failed to update email`;
+          let errorText = '';
           try {
-            const errorText = await emailResponse.text();
+            errorText = await emailResponse.text();
             console.error(`[updateStudent] Email API error response:`, errorText);
             try {
               const errorData = JSON.parse(errorText);
@@ -227,14 +228,16 @@ export async function updateStudent(
             console.error('[updateStudent] Error parsing error response:', parseError);
             errorMessage = emailResponse.statusText || errorMessage;
           }
-          return { success: false, error: errorMessage };
-        }
-
-        const emailResult = await emailResponse.json();
-        console.log(`[updateStudent] Email API result:`, emailResult);
-        
-        if (!emailResult.success) {
-          return { success: false, error: emailResult.error || "Failed to update email" };
+          // 404 = no auth user; skip email update and proceed to students table update (phone, etc.)
+          if (emailResponse.status !== 404) {
+            return { success: false, error: errorMessage };
+          }
+        } else {
+          const emailResult = await emailResponse.json();
+          console.log(`[updateStudent] Email API result:`, emailResult);
+          if (!emailResult.success) {
+            return { success: false, error: emailResult.error || "Failed to update email" };
+          }
         }
       } catch (emailError: any) {
         console.error('[updateStudent] Exception updating email:', emailError);
@@ -242,9 +245,8 @@ export async function updateStudent(
       }
     }
 
-    // Update student table fields
-    const updateData: any = {};
-
+    // Update student table fields via admin API (RLS only allows users to update their own row; admin uses API)
+    const updateData: Record<string, unknown> = {};
     if (fullName !== undefined) updateData.full_name = fullName;
     if (phone !== undefined) updateData.phone = phone;
     if (tShirtSize !== undefined) updateData.t_shirt_size = tShirtSize;
@@ -252,19 +254,64 @@ export async function updateStudent(
     if (emergencyContactPhone !== undefined) updateData.emergency_contact_phone = emergencyContactPhone;
     if (hasRequiredInfo !== undefined) updateData.has_required_info = hasRequiredInfo;
 
-    const { error } = await supabase
-      .from("students")
-      .update(updateData)
-      .eq("id", id);
-
-    if (error) {
-      return { success: false, error: error.message };
+    if (Object.keys(updateData).length > 0) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        return { success: false, error: "Not authenticated" };
+      }
+      const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+      const patchRes = await fetch(`${basePath}/api/students/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(updateData),
+      });
+      if (!patchRes.ok) {
+        const errBody = await patchRes.json().catch(() => ({}));
+        return { success: false, error: (errBody as { error?: string }).error || patchRes.statusText };
+      }
     }
 
     return { success: true, error: null };
   } catch (err) {
     const error = err as PostgrestError;
     return { success: false, error: error.message || "Failed to update student" };
+  }
+}
+
+/**
+ * Delete a student (DB record and auth user) via the server-side delete API.
+ */
+export async function deleteStudent(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return { success: false, error: "Not authenticated. Please log in." };
+    }
+
+    const basePath =
+      typeof window !== "undefined" && window.location.pathname.startsWith("/app") ? "/app" : "";
+
+    const response = await fetch(`${basePath}/api/students/${id}/delete`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const result = await response.json().catch(() => ({}));
+      return { success: false, error: result.error || "Failed to delete student" };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to delete student" };
   }
 }
 

@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassesByStudentId, type Class } from "@/lib/classes";
-import { getStudentById, getStudentEmailFromAuth, updateStudent, type StudentWithEmail } from "@/lib/students";
+import { getStudentById, getStudentEmailFromAuth, updateStudent, deleteStudent, type StudentWithEmail } from "@/lib/students";
 import { getPaymentsByStudentId, type PaymentWithDetails, getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
 import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { DataTable } from "@/components/ui/DataTable";
@@ -39,7 +39,9 @@ function StudentDetailContent() {
     // Sidebar state
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [saving, setSaving] = useState(false);
-    
+    const [deleting, setDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
     // Enrollment detail sidebar state
     const [isEnrollmentSidebarOpen, setIsEnrollmentSidebarOpen] = useState(false);
     const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
@@ -245,6 +247,19 @@ function StudentDetailContent() {
     const handleEdit = () => {
         router.push(`/dashboard/students/${studentId}?edit=true`);
         setIsSidebarOpen(true);
+    };
+
+    const handleDelete = async () => {
+        if (!studentId) return;
+        setDeleting(true);
+        setShowDeleteConfirm(false);
+        const result = await deleteStudent(studentId);
+        if (result.success) {
+            router.push("/dashboard/students");
+        } else {
+            alert(`Failed to delete student: ${result.error}`);
+            setDeleting(false);
+        }
     };
 
     const handleCloseSidebar = () => {
@@ -552,12 +567,21 @@ function StudentDetailContent() {
                     <h1 className="text-2xl font-bold text-gray-900">{student.name}</h1>
                     <p className="text-sm text-gray-500 mt-1">{student.email}</p>
                 </div>
-                <button
-                    onClick={handleEdit}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                >
-                    Edit
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleEdit}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    >
+                        Edit
+                    </button>
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        disabled={deleting}
+                        className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                        {deleting ? "Deleting..." : "Delete Student"}
+                    </button>
+                </div>
             </div>
 
             {/* Details Section */}
@@ -727,6 +751,34 @@ function StudentDetailContent() {
                     <p className="text-gray-500">Student not found.</p>
                 )}
             </DetailSidebar>
+
+            {/* Delete confirmation modal */}
+            {showDeleteConfirm && student && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h2 className="text-xl font-bold text-black mb-4">Delete Student</h2>
+                        <p className="text-gray-700 mb-6">
+                            Permanently delete <strong>{student.name}</strong>? This will remove them from Students and their auth account. This action cannot be undone.
+                        </p>
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={() => setShowDeleteConfirm(false)}
+                                disabled={deleting}
+                                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {deleting ? "Deleting..." : "Delete Student"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Enrollment Detail Sidebar */}
             <DetailSidebar

@@ -100,18 +100,23 @@ export async function POST(
 
     // First, verify the user exists
     const { data: existingUser, error: getUserError } = await supabase.auth.admin.getUserById(studentId);
-    
-    if (getUserError) {
-      console.error('[update-email] Error fetching user:', getUserError);
-      return NextResponse.json(
-        { success: false, error: `User not found: ${getUserError.message}` },
-        { status: 404 }
-      );
-    }
 
-    if (!existingUser || !existingUser.user) {
+    if (getUserError || !existingUser?.user) {
+      // Student has no auth user — create one with same id so student and auth stay in sync (all students in AUTH)
+      console.log(`[update-email] No auth user for student ${studentId}, attempting to create with email ${trimmedEmail}`);
+      const createPayload = { email: trimmedEmail, email_confirm: true, id: studentId } as { email: string; email_confirm: boolean; id: string };
+      const { data: createdData, error: createError } = await supabase.auth.admin.createUser(createPayload);
+      if (!createError && createdData?.user) {
+        console.log(`[update-email] Created auth user for student ${studentId}`);
+        return NextResponse.json({ success: true, email: trimmedEmail });
+      }
+      if (createError?.message?.toLowerCase().includes('duplicate') || createError?.message?.toLowerCase().includes('already exists')) {
+        return NextResponse.json({ success: true, email: trimmedEmail, message: 'User already exists in auth' });
+      }
+      if (createError) console.error('[update-email] Create auth user failed:', createError);
+      // Return 404 so client fallback can still save non-email fields (e.g. phone)
       return NextResponse.json(
-        { success: false, error: 'User not found' },
+        { success: false, error: `User not found: ${getUserError?.message || 'User not found'}` },
         { status: 404 }
       );
     }
