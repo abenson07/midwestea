@@ -37,7 +37,7 @@ export async function findOrCreateStudent(
   console.warn('Error listing auth users, will attempt to create new user:', error.message);
 }
 
-let authUserId: string;
+let authUserId: string | undefined;
 
 if (existingAuthUser) {
   // Auth user exists, use their ID
@@ -62,7 +62,7 @@ if (existingAuthUser) {
       }
       if (!pageData?.users?.length) break;
     }
-    if (!authUserId) {
+    if (authUserId === undefined) {
       throw new Error(`Failed to create auth user: ${createError.message}`);
     }
   } else {
@@ -71,6 +71,10 @@ if (existingAuthUser) {
     }
     authUserId = newUser.user.id;
   }
+}
+
+if (authUserId === undefined) {
+  throw new Error('Failed to resolve or create auth user');
 }
 
   // Now check if student record exists

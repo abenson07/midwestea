@@ -297,7 +297,7 @@ export function CreateClassModal({
         {isSubmitting && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mb-4"></div>
-            <p className="text-lg font-medium text-gray-900">Creating class...</p>
+            <p className="text-lg font-medium text-gray-900">{editingClass ? 'Saving details...' : 'Creating class...'}</p>
             <p className="text-sm text-gray-600 mt-2">Please wait</p>
           </div>
         )}
