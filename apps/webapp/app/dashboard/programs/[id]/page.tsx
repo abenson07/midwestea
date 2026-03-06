@@ -202,7 +202,7 @@ function ProgramDetailContent() {
                 parseDollars(formData.registrationFee),
                 selectedProgram.stripe_product_id || null,
                 undefined,
-                formData.locationId ?? undefined
+                formData.locationId
             );
 
             if (result.success) {

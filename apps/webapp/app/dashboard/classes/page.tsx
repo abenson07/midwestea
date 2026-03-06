@@ -173,7 +173,7 @@ function ClassesPageContent() {
                 parseDollars(formData.registrationFee),
                 selectedCourse.stripe_product_id || null,
                 undefined,
-                formData.locationId ?? undefined
+                formData.locationId
             );
 
             if (result.success) {
@@ -222,11 +222,11 @@ function ClassesPageContent() {
             null, // length_of_class
             formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
             formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
-            parseDollars(formData.price),
-            parseDollars(formData.registrationFee),
-            undefined,
-            formData.locationId ?? undefined
-        );
+                parseDollars(formData.price),
+                parseDollars(formData.registrationFee),
+                undefined,
+                formData.locationId
+            );
 
         if (success) {
             await loadClasses(); // Refresh list

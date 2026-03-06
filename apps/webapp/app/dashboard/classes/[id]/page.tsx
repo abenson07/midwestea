@@ -454,7 +454,7 @@ function ClassDetailContent() {
             parseDollars(formData.price),
             parseDollars(formData.registrationFee),
             undefined,
-            formData.locationId ?? undefined
+            formData.locationId
         );
 
         if (success) {

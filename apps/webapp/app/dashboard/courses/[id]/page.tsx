@@ -202,7 +202,7 @@ function CourseDetailContent() {
                 parseDollars(formData.registrationFee),
                 selectedCourse.stripe_product_id || null,
                 undefined,
-                formData.locationId ?? undefined
+                formData.locationId
             );
 
             if (result.success) {

@@ -108,13 +108,17 @@ export default function CheckoutClassDescription({
             textTransform: 'uppercase'
           }}
         >
-          {/* Location */}
-          <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
-            Location
-          </p>
-          <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
-            {location || '—'}
-          </p>
+          {/* Location - only show when provided */}
+          {location ? (
+            <>
+              <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
+                Location
+              </p>
+              <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
+                {location}
+              </p>
+            </>
+          ) : null}
 
           {/* Start Date */}
           <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
