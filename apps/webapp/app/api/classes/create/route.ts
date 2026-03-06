@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       registrationFee,
       productId,
       location,
+      locationId,
     } = body;
 
     // Validate required fields
@@ -105,6 +106,21 @@ export async function POST(request: NextRequest) {
       .single();
 
     const wfClassLink = courseData?.wf_class_link || null;
+
+    // Resolve locationId to location_id + location (name)
+    let locationIdResolved: string | null = null;
+    let locationNameResolved: string | null = location || null;
+    if (locationId && typeof locationId === 'string' && locationId.trim()) {
+      const { data: loc, error: locErr } = await supabase
+        .from('locations')
+        .select('id, location_name')
+        .eq('id', locationId.trim())
+        .single();
+      if (!locErr && loc) {
+        locationIdResolved = loc.id;
+        locationNameResolved = loc.location_name || null;
+      }
+    }
 
     // Create class in Supabase
     const { data: classData, error: insertError } = await supabase
@@ -127,7 +143,8 @@ export async function POST(request: NextRequest) {
         price: price || null,
         registration_fee: registrationFee || null,
         product_id: productId || null,
-        location: location || null,
+        location: locationNameResolved,
+        location_id: locationIdResolved,
         wf_class_link: wfClassLink,
       })
       .select()
@@ -174,10 +191,20 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('[API] Webflow config created, collectionId:', webflowConfig.collectionId);
           const isProgram = course.program_type === 'program';
+          let locationForWebflow = null;
+          if (classData.location_id) {
+            const { data: locRow } = await supabase
+              .from('locations')
+              .select('location_name, street, city, state, zip, google_maps_url')
+              .eq('id', classData.location_id)
+              .single();
+            if (locRow) locationForWebflow = locRow;
+          }
           const { webflowItemId: itemId, error: wfError } = await createWebflowClassItem(
             webflowConfig,
             classData,
-            isProgram
+            isProgram,
+            locationForWebflow
           );
 
           if (itemId && !wfError) {

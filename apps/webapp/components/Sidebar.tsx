@@ -14,6 +14,7 @@ import {
   Download,
   Loader2,
   Settings,
+  MapPin,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Courses", href: "/dashboard/courses", icon: BookOpen },
   { name: "Programs", href: "/dashboard/programs", icon: FolderOpen },
   { name: "Classes", href: "/dashboard/classes", icon: Users },
+  { name: "Locations", href: "/dashboard/locations", icon: MapPin },
   { name: "Students", href: "/dashboard/students", icon: GraduationCap },
   { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

@@ -48,6 +48,7 @@ export interface Class {
   webflow_item_id: string | null;
   wf_class_link: string | null;
   location: string | null;
+  location_id: string | null;
 }
 
 /**
@@ -235,7 +236,8 @@ export async function createClass(
   price?: number | null,
   registrationFee?: number | null,
   productId?: string | null,
-  location?: string | null
+  location?: string | null,
+  locationId?: string | null
 ): Promise<ClassResponse> {
   try {
     console.log('[Client] Starting class creation...');
@@ -283,6 +285,7 @@ export async function createClass(
         registrationFee,
         productId,
         location,
+        locationId,
       }),
     });
 
@@ -353,6 +356,7 @@ export async function updateClass(
   price?: number | null,
   registrationFee?: number | null,
   location?: string | null,
+  locationId?: string | null,
   className?: string | null
 ): Promise<ClassResponse> {
   try {
@@ -387,6 +391,7 @@ export async function updateClass(
         price,
         registrationFee,
         location,
+        locationId,
         className,
       }),
     });

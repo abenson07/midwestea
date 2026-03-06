@@ -110,6 +110,16 @@ export async function POST(
       wf_class_link: course.wf_class_link || classData.wf_class_link || null,
     };
 
+    let locationForWebflow = null;
+    if (classData.location_id) {
+      const { data: locRow } = await supabase
+        .from('locations')
+        .select('location_name, street, city, state, zip, google_maps_url')
+        .eq('id', classData.location_id)
+        .single();
+      if (locRow) locationForWebflow = locRow;
+    }
+
     // Try to update if webflow_item_id exists
     if (existingWebflowItemId) {
       try {
@@ -118,7 +128,8 @@ export async function POST(
           webflowConfig,
           existingWebflowItemId,
           classDataForWebflow,
-          isProgram
+          isProgram,
+          locationForWebflow
         );
 
         if (success) {
@@ -156,7 +167,8 @@ export async function POST(
     const { webflowItemId, error: createError } = await createWebflowClassItem(
       webflowConfig,
       classDataForWebflow,
-      isProgram
+      isProgram,
+      locationForWebflow
     );
 
     if (createError || !webflowItemId) {

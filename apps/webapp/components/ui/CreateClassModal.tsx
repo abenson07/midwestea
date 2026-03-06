@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, ChevronDown, DollarSign, Award, UserCheck } from 'lucide-react';
 import { getPrograms, getCourses, type Course, type Class } from '@/lib/classes';
+import { getLocations, type Location } from '@/lib/locations';
 
 interface CreateClassModalProps {
   isOpen?: boolean;
@@ -25,6 +26,7 @@ export interface ClassFormData {
   classEndDate: string;
   classType: 'online' | 'in-person' | 'hybrid';
   programmingOffering: string;
+  locationId: string | null;
   price: string;
   registrationFee: string;
   certificateLength: string;
@@ -51,6 +53,7 @@ export function CreateClassModal({
     classEndDate: '',
     classType: 'in-person',
     programmingOffering: '',
+    locationId: null,
     price: '',
     registrationFee: '',
     certificateLength: '',
@@ -58,6 +61,7 @@ export function CreateClassModal({
   });
   const [programs, setPrograms] = useState<Course[]>(providedPrograms || []);
   const [courses, setCourses] = useState<Course[]>(providedCourses || []);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [isRegistrationFeeEditing, setIsRegistrationFeeEditing] = useState(false);
@@ -119,6 +123,8 @@ export function CreateClassModal({
             if (fetchedCourses) setCourses(fetchedCourses);
           }
         }
+        const { locations: fetchedLocations } = await getLocations();
+        if (fetchedLocations) setLocations(fetchedLocations);
       } catch (error) {
         console.error('Error fetching programs/courses:', error);
       } finally {
@@ -155,6 +161,7 @@ export function CreateClassModal({
           : '',
         classType: editingClass.is_online ? 'online' : 'in-person',
         programmingOffering: editingClass.programming_offering || '',
+        locationId: editingClass.location_id ?? null,
         price: editingClass.price ? (editingClass.price / 100).toFixed(2) : '',
         registrationFee: editingClass.registration_fee ? (editingClass.registration_fee / 100).toFixed(2) : '',
         certificateLength: editingClass.certification_length?.toString() || '',
@@ -173,6 +180,7 @@ export function CreateClassModal({
         classEndDate: '',
         classType: 'in-person',
         programmingOffering: '',
+        locationId: null,
         price: '',
         registrationFee: '',
         certificateLength: '',
@@ -241,7 +249,7 @@ export function CreateClassModal({
     }
   };
 
-  const updateField = (field: keyof ClassFormData, value: string | boolean | 'online' | 'in-person' | 'hybrid') => {
+  const updateField = (field: keyof ClassFormData, value: string | null | boolean | 'online' | 'in-person' | 'hybrid') => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -259,6 +267,7 @@ export function CreateClassModal({
   // Derive isOnline from programmingOffering instead of classType dropdown
   const isOnline = formData.programmingOffering === 'Online Only' || formData.programmingOffering === 'Online + Skills Training';
   const shouldHideFields = formData.programmingOffering === 'Online Only' || formData.programmingOffering === 'Online + Skills Training';
+  const showLocationDropdown = ['In Person Only', 'Hybrid', 'In Person + Homework'].includes(formData.programmingOffering);
   
   // Determine if registration fee should be hidden (for courses, not programs)
   const selectedCourse = formData.courseId ? [...programs, ...courses].find(c => c.id === formData.courseId) : null;
@@ -392,6 +401,27 @@ export function CreateClassModal({
                 <option value="Online Only">Online Only</option>
               </select>
             </div>
+
+            {/* Location dropdown - only for in-person / hybrid types */}
+            {showLocationDropdown && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location
+                </label>
+                <select
+                  value={formData.locationId ?? ''}
+                  onChange={(e) => updateField('locationId', e.target.value || null)}
+                  className="w-full px-4 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:border-black focus:ring-black"
+                >
+                  <option value="">No location</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.location_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Price Badge Input */}
             <div className="flex items-center gap-2">

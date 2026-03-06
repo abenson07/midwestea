@@ -200,7 +200,9 @@ function CourseDetailContent() {
                 formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
                 parseDollars(formData.price),
                 parseDollars(formData.registrationFee),
-                selectedCourse.stripe_product_id || null
+                selectedCourse.stripe_product_id || null,
+                undefined,
+                formData.locationId ?? undefined
             );
 
             if (result.success) {

@@ -200,7 +200,9 @@ function ProgramDetailContent() {
                 formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
                 parseDollars(formData.price),
                 parseDollars(formData.registrationFee),
-                selectedProgram.stripe_product_id || null
+                selectedProgram.stripe_product_id || null,
+                undefined,
+                formData.locationId ?? undefined
             );
 
             if (result.success) {

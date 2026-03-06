@@ -1,6 +1,16 @@
 import { WebflowClient } from 'webflow-api';
 import type { Class } from './classes';
 
+/** Location record for Webflow address fields (from locations table) */
+export interface WebflowLocation {
+  location_name: string;
+  street: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
+  google_maps_url: string | null;
+}
+
 export interface WebflowConfig {
   siteId: string;
   collectionId: string;
@@ -66,10 +76,22 @@ function formatPriceForWebflow(cents: number | null | undefined): string {
 }
 
 /**
- * Map Supabase class data to Webflow CMS field format
- * Always includes all fields, even when NULL, so Webflow can clear them on sync
+ * Build second line for Webflow location address: city, state zip
  */
-function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): Record<string, any> {
+function locationAddressSecondLine(loc: WebflowLocation): string {
+  return [loc.city, loc.state, loc.zip].filter(Boolean).join(', ');
+}
+
+/**
+ * Map Supabase class data to Webflow CMS field format
+ * Always includes all fields, even when NULL, so Webflow can clear them on sync.
+ * When location (joined from locations table) is provided, sends location, location-address-first, location-address-second, location-address-url.
+ */
+function mapClassToWebflowFields(
+  classData: Class,
+  isProgram: boolean = false,
+  location?: WebflowLocation | null
+): Record<string, any> {
   // Webflow requires 'name' and 'slug' fields
   const className = classData.class_name || classData.class_id || 'Untitled Class';
   const slug = (classData.class_id || classData.class_name || 'untitled-class')
@@ -109,8 +131,19 @@ function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): 
   fieldData['enrollment-close'] = classData.enrollment_close || '';
   fieldData['class-start-date'] = classData.class_start_date || '';
   fieldData['class-close-date'] = classData.class_close_date || '';
-  fieldData['location'] = classData.location || '';
-  
+  // Location fields: name + address first line, second line, URL (from joined location when provided)
+  if (location) {
+    fieldData['location'] = location.location_name || classData.location || '';
+    fieldData['location-address-first'] = location.street || '';
+    fieldData['location-address-second'] = locationAddressSecondLine(location);
+    fieldData['location-address-url'] = location.google_maps_url || '';
+  } else {
+    fieldData['location'] = classData.location || '';
+    fieldData['location-address-first'] = '';
+    fieldData['location-address-second'] = '';
+    fieldData['location-address-url'] = '';
+  }
+
   // Is Online: Switch field - send boolean (defaults to false)
   fieldData['is-online'] = classData.is_online || false;
   
@@ -138,11 +171,13 @@ function mapClassToWebflowFields(classData: Class, isProgram: boolean = false): 
 
 /**
  * Create a Webflow collection item for a class
+ * Pass location when class has location_id so Webflow gets address fields
  */
 export async function createWebflowClassItem(
   config: WebflowConfig,
   classData: Class,
-  isProgram: boolean = false
+  isProgram: boolean = false,
+  location?: WebflowLocation | null
 ): Promise<{ webflowItemId: string | null; error: string | null }> {
   try {
     console.log('[Webflow] Creating item in collection:', config.collectionId);
@@ -150,7 +185,7 @@ export async function createWebflowClassItem(
       accessToken: config.apiToken 
     });
     
-    const webflowFields = mapClassToWebflowFields(classData, isProgram);
+    const webflowFields = mapClassToWebflowFields(classData, isProgram, location);
     console.log('[Webflow] Mapped fields:', Object.keys(webflowFields));
 
     // Try createItemLive first (publishes immediately), fall back to createItem + publishItem if not available
@@ -204,13 +239,15 @@ export async function createWebflowClassItem(
 
 /**
  * Update an existing Webflow collection item for a class
- * Accepts either full Class object or partial Class data
+ * Accepts either full Class object or partial Class data.
+ * Pass location when class has location_id so Webflow gets address fields.
  */
 export async function updateWebflowClassItem(
   config: WebflowConfig,
   webflowItemId: string,
   classData: Class | Partial<Class>,
-  isProgram: boolean = false
+  isProgram: boolean = false,
+  location?: WebflowLocation | null
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     const webflow = new WebflowClient({ 
@@ -227,7 +264,7 @@ export async function updateWebflowClassItem(
     if (isFullClass) {
       // Use the full mapping function for complete class data
       const fullClass = classData as Class;
-      Object.assign(webflowFields, mapClassToWebflowFields(fullClass, isProgram));
+      Object.assign(webflowFields, mapClassToWebflowFields(fullClass, isProgram, location));
     } else {
       // Partial update - only include provided fields
       const partial = classData as Partial<Class>;
@@ -239,6 +276,12 @@ export async function updateWebflowClassItem(
       if (partial.class_start_date !== undefined) webflowFields['class-start-date'] = partial.class_start_date || '';
       if (partial.class_close_date !== undefined) webflowFields['class-close-date'] = partial.class_close_date || '';
       if (partial.location !== undefined) webflowFields['location'] = partial.location || '';
+      if (location) {
+        webflowFields['location'] = location.location_name || '';
+        webflowFields['location-address-first'] = location.street || '';
+        webflowFields['location-address-second'] = locationAddressSecondLine(location);
+        webflowFields['location-address-url'] = location.google_maps_url || '';
+      }
       if (partial.is_online !== undefined) webflowFields['is-online'] = partial.is_online ? 'true' : 'false';
       if (partial.product_id !== undefined) webflowFields['product-id'] = partial.product_id || '';
       if (partial.length_of_class !== undefined) webflowFields['length-of-class'] = partial.length_of_class || '';

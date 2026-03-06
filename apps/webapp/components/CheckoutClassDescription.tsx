@@ -108,6 +108,14 @@ export default function CheckoutClassDescription({
             textTransform: 'uppercase'
           }}
         >
+          {/* Location */}
+          <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
+            Location
+          </p>
+          <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
+            {location || '—'}
+          </p>
+
           {/* Start Date */}
           <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
             Start date
@@ -123,26 +131,6 @@ export default function CheckoutClassDescription({
           <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
             {endDate ? formatDate(endDate) : 'Placeholder date'}
           </p>
-
-          {/* Location - Hidden for now */}
-          {/* <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)', alignSelf: 'flex-start' }}>
-            Location
-          </p>
-          <div style={{ color: 'var(--semantics-text, #191920)', whiteSpace: 'nowrap' }}>
-            {location ? (
-              location.split(',').map((line, index, array) => (
-                <p key={index} style={{ margin: 0 }}>
-                  {line.trim()}{index < array.length - 1 ? ',' : ''}
-                </p>
-              ))
-            ) : (
-              <>
-                <p style={{ margin: 0 }}>Placeholder address,</p>
-                <p style={{ margin: 0 }}>Placeholder city, ST</p>
-                <p style={{ margin: 0 }}>12345</p>
-              </>
-            )}
-          </div> */}
 
           {/* Frequency - Hidden for now */}
           {/* <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)', alignSelf: 'flex-start' }}>

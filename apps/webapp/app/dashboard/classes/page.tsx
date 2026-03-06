@@ -171,7 +171,9 @@ function ClassesPageContent() {
                 formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
                 parseDollars(formData.price),
                 parseDollars(formData.registrationFee),
-                selectedCourse.stripe_product_id || null
+                selectedCourse.stripe_product_id || null,
+                undefined,
+                formData.locationId ?? undefined
             );
 
             if (result.success) {
@@ -221,7 +223,9 @@ function ClassesPageContent() {
             formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
             formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
             parseDollars(formData.price),
-            parseDollars(formData.registrationFee)
+            parseDollars(formData.registrationFee),
+            undefined,
+            formData.locationId ?? undefined
         );
 
         if (success) {

@@ -452,7 +452,9 @@ function ClassDetailContent() {
             formData.certificateLength ? parseInt(formData.certificateLength, 10) : null,
             formData.registrationLimit ? parseInt(formData.registrationLimit, 10) : null,
             parseDollars(formData.price),
-            parseDollars(formData.registrationFee)
+            parseDollars(formData.registrationFee),
+            undefined,
+            formData.locationId ?? undefined
         );
 
         if (success) {
@@ -588,6 +590,10 @@ function ClassDetailContent() {
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Online</label>
                         <p className="mt-1 text-sm text-gray-900">{classData.is_online ? "Yes" : "No"}</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-500">Location</label>
+                        <p className="mt-1 text-sm text-gray-900">{classData.location || "—"}</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-500">Enrollment Start</label>

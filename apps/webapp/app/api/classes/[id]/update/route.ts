@@ -89,6 +89,7 @@ export async function PUT(
       price,
       registrationFee,
       location,
+      locationId,
       className,
     } = body;
 
@@ -120,7 +121,25 @@ export async function PUT(
     if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
     if (price !== undefined) updateData.price = price;
     if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
-    if (location !== undefined) updateData.location = location;
+    if (locationId !== undefined) {
+      // Resolve locationId to location_id + location (name); clear both if empty
+      if (locationId && typeof locationId === 'string' && locationId.trim()) {
+        const { data: loc, error: locErr } = await supabase
+          .from('locations')
+          .select('id, location_name')
+          .eq('id', locationId.trim())
+          .single();
+        if (!locErr && loc) {
+          updateData.location_id = loc.id;
+          updateData.location = loc.location_name || null;
+        }
+      } else {
+        updateData.location_id = null;
+        updateData.location = null;
+      }
+    } else if (location !== undefined) {
+      updateData.location = location;
+    }
     if (className !== undefined) updateData.class_name = className;
 
     // Update class in Supabase
@@ -176,11 +195,21 @@ export async function PUT(
               ...updatedClass,
               wf_class_link: wfClassLinkFromCourse,
             };
+            let locationForWebflow = null;
+            if (updatedClass.location_id) {
+              const { data: locRow } = await supabase
+                .from('locations')
+                .select('location_name, street, city, state, zip, google_maps_url')
+                .eq('id', updatedClass.location_id)
+                .single();
+              if (locRow) locationForWebflow = locRow;
+            }
             const { success, error: wfError } = await updateWebflowClassItem(
               webflowConfig,
               currentClass.webflow_item_id,
               classDataForWebflow,
-              isProgram
+              isProgram,
+              locationForWebflow
             );
 
             if (!success) {

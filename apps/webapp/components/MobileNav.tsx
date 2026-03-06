@@ -7,12 +7,14 @@ import {
     GraduationCap,
     FolderOpen,
     CreditCard,
+    MapPin,
 } from "lucide-react";
 
-// Order: Courses, Programs, Students, Transactions (R to L)
+// Order: Courses, Programs, Locations, Students, Transactions (R to L)
 const navigation = [
     { name: "Courses", href: "/dashboard/courses", icon: BookOpen },
     { name: "Programs", href: "/dashboard/programs", icon: FolderOpen },
+    { name: "Locations", href: "/dashboard/locations", icon: MapPin },
     { name: "Students", href: "/dashboard/students", icon: GraduationCap },
     { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
 ];

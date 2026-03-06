@@ -170,7 +170,9 @@ function AddClassContent() {
         registrationLimit ? parseInt(registrationLimit, 10) : null,
         parseDollars(price),
         parseDollars(registrationFee),
-        courseToUse.stripe_product_id || null
+        courseToUse.stripe_product_id || null,
+        undefined,
+        undefined
       );
 
       if (result.success && result.class) {
