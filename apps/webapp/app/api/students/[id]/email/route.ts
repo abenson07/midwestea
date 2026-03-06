@@ -48,25 +48,34 @@ export async function GET(
     // Get the auth user's email using admin client
     const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(studentId);
 
+    if (!getUserError && authUser?.user?.email) {
+      return NextResponse.json({
+        success: true,
+        email: authUser.user.email,
+      });
+    }
+
+    // Fallback: student may exist in DB without Auth user (e.g. created before Auth sync)
+    const { data: studentRow, error: studentError } = await supabase
+      .from('students')
+      .select('email')
+      .eq('id', studentId)
+      .maybeSingle();
+
+    if (!studentError && studentRow?.email) {
+      return NextResponse.json({
+        success: true,
+        email: studentRow.email,
+      });
+    }
+
     if (getUserError) {
-      console.error('Error fetching auth user:', getUserError);
-      return NextResponse.json(
-        { success: false, error: getUserError.message || 'Failed to fetch email' },
-        { status: 500 }
-      );
+      console.error('[students/email] Auth getUserById error:', getUserError.message);
     }
-
-    if (!authUser || !authUser.user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      email: authUser.user.email,
-    });
+    return NextResponse.json(
+      { success: false, error: 'User not found' },
+      { status: 404 }
+    );
   } catch (error: any) {
     console.error('Error in get-email API:', error);
     return NextResponse.json(
