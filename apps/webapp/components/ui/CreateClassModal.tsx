@@ -140,6 +140,18 @@ export function CreateClassModal({
     if (!isOpen) return;
 
     if (editingClass) {
+      const enrollmentOpenDate = editingClass.enrollment_start 
+        ? new Date(editingClass.enrollment_start).toISOString().split('T')[0] 
+        : '';
+      const enrollmentCloseDate = editingClass.enrollment_close 
+        ? new Date(editingClass.enrollment_close).toISOString().split('T')[0] 
+        : '';
+      const classStartDate = editingClass.class_start_date 
+        ? new Date(editingClass.class_start_date).toISOString().split('T')[0] 
+        : '';
+      const classEndDate = editingClass.class_close_date 
+        ? new Date(editingClass.class_close_date).toISOString().split('T')[0] 
+        : '';
       // Edit mode: pre-fill from class data
       const selectedCourse = [...programs, ...courses].find(
         c => c.id === editingClass.course_uuid
@@ -147,18 +159,10 @@ export function CreateClassModal({
       
       setFormData({
         courseId: editingClass.course_uuid,
-        enrollmentOpenDate: editingClass.enrollment_start 
-          ? new Date(editingClass.enrollment_start).toISOString().split('T')[0] 
-          : '',
-        enrollmentCloseDate: editingClass.enrollment_close 
-          ? new Date(editingClass.enrollment_close).toISOString().split('T')[0] 
-          : '',
-        classStartDate: editingClass.class_start_date 
-          ? new Date(editingClass.class_start_date).toISOString().split('T')[0] 
-          : '',
-        classEndDate: editingClass.class_close_date 
-          ? new Date(editingClass.class_close_date).toISOString().split('T')[0] 
-          : '',
+        enrollmentOpenDate,
+        enrollmentCloseDate,
+        classStartDate,
+        classEndDate,
         classType: editingClass.is_online ? 'online' : 'in-person',
         programmingOffering: editingClass.programming_offering || '',
         locationId: editingClass.location_id ?? null,

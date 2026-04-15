@@ -7,6 +7,27 @@ import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 
+const formatClassDate = (dateString: string): { rendered: string; strategy: "date-only" | "timestamp"; parsedIso: string } => {
+    // Date-only values should display as literal calendar dates, independent of viewer timezone.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        const [year, month, day] = dateString.split("-").map(Number);
+        return {
+            rendered: `${month}/${day}/${year}`,
+            strategy: "date-only",
+            parsedIso: "n/a",
+        };
+    }
+
+    const date = new Date(dateString);
+    return {
+        rendered: Number.isNaN(date.getTime())
+            ? "Invalid Date"
+            : date.toLocaleDateString("en-US", { timeZone: "America/Chicago" }),
+        strategy: "timestamp",
+        parsedIso: Number.isNaN(date.getTime()) ? "invalid" : date.toISOString(),
+    };
+};
+
 function ClassesPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -256,8 +277,8 @@ function ClassesPageContent() {
 
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "—";
-        const date = new Date(dateString);
-        return date.toLocaleDateString();
+        const formatted = formatClassDate(dateString);
+        return formatted.rendered;
     };
 
     const columns = [
