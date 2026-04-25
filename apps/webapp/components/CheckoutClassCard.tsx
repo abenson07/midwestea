@@ -15,7 +15,7 @@ interface CheckoutClassCardProps {
 export default function CheckoutClassCard({
   variant,
   state,
-  location = 'Raytown, MO',
+  location,
   time = '3:00pm - 4:00pm',
   date = 'June 5th, 2025',
   endDate,
@@ -24,6 +24,8 @@ export default function CheckoutClassCard({
   onClick
 }: CheckoutClassCardProps) {
   const isActive = state === 'active';
+  const locationText = location?.trim() || '';
+  const showLocation = Boolean(locationText);
   const borderColor = isActive 
     ? 'var(--color-brand-colors-mea-red-lighter, #ff704a)' 
     : 'var(--color-neutral, #999898)';
@@ -112,6 +114,19 @@ export default function CheckoutClassCard({
   const formattedEndDate = endDate ? formatDateForDisplay(endDate) : null;
   const gridStartDate = formatDateForGrid(startDate);
   const gridEndDate = formatDateForGrid(closeDate);
+
+  const detailsGridStyle = {
+    display: 'grid' as const,
+    gridTemplateColumns: 'max-content auto',
+    gap: '8px 18px',
+    width: '100%',
+    fontFamily: '"DM Sans", sans-serif',
+    fontSize: '12px',
+    fontWeight: 600,
+    lineHeight: 1.4,
+    textTransform: 'uppercase' as const,
+    marginTop: '8px'
+  };
 
   return (
     <div
@@ -203,24 +218,19 @@ export default function CheckoutClassCard({
                 Starts in {startMonth}
               </p>
             </div>
-            {/* Show start/end dates when card is active and dates are provided */}
-            {isActive && (gridStartDate || gridEndDate) && (
+            {/* Unselected: venue when API provides a location (same label/value style as date rows) */}
+            {!isActive && showLocation && (
+              <div className="class-location-grid" style={detailsGridStyle}>
+                <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>Location</p>
+                <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>{locationText}</p>
+              </div>
+            )}
+            {/* Selected: start/end dates and location in one grid when data exists */}
+            {isActive && (gridStartDate || gridEndDate || showLocation) && (
               <div
                 className="class-dates-grid"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'max-content auto',
-                  gap: '8px 18px',
-                  width: '100%',
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                  textTransform: 'uppercase',
-                  marginTop: '8px'
-                }}
+                style={detailsGridStyle}
               >
-                {/* Start Date */}
                 {gridStartDate && (
                   <>
                     <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
@@ -232,7 +242,6 @@ export default function CheckoutClassCard({
                   </>
                 )}
 
-                {/* End Date */}
                 {gridEndDate && (
                   <>
                     <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>
@@ -241,6 +250,13 @@ export default function CheckoutClassCard({
                     <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>
                       {gridEndDate}
                     </p>
+                  </>
+                )}
+
+                {showLocation && (
+                  <>
+                    <p style={{ margin: 0, color: 'var(--semantics-text-neutral, #6e6e70)' }}>Location</p>
+                    <p style={{ margin: 0, color: 'var(--semantics-text, #191920)' }}>{locationText}</p>
                   </>
                 )}
               </div>
