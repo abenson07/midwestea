@@ -7,6 +7,7 @@ export const programLinks = [
   { label: "Paramedic", href: "/paramedic" },
   { label: "Critical Care Transport", href: "/critical-care-transport" },
   { label: "Emergency Medical Technician", href: "/emergency-medical-technician" },
+  { label: "Advanced Emergency Medical Technician", href: "/advanced-emergency-medical-technician" },
   { label: "Community Paramedic", href: "/community-paramedic" },
   { label: "Advanced Tactical Casualty Care", href: "/advanced-tactical-casualty-care" },
 ] as const;
@@ -24,7 +25,7 @@ export const courseLinks = [
   { label: "Epinephrine", href: "/use-and-administration-of-epinephrine-auto-injectors" },
 ] as const;
 
-export const programLinkColumns = [programLinks.slice(0, 3), programLinks.slice(3, 6)] as const;
+export const programLinkColumns = [programLinks.slice(0, 3), programLinks.slice(3)] as const;
 
 export const courseLinkColumns = [
   courseLinks.slice(0, 4),

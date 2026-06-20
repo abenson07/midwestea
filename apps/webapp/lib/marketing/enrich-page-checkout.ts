@@ -50,6 +50,8 @@ function applyActiveClassPricingToProps(
     props.registerHref = registerUrl;
   }
 
+  props.variant = "register";
+
   if (registrationFee && typeof props.registerPrice === "string") {
     props.registerPrice = registrationFee;
   }
@@ -203,11 +205,12 @@ async function enrichProgramGallerySections(
   return enriched;
 }
 
-function applyWaitlistUrlToProps(
+function applyWaitlistModeToProps(
   props: Record<string, unknown>,
   url: string
 ): void {
   props.waitlistHref = url;
+  props.variant = "waitlist";
 }
 
 function enrichSectionsWithWaitlistUrl(
@@ -218,7 +221,7 @@ function enrichSectionsWithWaitlistUrl(
   return sections.map((section) => {
     const cloned = cloneSectionProps(section);
     if (cloned.props) {
-      applyWaitlistUrlToProps(cloned.props, url);
+      applyWaitlistModeToProps(cloned.props, url);
     }
     return cloned;
   });

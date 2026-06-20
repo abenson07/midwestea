@@ -27,9 +27,21 @@ function ArrowRightIcon() {
 
 const PROGRAM_IMAGE_ASPECT = "498 / 1132";
 
+function getScrollDistance(dolly: HTMLElement) {
+  const row = dolly.querySelector<HTMLElement>("[data-programs-row]");
+  const lastCard = row?.querySelector<HTMLElement>("[data-program-card]:last-child");
+  if (!row || !lastCard) return 0;
+
+  const lastCardRight = row.offsetLeft + lastCard.offsetLeft + lastCard.offsetWidth;
+  return Math.max(0, lastCardRight - window.innerWidth);
+}
+
 function ProgramCard({ program }: { program: ProgramItem }) {
   return (
-    <div className="mr-32 flex shrink-0 items-start gap-5 last:pr-[50vw] md:mr-44 md:gap-8">
+    <div
+      data-program-card
+      className="mr-32 flex shrink-0 items-start gap-5 md:mr-44 md:gap-8"
+    >
       <div
         className="hidden h-[70vh] shrink-0 md:-mr-6 md:block"
         style={{ aspectRatio: PROGRAM_IMAGE_ASPECT }}
@@ -66,6 +78,19 @@ function ProgramCard({ program }: { program: ProgramItem }) {
           Learn more
           <ArrowRightIcon />
         </Link>
+        {program.relatedLink ? (
+          <Link
+            href={program.relatedLink.href}
+            className="group inline-flex items-center gap-2 text-base font-semibold no-underline"
+          >
+            {program.relatedLink.isNew ? (
+              <span className="rounded-mea-xs bg-mea-red px-2 py-0.5 text-xs font-bold uppercase leading-none text-text-alternative no-underline">
+                New
+              </span>
+            ) : null}
+            <span className="group-hover:underline">{program.relatedLink.label}</span>
+          </Link>
+        ) : null}
       </div>
     </div>
   );
@@ -95,12 +120,12 @@ export function HomePrograms(props: HomeProgramsProps) {
     if (!section || !dolly) return;
 
     const tween = gsap.to(dolly, {
-      x: () => -(dolly.scrollWidth - window.innerWidth),
+      x: () => -getScrollDistance(dolly),
       ease: "none",
       scrollTrigger: {
         trigger: section,
         start: "top top",
-        end: () => `+=${Math.max(dolly.scrollWidth, window.innerWidth)}`,
+        end: () => `+=${Math.max(getScrollDistance(dolly), window.innerWidth)}`,
         scrub: true,
         pin: true,
         invalidateOnRefresh: true,
@@ -135,17 +160,17 @@ export function HomePrograms(props: HomeProgramsProps) {
   }, [programs]);
 
   return (
-    <section ref={sectionRef} className={clsx("relative bg-background", className)}>
-      <div className="sticky top-0 flex h-svh overflow-hidden">
+    <section ref={sectionRef} className={clsx("relative overflow-x-clip bg-background", className)}>
+      <div className="sticky top-0 flex h-svh w-full min-w-0 overflow-hidden">
         <img
           src="/images/company-watermark.avif"
           alt=""
           className="pointer-events-none absolute -top-[5vh] h-[90vh] opacity-50"
           aria-hidden
         />
-        <div ref={dollyRef} className="flex items-center pr-[50vw]">
+        <div ref={dollyRef} className="flex items-center">
           <div className="mx-[10vw] w-[80vw] shrink-0 text-center">
-            <h3 className="mea-heading-h3-sentence mx-auto max-w-4xl">{mission}</h3>
+            <h3 className="mea-heading-h3-sentence mx-auto max-w-[41ch]">{mission}</h3>
             <div className="relative mx-auto mt-8 flex h-[2.625rem] w-[8.25rem] items-center justify-center">
               <img
                 src="/images/Company-Logo.svg"
@@ -154,7 +179,7 @@ export function HomePrograms(props: HomeProgramsProps) {
               />
             </div>
           </div>
-          <div className="flex items-center pl-20">
+          <div data-programs-row className="flex items-center pl-20">
             {programs.map((program) => (
               <ProgramCard key={program.href} program={program} />
             ))}

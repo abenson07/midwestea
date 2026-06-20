@@ -7,6 +7,11 @@ export type ProgramItem = {
   href: string;
   image: string;
   mobileImage: string;
+  relatedLink?: {
+    label: string;
+    href: string;
+    isNew?: boolean;
+  };
 };
 
 export type CourseSlide = {
@@ -35,6 +40,11 @@ export const homePrograms: ProgramItem[] = [
     href: "/emergency-medical-technician",
     image: "/images/emt.png",
     mobileImage: "/images/emt.avif",
+    relatedLink: {
+      label: "AEMT course",
+      href: "/advanced-emergency-medical-technician",
+      isNew: true,
+    },
   },
   {
     titleLines: ["paramedic"],
