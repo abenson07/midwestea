@@ -415,12 +415,29 @@ export async function getNextTransactionInvoiceNumber(): Promise<number> {
     throw new Error(`Failed to get next invoice number: ${error.message}`);
   }
 
-  if (data?.invoice_number != null) {
-    return data.invoice_number + 1;
+  let candidate = data?.invoice_number != null ? data.invoice_number + 1 : 1000;
+
+  // Skip numbers already taken (handles default 1000 when 1000 exists, gaps, races)
+  for (let i = 0; i < 25; i++) {
+    const { data: existing, error: checkError } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('invoice_number', candidate)
+      .limit(1)
+      .maybeSingle();
+
+    if (checkError) {
+      throw new Error(`Failed to check invoice number: ${checkError.message}`);
+    }
+
+    if (!existing) {
+      return candidate;
+    }
+
+    candidate++;
   }
 
-  // Start at 1000 if no numbered transactions exist
-  return 1000;
+  throw new Error('Could not allocate a unique invoice number after 25 attempts');
 }
 
 /**
@@ -442,38 +459,52 @@ export async function createTransaction(data: {
   invoiceNumber?: number | null;
 }): Promise<any> {
   const supabase = createSupabaseAdminClient();
+  let invoiceNumber = data.invoiceNumber ?? null;
 
-  const { data: transaction, error: insertError } = await supabase
-    .from('transactions')
-    .insert({
-      enrollment_id: data.enrollmentId,
-      student_id: data.studentId,
-      class_id: data.classId,
-      class_type: data.classType,
-      transaction_type: data.transactionType,
-      quantity: data.quantity,
-      stripe_payment_intent_id: data.stripePaymentIntentId,
-      quickbooks_invoice_link: null,
-      quickbooks_receipt_link: null,
-      transaction_status: data.transactionStatus,
-      payment_date: data.paymentDate,
-      due_date: data.dueDate,
-      amount_due: data.amountDue,
-      amount_paid: data.amountPaid,
-      invoice_number: data.invoiceNumber ?? null,
-    })
-    .select()
-    .single();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const { data: transaction, error: insertError } = await supabase
+      .from('transactions')
+      .insert({
+        enrollment_id: data.enrollmentId,
+        student_id: data.studentId,
+        class_id: data.classId,
+        class_type: data.classType,
+        transaction_type: data.transactionType,
+        quantity: data.quantity,
+        stripe_payment_intent_id: data.stripePaymentIntentId,
+        quickbooks_invoice_link: null,
+        quickbooks_receipt_link: null,
+        transaction_status: data.transactionStatus,
+        payment_date: data.paymentDate,
+        due_date: data.dueDate,
+        amount_due: data.amountDue,
+        amount_paid: data.amountPaid,
+        invoice_number: invoiceNumber,
+      })
+      .select()
+      .single();
 
-  if (insertError) {
-    throw new Error(`Failed to create transaction: ${insertError.message}`);
-  }
+    if (!insertError && transaction) {
+      return transaction;
+    }
 
-  if (!transaction) {
+    if (insertError) {
+      const isDuplicateInvoice =
+        insertError.code === '23505' &&
+        insertError.message.includes('invoice_number');
+
+      if (isDuplicateInvoice && invoiceNumber != null) {
+        invoiceNumber = invoiceNumber + 1;
+        continue;
+      }
+
+      throw new Error(`Failed to create transaction: ${insertError.message}`);
+    }
+
     throw new Error('Failed to create transaction: no data returned');
   }
 
-  return transaction;
+  throw new Error('Failed to create transaction: could not allocate unique invoice number');
 }
 
 /**
