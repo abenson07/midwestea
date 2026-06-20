@@ -6,6 +6,17 @@
 
 Follow [`END_TO_END_TESTING.md`](END_TO_END_TESTING.md) and [`TESTING_CHECKOUT_FLOW.md`](TESTING_CHECKOUT_FLOW.md) updated for new URLs.
 
+## 8.0 Email env vars (before testing confirmation emails)
+
+Add in Vercel (Preview/staging scope):
+
+| Variable | Sensitive | Notes |
+|----------|-----------|-------|
+| `RESEND_API_KEY` | Yes | From Resend dashboard |
+| `EMAIL_FROM` | No | e.g. `noreply@midwestea.com` (must be a verified sender domain in Resend) |
+
+Redeploy after setting. Verify with `GET /api/health/resend` on staging.
+
 ## Test matrix
 
 ### Test 1: Course purchase (Stripe Checkout Session)

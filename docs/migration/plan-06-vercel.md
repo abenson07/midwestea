@@ -29,9 +29,11 @@ Set in Vercel project → Settings → Environment Variables (Preview/Developmen
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Plain | `pk_test_...` for staging |
 | `STRIPE_SECRET_KEY` | Secret | `sk_test_...` |
 | `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook config (step 6.3) |
-| `RESEND_API_KEY` | Secret | |
-| `EMAIL_FROM` | Plain | e.g. `noreply@midwestea.com` |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
+
+`RESEND_API_KEY` and `EMAIL_FROM` — see [Plan 8](plan-08-e2e.md) (when testing confirmation emails).
+
+Daily-log cron — deferred to [Plan 10](plan-10-supabase-db.md) (likely unnecessary on paid Supabase).
 
 QuickBooks vars if reconcile feature needed on staging: `QUICKBOOKS_*` per [`docs/quickbooks-oauth-setup.md`](docs/quickbooks-oauth-setup.md)
 
@@ -47,22 +49,7 @@ Stripe Dashboard → Developers → Webhooks → Add endpoint:
 - Copy signing secret → `STRIPE_WEBHOOK_SECRET` in Vercel
 - Redeploy after setting secret
 
-### 6.4 Cron worker migration (optional for staging)
-
-Port [`apps/cron-worker/src/index.ts`](apps/cron-worker/src/index.ts) to:
-- `apps/webapp/app/api/cron/daily-log/route.ts`
-- Protect with `CRON_SECRET` header
-- Add `vercel.json`:
-
-```json
-{
-  "crons": [{ "path": "/api/cron/daily-log", "schedule": "0 0 * * *" }]
-}
-```
-
-Can defer to post-staging if daily logs not critical.
-
-### 6.5 Deploy
+### 6.4 Deploy
 
 ```bash
 cd apps/webapp && npx vercel --prebuilt  # after local build

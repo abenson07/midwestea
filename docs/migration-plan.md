@@ -14,12 +14,21 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 3 | [Rename dashboard → admin](migration/plan-03-admin.md) | `done` | | `/admin/*` with legacy redirects |
 | 4 | [Add purchase-confirmation/general](migration/plan-04-confirmation.md) | `done` | | Matches checkout success URL |
 | 5 | [Strip debug + Cloudflare deps](migration/plan-05-cleanup.md) | `done` | | Debug/test routes removed; Webflow env untracked; midwestea-site retired |
-| 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `in_progress` | | Staging live; Supabase auth deferred to Plan 9 |
+| 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `done` | | Staging live; smoke tests passed in browser |
 | 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `pending` | | MarketingPage scaffold; verify with Supabase data |
-| 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Smoke script ready; staging tests not run |
-| 9 | [DNS cutover](migration/plan-09-cutover.md) | `pending` | | [Cutover runbook](migration/cutover-runbook.md) only |
+| 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Resend env vars when testing email |
+| 9 | [DNS cutover](migration/plan-09-cutover.md) | `pending` | | Supabase auth URLs + production domain |
+| 10 | [New Supabase project (paid)](migration/plan-10-supabase-db.md) | `pending` | | Placeholder — plan after 1–9 |
 
 Status values: `pending` | `in_progress` | `done` | `blocked`
+
+## Deferred to later plans
+
+| Item | Plan |
+|------|------|
+| Supabase auth Site URL / redirect URLs (don’t break live Webflow) | 9 |
+| Resend email env vars | 8 |
+| Daily-log cron / `CRON_SECRET` (likely remove on paid DB) | 10 |
 
 ## E2E test checklist (Plan 8)
 
@@ -66,4 +75,5 @@ flowchart LR
     P7 --> P8[E2E test]
     P8 --> P9[DNS cutover]
   end
+  P9 --> P10[New Supabase DB]
 ```

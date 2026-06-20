@@ -21,10 +21,11 @@ In the Vercel dashboard: Framework = Next.js, Root Directory = `apps/webapp`.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Plain | `pk_test_...` for staging |
 | `STRIPE_SECRET_KEY` | Secret | `sk_test_...` |
 | `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook (step 3) |
-| `RESEND_API_KEY` | Secret | Transactional email (optional until email testing) |
-| `EMAIL_FROM` | Plain | e.g. `noreply@midwestea.com` |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
-| `CRON_SECRET` | Secret | Random string; Vercel cron auth (optional) |
+
+**Plan 8 (email testing):** `RESEND_API_KEY`, `EMAIL_FROM` — see [`migration/plan-08-e2e.md`](migration/plan-08-e2e.md).
+
+**Plan 10:** Daily-log cron — likely remove when moving to paid Supabase; see [`migration/plan-10-supabase-db.md`](migration/plan-10-supabase-db.md).
 
 Optional QuickBooks vars: see [`quickbooks-oauth-setup.md`](quickbooks-oauth-setup.md).
 
@@ -41,11 +42,7 @@ Stripe Dashboard → Developers → Webhooks → **Add endpoint** (keep existing
 - Copy signing secret → `STRIPE_WEBHOOK_SECRET` in Vercel (Preview scope)
 - Redeploy after setting the secret
 
-## 4. Cron job (optional)
-
-`vercel.json` schedules `/api/cron/daily-log` daily at midnight UTC. Set `CRON_SECRET` in Vercel; the route validates `Authorization: Bearer <CRON_SECRET>`.
-
-## 5. Deploy
+## 4. Deploy
 
 Push to the `staging` branch (Git integration) or:
 
@@ -71,4 +68,12 @@ Or run the automated script:
 
 ```bash
 STAGING=https://your-project.vercel.app ./scripts/staging-smoke-test.sh
+```
+
+If preview deployments use **Deployment Protection** (all checks return 401), either test in the browser while logged into Vercel, disable protection for Preview, or create an **Automation Bypass Secret** in Vercel → Settings → Deployment Protection and run:
+
+```bash
+STAGING=https://your-project.vercel.app \
+VERCEL_AUTOMATION_BYPASS_SECRET=your-secret \
+./scripts/staging-smoke-test.sh
 ```
