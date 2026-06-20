@@ -1,35 +1,39 @@
-# Plan 10 — Migrate Supabase to new project (paid)
+# Plan 10 — Migrate to paid Supabase project
 
-**Status:** Placeholder — detailed plan TBD after Plans 1–9 are complete.
+**Status:** `pending`
 
-**Goal:** Move from the current shared Supabase project (used by live Webflow + staging Vercel) to a **new paid Supabase project** with a clean production boundary.
+**Goal:** Move from the current shared Supabase project (live Webflow + staging Vercel) to a **new paid Supabase project**. Confirm Stripe, Vercel, webhooks, and admin still work end-to-end against the new database.
 
-## Why (draft)
+**Prerequisites:** Plan 9 (AEMT) complete.
 
-- Staging and production today share one database — test checkouts can write real rows.
-- Moving to paid removes free-tier pause/keepalive concerns.
-- Cutover is a chance to separate “legacy Webflow era” data from the new Vercel-only stack.
+## Why
 
-## Likely scope (to be planned later)
+- Staging and production today share one database — test rows mix with live data.
+- Paid tier removes free-tier pause / keepalive concerns.
+- Clean boundary before cutover (Plan 13).
+
+## Scope
 
 - [ ] Provision new Supabase project (paid tier)
-- [ ] Export / migrate schema (`supabase/migrations/`) and data (classes, students, enrollments, transactions, etc.)
+- [ ] Apply schema (`supabase/migrations/`) to new project
+- [ ] Migrate data: programs, classes, students, enrollments, transactions, waitlist, admins, etc.
 - [ ] Update Vercel env vars (`NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`) for Preview + Production
-- [ ] Update Supabase Auth URL config on the **new** project (Site URL + redirects)
-- [ ] Point Stripe webhooks / Resend / any other integrations at the new stack
-- [ ] Validation window on staging against new DB before switching production DNS
-- [ ] Decommission or archive old Supabase project after cutover
+- [ ] Update Stripe webhook destination unchanged (URL stays same; DB writes go to new project)
+- [ ] Re-point any other integrations (Resend logs, cron, etc.)
+- [ ] Validation on **staging** against new DB:
+  - [ ] Admin login
+  - [ ] Active class lookup / register buttons
+  - [ ] One test checkout (course or program) → enrollment + transactions
+  - [ ] Webhook delivery 200
+- [ ] Document rollback plan (keep old project read-only until cutover)
 
 ## Cron / daily-log keepalive
 
-The Vercel cron at `/api/cron/daily-log` (and legacy `apps/cron-worker/`) exists only to ping the DB so **free-tier** projects stay active. On a **paid** plan this is **probably unnecessary** — Plan 10 should decide whether to remove `vercel.json` crons and delete the cron route/worker.
-
-## Prerequisites
-
-- Plans 1–9 complete (or production cutover done on current DB, then migrate as a follow-up — **decision TBD**)
+`/api/cron/daily-log` exists to ping the DB on **free-tier** projects. On paid Supabase, **likely remove** `vercel.json` crons and the cron route/worker during this plan.
 
 ## Done criteria
 
-_TBD when this plan is written in full._
-
----
+- Staging runs fully on new paid Supabase project
+- Stripe webhook + checkout verified against new DB
+- Old project archived or kept read-only until Plan 13
+- Env vars documented for Production (Plan 13)

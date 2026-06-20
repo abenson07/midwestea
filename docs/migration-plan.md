@@ -16,9 +16,12 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 5 | [Strip debug + Cloudflare deps](migration/plan-05-cleanup.md) | `done` | | Debug/test routes removed; Webflow env untracked; midwestea-site retired |
 | 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `done` | | Staging live; smoke tests passed in browser |
 | 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `done` | | Register buttons, course/program galleries, and pricing wired to Supabase; verified locally |
-| 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Checkout/admin first; Resend deferred to 8.6 |
-| 9 | [DNS cutover](migration/plan-09-cutover.md) | `pending` | | Supabase auth URLs + production domain |
-| 10 | [New Supabase project (paid)](migration/plan-10-supabase-db.md) | `pending` | | Placeholder — plan after 1–9 |
+| 8 | [E2E checkout test](migration/plan-08-e2e.md) | `done` | `staging` | Core E2E passed Jun 2026; email moved to Plan 12 |
+| 9 | [Add AEMT program + class](migration/plan-09-aemt.md) | `pending` | | Duplicate EMT page; Supabase rows + hero assets |
+| 10 | [Migrate to paid Supabase](migration/plan-10-supabase-db.md) | `pending` | | New DB; verify Stripe + checkout still wired |
+| 11 | [Admin panel design update](migration/plan-11-admin-design.md) | `pending` | | Designs TBD |
+| 12 | [Email (Resend)](migration/plan-12-email.md) | `pending` | | Confirmation + invoice email; Kyle/account |
+| 13 | [DNS cutover — go live](migration/plan-13-cutover.md) | `pending` | | Merge to `main`, DNS in Vercel, retire Webflow |
 
 Status values: `pending` | `in_progress` | `done` | `blocked`
 
@@ -26,27 +29,29 @@ Status values: `pending` | `in_progress` | `done` | `blocked`
 
 | Item | Plan |
 |------|------|
-| Supabase auth Site URL / redirect URLs (don’t break live Webflow) | 9 |
-| Resend email env vars (confirmation + invoice) | 8.6 / invoice work |
+| Supabase auth Site URL / redirect URLs (don’t break live Webflow until cutover) | 13 |
+| Resend email env vars (confirmation + invoice) | 12 |
 | Daily-log cron / `CRON_SECRET` (likely remove on paid DB) | 10 |
+| Production DNS + Webflow decommission | 13 |
 
-## E2E test checklist (Plan 8)
+## Plan 8 E2E checklist (complete)
 
-Run on staging after deploy. See [`scripts/staging-smoke-test.sh`](../scripts/staging-smoke-test.sh) for automated HTTP checks.
+Completed on staging Jun 2026 (`BLS-001`, `PARA-002`, waitlist). See [`migration/plan-08-e2e.md`](migration/plan-08-e2e.md).
 
-**Core (required):**
+**Core:**
 
-- [ ] Course checkout completes on staging
-- [ ] Program checkout completes on staging
-- [ ] Success page renders (`/purchase-confirmation/general`)
-- [ ] Enrollment row created
-- [ ] Transaction row created
-- [ ] Admin shows new student + transaction
-- [ ] Waitlist submission works
-- [ ] Webhook signature validation passes
-- [ ] Failed payment does not create enrollment
+- [x] Course checkout completes on staging
+- [x] Program checkout completes on staging
+- [x] Success page renders (`/purchase-confirmation/general`)
+- [x] Enrollment row created
+- [x] Transaction row created
+- [x] Admin shows new student + transaction
+- [x] Waitlist submission works
+- [x] Webhook signature validation passes
+- [x] Failed payment does not create enrollment
+- [x] Webhook idempotency (resend `checkout.session.completed`)
 
-**Email (deferred — Plan 8.6, likely with invoice work):**
+**Email (Plan 12):**
 
 - [ ] Resend account (new or via Kyle) + `RESEND_API_KEY` / `EMAIL_FROM` on Vercel
 - [ ] Confirmation email sent
@@ -54,8 +59,9 @@ Run on staging after deploy. See [`scripts/staging-smoke-test.sh`](../scripts/st
 ## How to use
 
 1. Work one plan at a time; update status in this file after each phase.
-2. Branch per plan: `migration/plan-01-merge`, etc.
+2. Branch per plan: `migration/plan-09-aemt`, etc.
 3. Do not start plan N+1 until plan N "Done criteria" in its detail doc are met.
+4. **Plan 13 is last** — production cutover only after 9–12.
 
 ## Staging deploy
 
@@ -63,23 +69,21 @@ See [`docs/vercel-staging-setup.md`](../vercel-staging-setup.md).
 
 ## Production cutover
 
-See [`docs/migration/cutover-runbook.md`](migration/cutover-runbook.md).
+See [`docs/migration/plan-13-cutover.md`](migration/plan-13-cutover.md) and [`docs/migration/cutover-runbook.md`](migration/cutover-runbook.md).
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  subgraph local [Plans 1-5]
-    P1[Merge] --> P2[Remove basePath]
-    P2 --> P3[Rename admin]
-    P3 --> P4[Purchase confirmation]
-    P4 --> P5[Cleanup]
+  subgraph foundation [Plans 1-8 done]
+    P1[Merge] --> P2[basePath]
+    P2 --> P8[E2E test]
   end
-  subgraph deploy [Plans 6-9]
-    P5 --> P6[Vercel staging]
-    P6 --> P7[Wire Supabase]
-    P7 --> P8[E2E test]
-    P8 --> P9[DNS cutover]
+  subgraph prelaunch [Plans 9-12]
+    P8 --> P9[AEMT program]
+    P9 --> P10[Paid Supabase]
+    P10 --> P11[Admin design]
+    P11 --> P12[Email]
   end
-  P9 --> P10[New Supabase DB]
+  P12 --> P13[Cutover go live]
 ```

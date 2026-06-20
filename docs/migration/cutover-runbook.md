@@ -1,10 +1,14 @@
 # Production DNS Cutover Runbook
 
-**Prerequisites:** Plan 8 E2E checklist passes on staging.
+**Prerequisites:** Plans 9–12 complete. Plan 8 E2E passed on staging.
+
+See [plan-13-cutover.md](plan-13-cutover.md) for full detail.
 
 ## Pre-cutover
 
-- [ ] Full Plan 8 matrix passes on staging one final time
+- [ ] Plans 9–12 done (AEMT, paid Supabase, admin design, email)
+- [ ] Final smoke pass on staging
+- [ ] Merge `staging` → `main`
 - [ ] Production env vars prepared (`pk_live_`, `sk_live_`, production Supabase if separate)
 - [ ] TTL lowered on DNS records (300s) for cutover window
 

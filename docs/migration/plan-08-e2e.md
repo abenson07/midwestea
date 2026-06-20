@@ -1,12 +1,14 @@
 # Plan 8 — E2E checkout test
 
+**Status:** `done` (core E2E, Jun 2026 on staging)
+
 **Goal:** Full purchase flow verified on staging: checkout → Stripe → webhook → enrollment → transaction → confirmation page → admin.
 
 **Prerequisites:** Plans 6 + 7 complete.
 
 Follow [`END_TO_END_TESTING.md`](END_TO_END_TESTING.md) and [`TESTING_CHECKOUT_FLOW.md`](TESTING_CHECKOUT_FLOW.md) updated for new URLs.
 
-> **Email is optional for now.** Confirmation email runs async in the Stripe webhook and does **not** block checkout, enrollment, or transactions. You can complete Tests 1–5 without Resend configured. Finish email in **8.6** (or alongside invoice email work — see note there).
+> **Email deferred to [Plan 12](plan-12-email.md).** Confirmation email runs async in the Stripe webhook and does **not** block checkout, enrollment, or transactions. Core Plan 8 is complete without Resend.
 
 ## Steps
 
@@ -18,7 +20,7 @@ Follow [`END_TO_END_TESTING.md`](END_TO_END_TESTING.md) and [`TESTING_CHECKOUT_F
 | **8.3** | **Test 3:** Waitlist form | You |
 | **8.4** | **Test 4:** Webhook idempotency (optional, Stripe CLI) | You or agent |
 | **8.5** | **Test 5:** Check `/admin` for student + transaction | You |
-| **8.6** | **Email:** Resend env vars + confirmation email (deferred) | You + Kyle |
+| **8.6** | ~~Email~~ → moved to **[Plan 12](plan-12-email.md)** | You + Kyle |
 
 ## Test matrix
 
@@ -60,7 +62,11 @@ stripe trigger checkout.session.completed
 - Confirm transaction in `/admin/payments`
 - Confirm enrollment linked on student detail page
 
-## 8.6 Email env vars (deferred — finish with invoice work)
+## 8.6 Email (moved to Plan 12)
+
+See [plan-12-email.md](plan-12-email.md). Original notes below for reference.
+
+## 8.6 Email env vars (historical — see Plan 12)
 
 > **Account access:** Resend is not configured in this repo or on Vercel yet. Before adding env vars, either **create a new Resend account** or **get access to the existing account with Kyle** so we stay on the free tier and avoid duplicate paid accounts.
 >
@@ -92,17 +98,18 @@ stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
 
 **Core E2E (required for Plan 8):**
 
-- [ ] Course checkout completes on staging
-- [ ] Program checkout completes on staging
-- [ ] Success page renders (Plan 4)
-- [ ] Enrollment row created
-- [ ] Transaction row created
-- [ ] Admin shows new student + transaction
-- [ ] Waitlist submission works
-- [ ] Webhook signature validation passes (reject unsigned POST)
-- [ ] Failed payment does not create enrollment
+- [x] Course checkout completes on staging
+- [x] Program checkout completes on staging
+- [x] Success page renders (Plan 4)
+- [x] Enrollment row created
+- [x] Transaction row created
+- [x] Admin shows new student + transaction
+- [x] Waitlist submission works
+- [x] Webhook signature validation passes (reject unsigned POST)
+- [x] Failed payment does not create enrollment
+- [x] Webhook idempotency (resend `checkout.session.completed`)
 
-**Email (deferred — 8.6):**
+**Email (Plan 12):**
 
 - [ ] Resend account accessible (new account or Kyle’s existing account)
 - [ ] `RESEND_API_KEY` + `EMAIL_FROM` on Vercel staging
@@ -112,7 +119,7 @@ stripe listen --forward-to http://localhost:3000/api/webhooks/stripe
 
 - Documented test run on staging with date + class IDs used
 - All **core E2E** checklist items pass
-- No webhook errors in Vercel function logs (email failures without Resend configured are expected until 8.6)
+- No webhook errors in Vercel function logs (email failures without Resend configured are expected until Plan 12)
 - Email checklist can be completed later with invoice email work
 
 ---

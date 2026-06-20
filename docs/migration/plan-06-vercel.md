@@ -1,6 +1,6 @@
 # Plan 6 — Deploy Vercel staging
 
-**Goal:** Staging environment live on Vercel with env vars and Stripe webhook. **Supabase auth URL changes are deferred to Plan 9** so the live Webflow site keeps working.
+**Goal:** Staging environment live on Vercel with env vars and Stripe webhook. **Supabase auth URL changes are deferred to Plan 13** so the live Webflow site keeps working.
 
 **Prerequisites:** Plans 1–5 complete.
 
@@ -31,7 +31,7 @@ Set in Vercel project → Settings → Environment Variables (Preview/Developmen
 | `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook config (step 6.3) |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
 
-`RESEND_API_KEY` and `EMAIL_FROM` — **not required for staging deploy.** Deferred to [Plan 8.6](plan-08-e2e.md#86-email-env-vars-deferred--finish-with-invoice-work) (likely with invoice email work; need Resend account access via Kyle or a new free account).
+`RESEND_API_KEY` and `EMAIL_FROM` — **not required for staging deploy.** Deferred to [Plan 12](plan-12-email.md).
 
 Daily-log cron — deferred to [Plan 10](plan-10-supabase-db.md) (likely unnecessary on paid Supabase).
 
@@ -39,7 +39,7 @@ QuickBooks vars if reconcile feature needed on staging: `QUICKBOOKS_*` per [`doc
 
 **Do NOT set** `WEBFLOW_*` vars.
 
-> **Supabase auth (Site URL / redirect URLs):** Do **not** change during staging. The shared Supabase project still serves the live site. Auth URL updates happen in [Plan 9](plan-09-cutover.md) at DNS cutover.
+> **Supabase auth (Site URL / redirect URLs):** Do **not** change during staging. The shared Supabase project still serves the live site. Auth URL updates happen in [Plan 13](plan-13-cutover.md) at DNS cutover.
 
 ### 6.3 Stripe webhook (staging)
 
@@ -89,13 +89,13 @@ curl -s -o /dev/null -w "%{http_code}" $STAGING/purchase-confirmation/general # 
 
 **Manual in browser:**
 - [ ] Homepage loads with fonts/images on staging domain
-- [ ] Admin login page loads (full OTP login deferred until Plan 9 Supabase auth URLs)
+- [ ] Admin login page loads (full OTP login deferred until Plan 13 Supabase auth URLs)
 - [ ] No mixed-content or 404 on `/_next/static/...` assets
 - [ ] Vercel deployment logs show no env var errors
 
 ## Done criteria
 - Staging URL accessible with all three surfaces: `/`, `/checkout`, `/admin`
 - Env vars set; Stripe webhook registered for staging
-- Supabase **database** keys in Vercel (unchanged shared project); auth URL cutover in Plan 9
+- Supabase **database** keys in Vercel (unchanged shared project); auth URL cutover in Plan 13
 
 ---

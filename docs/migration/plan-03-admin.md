@@ -39,7 +39,7 @@ Also add legacy Webflow Cloud redirect:
 
 ### 3.4 Supabase auth redirect URLs
 
-Deferred to **Plan 9** — do not change while the live Webflow site is in production. See [plan-09-cutover.md](plan-09-cutover.md) §9.4.
+Deferred to **Plan 13** — do not change while the live Webflow site is in production. See [plan-13-cutover.md](plan-13-cutover.md) §13.4.
 
 ### 3.5 Update docs
 - [`END_TO_END_TESTING.md`](END_TO_END_TESTING.md), [`TESTING_CHECKOUT_FLOW.md`](TESTING_CHECKOUT_FLOW.md) — replace `/app/checkout` and `/dashboard` references
