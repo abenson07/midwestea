@@ -3,7 +3,7 @@
 import Link from "next/link";
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
-import { ensureGsapScrollTrigger, gsap } from "@/lib/marketing/gsap";
+import { ensureGsapScrollTrigger, gsap, ScrollTrigger } from "@/lib/marketing/gsap";
 import { homePrograms, type ProgramItem } from "@/lib/marketing/home-page-data";
 
 function ArrowRightIcon() {
@@ -25,19 +25,35 @@ function ArrowRightIcon() {
   );
 }
 
+const PROGRAM_IMAGE_ASPECT = "498 / 1132";
+
 function ProgramCard({ program }: { program: ProgramItem }) {
   return (
     <div className="mr-32 flex shrink-0 items-start gap-5 last:pr-[50vw] md:mr-44 md:gap-8">
-      <img
-        src={program.image}
-        alt=""
-        className="hidden h-[70vh] w-auto max-w-none shrink-0 object-contain md:-mr-6 md:block"
-      />
-      <img
-        src={program.mobileImage}
-        alt=""
-        className="h-[50vh] w-auto max-w-none shrink-0 object-contain md:hidden"
-      />
+      <div
+        className="hidden h-[70vh] shrink-0 md:-mr-6 md:block"
+        style={{ aspectRatio: PROGRAM_IMAGE_ASPECT }}
+      >
+        <img
+          src={program.image}
+          alt=""
+          width={498}
+          height={1132}
+          className="h-full w-full max-w-none object-contain"
+        />
+      </div>
+      <div
+        className="h-[50vh] shrink-0 md:hidden"
+        style={{ aspectRatio: PROGRAM_IMAGE_ASPECT }}
+      >
+        <img
+          src={program.mobileImage}
+          alt=""
+          width={498}
+          height={1132}
+          className="h-full w-full max-w-none object-contain"
+        />
+      </div>
       <div className="mt-28 flex flex-col items-start gap-6">
         <div className="flex flex-col whitespace-nowrap">
           {program.titleLines.map((line) => (
@@ -91,7 +107,28 @@ export function HomePrograms(props: HomeProgramsProps) {
       },
     });
 
+    const refresh = () => ScrollTrigger.refresh();
+    const onAssetReady = () => refresh();
+    const images = Array.from(dolly.querySelectorAll("img"));
+
+    images.forEach((image) => {
+      if (image.complete) return;
+      image.addEventListener("load", onAssetReady);
+      image.addEventListener("error", onAssetReady);
+    });
+
+    void document.fonts?.ready.then(refresh);
+    window.addEventListener("load", refresh);
+    window.addEventListener("resize", refresh);
+    refresh();
+
     return () => {
+      images.forEach((image) => {
+        image.removeEventListener("load", onAssetReady);
+        image.removeEventListener("error", onAssetReady);
+      });
+      window.removeEventListener("load", refresh);
+      window.removeEventListener("resize", refresh);
       tween.scrollTrigger?.kill();
       tween.kill();
     };
