@@ -406,20 +406,20 @@ export async function getNextTransactionInvoiceNumber(): Promise<number> {
   const { data, error } = await supabase
     .from('transactions')
     .select('invoice_number')
+    .not('invoice_number', 'is', null)
     .order('invoice_number', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') {
-    // PGRST116 is "not found" which is fine if table is empty
+  if (error) {
     throw new Error(`Failed to get next invoice number: ${error.message}`);
   }
 
-  if (data && data.invoice_number) {
+  if (data?.invoice_number != null) {
     return data.invoice_number + 1;
   }
 
-  // Start at 1000 if no transactions exist
+  // Start at 1000 if no numbered transactions exist
   return 1000;
 }
 

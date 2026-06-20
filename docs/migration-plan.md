@@ -16,7 +16,7 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 5 | [Strip debug + Cloudflare deps](migration/plan-05-cleanup.md) | `done` | | Debug/test routes removed; Webflow env untracked; midwestea-site retired |
 | 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `done` | | Staging live; smoke tests passed in browser |
 | 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `done` | | Register buttons, course/program galleries, and pricing wired to Supabase; verified locally |
-| 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Resend env vars when testing email |
+| 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Checkout/admin first; Resend deferred to 8.6 |
 | 9 | [DNS cutover](migration/plan-09-cutover.md) | `pending` | | Supabase auth URLs + production domain |
 | 10 | [New Supabase project (paid)](migration/plan-10-supabase-db.md) | `pending` | | Placeholder — plan after 1–9 |
 
@@ -27,23 +27,29 @@ Status values: `pending` | `in_progress` | `done` | `blocked`
 | Item | Plan |
 |------|------|
 | Supabase auth Site URL / redirect URLs (don’t break live Webflow) | 9 |
-| Resend email env vars | 8 |
+| Resend email env vars (confirmation + invoice) | 8.6 / invoice work |
 | Daily-log cron / `CRON_SECRET` (likely remove on paid DB) | 10 |
 
 ## E2E test checklist (Plan 8)
 
 Run on staging after deploy. See [`scripts/staging-smoke-test.sh`](../scripts/staging-smoke-test.sh) for automated HTTP checks.
 
+**Core (required):**
+
 - [ ] Course checkout completes on staging
 - [ ] Program checkout completes on staging
 - [ ] Success page renders (`/purchase-confirmation/general`)
 - [ ] Enrollment row created
 - [ ] Transaction row created
-- [ ] Confirmation email sent
 - [ ] Admin shows new student + transaction
 - [ ] Waitlist submission works
 - [ ] Webhook signature validation passes
 - [ ] Failed payment does not create enrollment
+
+**Email (deferred — Plan 8.6, likely with invoice work):**
+
+- [ ] Resend account (new or via Kyle) + `RESEND_API_KEY` / `EMAIL_FROM` on Vercel
+- [ ] Confirmation email sent
 
 ## How to use
 

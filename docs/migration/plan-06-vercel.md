@@ -31,7 +31,7 @@ Set in Vercel project → Settings → Environment Variables (Preview/Developmen
 | `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook config (step 6.3) |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
 
-`RESEND_API_KEY` and `EMAIL_FROM` — see [Plan 8](plan-08-e2e.md) (when testing confirmation emails).
+`RESEND_API_KEY` and `EMAIL_FROM` — **not required for staging deploy.** Deferred to [Plan 8.6](plan-08-e2e.md#86-email-env-vars-deferred--finish-with-invoice-work) (likely with invoice email work; need Resend account access via Kyle or a new free account).
 
 Daily-log cron — deferred to [Plan 10](plan-10-supabase-db.md) (likely unnecessary on paid Supabase).
 

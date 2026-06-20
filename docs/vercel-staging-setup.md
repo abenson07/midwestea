@@ -23,7 +23,7 @@ In the Vercel dashboard: Framework = Next.js, Root Directory = `apps/webapp`.
 | `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook (step 3) |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
 
-**Plan 8 (email testing):** `RESEND_API_KEY`, `EMAIL_FROM` — see [`migration/plan-08-e2e.md`](migration/plan-08-e2e.md).
+**Plan 8.6 (email — deferred):** `RESEND_API_KEY`, `EMAIL_FROM` — not needed for checkout E2E. See [`migration/plan-08-e2e.md`](migration/plan-08-e2e.md#86-email-env-vars-deferred--finish-with-invoice-work) (Resend account with Kyle or new free account; likely finished with invoice email work).
 
 **Plan 10:** Daily-log cron — likely remove when moving to paid Supabase; see [`migration/plan-10-supabase-db.md`](migration/plan-10-supabase-db.md).
 

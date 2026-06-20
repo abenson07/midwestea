@@ -684,11 +684,12 @@ export async function POST(request: NextRequest) {
       }
 
       if (!classId) {
-        console.error('[webhook] Could not extract classId from payment intent metadata');
-        return NextResponse.json(
-          { error: 'Could not extract classId from payment intent metadata' },
-          { status: 400 }
-        );
+        // Checkout Sessions put metadata on the session, not the PI — ignore these events
+        console.log('[webhook] Ignoring payment_intent.succeeded without classId (handled by checkout.session.completed)');
+        return NextResponse.json({
+          received: true,
+          message: 'No classId on payment intent; checkout.session.completed handles this flow',
+        });
       }
 
       const paymentIntentId = paymentIntent.id;
