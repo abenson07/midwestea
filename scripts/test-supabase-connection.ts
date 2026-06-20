@@ -8,14 +8,27 @@
  *   SUPABASE_URL=your_url
  *   SUPABASE_ANON_KEY=your_anon_key
  *   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+ *
+ * Loads from repo root `.env.local` or `apps/webapp/.env.local` (Next.js default).
  */
 
 import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 import { createSupabaseClient, createSupabaseAdminClient } from '../packages/utils/supabaseClient';
 
-// Load environment variables from .env.local (relative to project root)
-dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
+const projectRoot = path.resolve(__dirname, '..');
+const envCandidates = [
+  path.join(projectRoot, '.env.local'),
+  path.join(projectRoot, 'apps/webapp/.env.local'),
+  path.join(projectRoot, '.env'),
+];
+
+for (const envPath of envCandidates) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  }
+}
 
 async function testConnection() {
   console.log('🔍 Testing Supabase connection...\n');
@@ -38,7 +51,7 @@ async function testConnection() {
   // Test ANON client connection
   try {
     console.log('🔐 Testing ANON client connection...');
-    const anonClient = createSupabaseClient();
+    const anonClient = await createSupabaseClient();
     
     // Try a simple query to test the connection
     // Use a query that will work even if tables don't exist - just checking connectivity
