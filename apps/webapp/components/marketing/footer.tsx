@@ -25,6 +25,7 @@ const courseLinksCol2 = [
 const programLinks = [
   { label: "Paramedic", href: "/paramedic" },
   { label: "Emergency Medical Technician", href: "/emergency-medical-technician" },
+  { label: "Advanced Emergency Medical Technician", href: "/advanced-emergency-medical-technician" },
   { label: "Emergency Medical Response", href: "/emergency-medical-responder" },
   { label: "Advanced Tactical Casualty Care", href: "/advanced-tactical-casualty-care" },
   { label: "Community Paramedic", href: "/community-paramedic" },

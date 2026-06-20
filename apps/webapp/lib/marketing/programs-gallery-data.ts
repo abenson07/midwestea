@@ -33,6 +33,17 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
     image: "/images/emt-hero.avif",
   },
   {
+    title: "Advanced Emergency Medical Technician",
+    description:
+      "Build on your EMT foundation with advanced assessment, medication administration, and expanded scope skills. Our state-approved AEMT program blends online learning with in-person skills days.",
+    classLabel: "Next class starts",
+    classDate: "Coming soon",
+    priceNote:
+      "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $2,150.",
+    href: "/advanced-emergency-medical-technician",
+    image: "/images/emt-hero.avif",
+  },
+  {
     title: "paramedic",
     description:
       "Take the next step in your EMS career with a state-approved Paramedic program designed for working EMTs. Learn advanced assessment, cardiology, pharmacology, airway management, and hands-on ALS care in a supportive, structured environment.",

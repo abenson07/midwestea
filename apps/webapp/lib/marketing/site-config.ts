@@ -22,6 +22,7 @@ import { communityParamedicSections } from "@/lib/marketing/pages/community-para
 import { criticalCareTransportSections } from "@/lib/marketing/pages/critical-care-transport-content";
 import { paramedicSections } from "@/lib/marketing/pages/paramedic-content";
 import { emergencyMedicalTechnicianSections } from "@/lib/marketing/pages/emergency-medical-technician-content";
+import { advancedEmergencyMedicalTechnicianSections } from "@/lib/marketing/pages/advanced-emergency-medical-technician-content";
 import { indexSections } from "@/lib/marketing/pages/index-content";
 import { contactSections } from "@/lib/marketing/pages/contact-content";
 import { faqSections } from "@/lib/marketing/pages/faq-content";
@@ -63,6 +64,11 @@ export const pages: PageConfig[] = [
     title: "Emergency Medical Technician",
     route: "/emergency-medical-technician",
     sections: emergencyMedicalTechnicianSections,
+  },
+  {
+    title: "Advanced Emergency Medical Technician",
+    route: "/advanced-emergency-medical-technician",
+    sections: advancedEmergencyMedicalTechnicianSections,
   },
   {
     title: "Course Template",

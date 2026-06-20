@@ -18,6 +18,10 @@ const SLUG_TO_COURSE_CODE: Record<string, string> = {
   // Emergency Medical Technician
   'emergency-medical-technician': 'EMT',
   'emt': 'EMT',
+
+  // Advanced Emergency Medical Technician
+  'advanced-emergency-medical-technician': 'AEMT',
+  'aemt': 'AEMT',
   
   // Community Paramedic
   'community-paramedic': 'CP',
