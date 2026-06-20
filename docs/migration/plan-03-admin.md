@@ -37,12 +37,9 @@ Also add legacy Webflow Cloud redirect:
 { source: '/app/admin/:path*', destination: '/admin/:path*', permanent: true },
 ```
 
-### 3.4 Update Supabase auth redirect URLs
+### 3.4 Supabase auth redirect URLs
 
-Document for Plan 6 — Supabase dashboard must allow:
-- `https://<staging-domain>/admin/login`
-- `https://<staging-domain>/admin/otp`
-- `http://localhost:3000/admin/login` (dev)
+Deferred to **Plan 9** — do not change while the live Webflow site is in production. See [plan-09-cutover.md](plan-09-cutover.md) §9.4.
 
 ### 3.5 Update docs
 - [`END_TO_END_TESTING.md`](END_TO_END_TESTING.md), [`TESTING_CHECKOUT_FLOW.md`](TESTING_CHECKOUT_FLOW.md) — replace `/app/checkout` and `/dashboard` references

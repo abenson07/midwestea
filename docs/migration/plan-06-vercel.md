@@ -1,6 +1,6 @@
 # Plan 6 — Deploy Vercel staging
 
-**Goal:** Staging environment live on Vercel with all env vars, Stripe webhook, Supabase auth redirects.
+**Goal:** Staging environment live on Vercel with env vars and Stripe webhook. **Supabase auth URL changes are deferred to Plan 9** so the live Webflow site keeps working.
 
 **Prerequisites:** Plans 1–5 complete.
 
@@ -28,7 +28,7 @@ Set in Vercel project → Settings → Environment Variables (Preview/Developmen
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Plain | `pk_test_...` for staging |
 | `STRIPE_SECRET_KEY` | Secret | `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook config (step 6.4) |
+| `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook config (step 6.3) |
 | `RESEND_API_KEY` | Secret | |
 | `EMAIL_FROM` | Plain | e.g. `noreply@midwestea.com` |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
@@ -37,13 +37,9 @@ QuickBooks vars if reconcile feature needed on staging: `QUICKBOOKS_*` per [`doc
 
 **Do NOT set** `WEBFLOW_*` vars.
 
-### 6.3 Supabase auth configuration
+> **Supabase auth (Site URL / redirect URLs):** Do **not** change during staging. The shared Supabase project still serves the live site. Auth URL updates happen in [Plan 9](plan-09-cutover.md) at DNS cutover.
 
-In Supabase dashboard → Authentication → URL Configuration:
-- Site URL: `https://<staging-domain>`
-- Redirect URLs: `https://<staging-domain>/admin/**`, `http://localhost:3000/admin/**`
-
-### 6.4 Stripe webhook (staging)
+### 6.3 Stripe webhook (staging)
 
 Stripe Dashboard → Developers → Webhooks → Add endpoint:
 - URL: `https://<staging-domain>/api/webhooks/stripe`
@@ -51,7 +47,7 @@ Stripe Dashboard → Developers → Webhooks → Add endpoint:
 - Copy signing secret → `STRIPE_WEBHOOK_SECRET` in Vercel
 - Redeploy after setting secret
 
-### 6.5 Cron worker migration (optional for staging)
+### 6.4 Cron worker migration (optional for staging)
 
 Port [`apps/cron-worker/src/index.ts`](apps/cron-worker/src/index.ts) to:
 - `apps/webapp/app/api/cron/daily-log/route.ts`
@@ -66,7 +62,7 @@ Port [`apps/cron-worker/src/index.ts`](apps/cron-worker/src/index.ts) to:
 
 Can defer to post-staging if daily logs not critical.
 
-### 6.6 Deploy
+### 6.5 Deploy
 
 ```bash
 cd apps/webapp && npx vercel --prebuilt  # after local build
@@ -106,13 +102,13 @@ curl -s -o /dev/null -w "%{http_code}" $STAGING/purchase-confirmation/general # 
 
 **Manual in browser:**
 - [ ] Homepage loads with fonts/images on staging domain
-- [ ] Admin OTP login works end-to-end on staging
+- [ ] Admin login page loads (full OTP login deferred until Plan 9 Supabase auth URLs)
 - [ ] No mixed-content or 404 on `/_next/static/...` assets
 - [ ] Vercel deployment logs show no env var errors
 
 ## Done criteria
 - Staging URL accessible with all three surfaces: `/`, `/checkout`, `/admin`
-- Env vars set; Stripe webhook registered
-- Supabase auth works on staging domain
+- Env vars set; Stripe webhook registered for staging
+- Supabase **database** keys in Vercel (unchanged shared project); auth URL cutover in Plan 9
 
 ---

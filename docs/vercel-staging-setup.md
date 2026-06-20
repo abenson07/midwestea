@@ -15,46 +15,42 @@ In the Vercel dashboard: Framework = Next.js, Root Directory = `apps/webapp`.
 
 | Variable | Type | Notes |
 |----------|------|-------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Plain | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | Plain | Supabase project URL (same DB as live site) |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Plain | Supabase anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | Server-side only |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Plain | `pk_test_...` for staging |
 | `STRIPE_SECRET_KEY` | Secret | `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook (step 4) |
-| `RESEND_API_KEY` | Secret | Transactional email |
+| `STRIPE_WEBHOOK_SECRET` | Secret | From Stripe webhook (step 3) |
+| `RESEND_API_KEY` | Secret | Transactional email (optional until email testing) |
 | `EMAIL_FROM` | Plain | e.g. `noreply@midwestea.com` |
 | `NEXT_PUBLIC_BASE_URL` | Plain | `https://<staging-domain>.vercel.app` |
-| `CRON_SECRET` | Secret | Random string; Vercel cron auth |
+| `CRON_SECRET` | Secret | Random string; Vercel cron auth (optional) |
 
 Optional QuickBooks vars: see [`quickbooks-oauth-setup.md`](quickbooks-oauth-setup.md).
 
 **Do not set** `WEBFLOW_*` variables.
 
-## 3. Supabase auth URLs
+> **Supabase auth URLs (Site URL / redirects):** Leave unchanged during staging so the live Webflow site keeps working. Update at DNS cutover — see [`migration/plan-09-cutover.md`](migration/plan-09-cutover.md).
 
-Supabase → Authentication → URL Configuration:
+## 3. Stripe webhook (staging)
 
-- **Site URL:** `https://<staging-domain>`
-- **Redirect URLs:** `https://<staging-domain>/admin/**`, `http://localhost:3000/admin/**`
-
-## 4. Stripe webhook (staging)
-
-Stripe Dashboard → Developers → Webhooks → Add endpoint:
+Stripe Dashboard → Developers → Webhooks → **Add endpoint** (keep existing Webflow Cloud webhook):
 
 - **URL:** `https://<staging-domain>/api/webhooks/stripe`
-- **Events:** `checkout.session.completed` (and any others handled in `app/api/webhooks/stripe/route.ts`)
-- Copy signing secret → `STRIPE_WEBHOOK_SECRET` in Vercel
+- **Events:** `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.created`, `payout.paid`
+- Copy signing secret → `STRIPE_WEBHOOK_SECRET` in Vercel (Preview scope)
 - Redeploy after setting the secret
 
-## 5. Cron job
+## 4. Cron job (optional)
 
 `vercel.json` schedules `/api/cron/daily-log` daily at midnight UTC. Set `CRON_SECRET` in Vercel; the route validates `Authorization: Bearer <CRON_SECRET>`.
 
-## 6. Deploy
+## 5. Deploy
+
+Push to the `staging` branch (Git integration) or:
 
 ```bash
-cd apps/webapp && npm run build && npx vercel --prod   # production
-# or push to a staging branch with Git integration for preview deploys
+cd apps/webapp && npm run build && npx vercel
 ```
 
 ## Smoke tests

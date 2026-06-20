@@ -23,9 +23,19 @@
 - Use **live** signing secret in production env
 - Disable/delete old Webflow Cloud webhook endpoint
 
-### 9.4 Supabase production auth URLs
+### 9.4 Supabase auth URLs (final step — do not change during staging)
 
-- Update Site URL + Redirect URLs to production domain
+The live site and staging share one Supabase project. **Do not change Site URL or remove old redirect URLs until cutover**, or admin login on the live site can break.
+
+At cutover (after DNS points to Vercel):
+
+1. **Site URL:** `https://midwestea.com`
+2. **Redirect URLs** — set to production (add, then remove old Webflow Cloud URLs after verifying):
+   - `https://midwestea.com/admin/**`
+   - `http://localhost:3000/admin/**` (local dev)
+3. **Optional:** Add staging preview URL before cutover only if you need OTP login on staging earlier:
+   - `https://<staging-domain>.vercel.app/admin/**`
+   - Do **not** change Site URL away from the live domain until cutover day.
 
 ### 9.5 Legacy URL redirects (next.config or Vercel)
 

@@ -14,7 +14,7 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 3 | [Rename dashboard → admin](migration/plan-03-admin.md) | `done` | | `/admin/*` with legacy redirects |
 | 4 | [Add purchase-confirmation/general](migration/plan-04-confirmation.md) | `done` | | Matches checkout success URL |
 | 5 | [Strip debug + Cloudflare deps](migration/plan-05-cleanup.md) | `done` | | Debug/test routes removed; Webflow env untracked; midwestea-site retired |
-| 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `pending` | | vercel.json + cron route ready; deploy not done yet |
+| 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `in_progress` | | Staging live; Supabase auth deferred to Plan 9 |
 | 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `pending` | | MarketingPage scaffold; verify with Supabase data |
 | 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Smoke script ready; staging tests not run |
 | 9 | [DNS cutover](migration/plan-09-cutover.md) | `pending` | | [Cutover runbook](migration/cutover-runbook.md) only |
