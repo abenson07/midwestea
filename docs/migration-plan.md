@@ -15,7 +15,7 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 4 | [Add purchase-confirmation/general](migration/plan-04-confirmation.md) | `done` | | Matches checkout success URL |
 | 5 | [Strip debug + Cloudflare deps](migration/plan-05-cleanup.md) | `done` | | Debug/test routes removed; Webflow env untracked; midwestea-site retired |
 | 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `done` | | Staging live; smoke tests passed in browser |
-| 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `pending` | | MarketingPage scaffold; verify with Supabase data |
+| 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `done` | | Register buttons, course/program galleries, and pricing wired to Supabase; verified locally |
 | 8 | [E2E checkout test](migration/plan-08-e2e.md) | `pending` | | Resend env vars when testing email |
 | 9 | [DNS cutover](migration/plan-09-cutover.md) | `pending` | | Supabase auth URLs + production domain |
 | 10 | [New Supabase project (paid)](migration/plan-10-supabase-db.md) | `pending` | | Placeholder — plan after 1–9 |

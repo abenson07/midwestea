@@ -1,5 +1,7 @@
 # Plan 7 — Wire register buttons + course gallery to Supabase
 
+**Status:** `done` — verified locally (register URLs, gallery prices, program tuition/registration fees).
+
 **Goal:** Marketing CTAs route to dynamic checkout instead of static `buy.stripe.com` links. Course gallery shows live class data.
 
 **Prerequisites:** Plan 6 staging deployed (or local with `.env.local` + test class in Supabase).
