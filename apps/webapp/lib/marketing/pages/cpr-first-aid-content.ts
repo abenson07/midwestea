@@ -14,7 +14,7 @@ export const cprFirstAidSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/5kQ14naZp6ll3Fj3Ue6Vq0h",
+        registerUrl: "#",
         registerPrice: "34.99",
         classDetails: [
           { label: "Online class" },

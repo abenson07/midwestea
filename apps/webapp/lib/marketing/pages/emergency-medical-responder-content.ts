@@ -14,7 +14,7 @@ export const emergencyMedicalResponderSections = [
         "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $750.",
       variant: "waitlist",
       waitlistLabel: "Coming soon",
-      registerHref: "https://buy.stripe.com/6oUeVdebBgZZcbP4Yi6Vq0w",
+      registerHref: "#",
       scrollHeight: "300vh",
       video: {
         poster: "/videos/emr-hero-vid-2_poster.jpg",
@@ -36,7 +36,7 @@ export const emergencyMedicalResponderSections = [
       classStartLabel: "Next class starts",
       classStartDate: "November",
       priceNote: "Get certified today for just",
-      registerHref: "https://buy.stripe.com/6oUeVdebBgZZcbP4Yi6Vq0w",
+      registerHref: "#",
     },
   },
   {

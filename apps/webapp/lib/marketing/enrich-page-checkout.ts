@@ -16,23 +16,27 @@ function cloneSectionProps(section: PageSection): PageSection {
 function applyCheckoutToProps(
   props: Record<string, unknown>,
   registerUrl: string,
-  price?: string
+  registerPrice?: string,
+  totalPrice?: string
 ): void {
   if (props.courseHeader && typeof props.courseHeader === "object") {
     props.courseHeader = {
       ...(props.courseHeader as Record<string, unknown>),
       registerUrl,
-      ...(price ? { registerPrice: price } : {}),
+      ...(registerPrice ? { registerPrice: registerPrice } : {}),
     };
   }
   if (typeof props.registerHref === "string") {
     props.registerHref = registerUrl;
   }
-  if (price && typeof props.registerPrice === "string") {
-    props.registerPrice = price.replace(/^\$/, "");
+  if (registerPrice && typeof props.registerPrice === "string") {
+    props.registerPrice = registerPrice.replace(/^\$/, "");
   }
-  if (price && typeof props.price === "string") {
-    props.price = price.replace(/^\$/, "");
+  if (registerPrice && typeof props.price === "string") {
+    props.price = registerPrice.replace(/^\$/, "");
+  }
+  if (totalPrice && typeof props.totalPrice === "string") {
+    props.totalPrice = totalPrice.replace(/^\$/, "");
   }
 }
 
@@ -104,12 +108,24 @@ export async function enrichPageWithCheckoutUrls(page: PageConfig): Promise<Page
   }
 
   const registerUrl = checkoutDetailsUrl(activeClass.classId, activeClass.courseCode);
-  const price = formatPriceFromCents(activeClass.price);
+  const hasRegistrationFee =
+    activeClass.registrationFee != null && activeClass.registrationFee > 0;
+  const registerPrice = hasRegistrationFee
+    ? formatPriceFromCents(activeClass.registrationFee)
+    : formatPriceFromCents(activeClass.price);
+  const totalPrice = hasRegistrationFee
+    ? formatPriceFromCents(activeClass.price)
+    : undefined;
 
   const sections = page.sections.map((section) => {
     const cloned = cloneSectionProps(section);
     if (cloned.props) {
-      applyCheckoutToProps(cloned.props, registerUrl, price || undefined);
+      applyCheckoutToProps(
+        cloned.props,
+        registerUrl,
+        registerPrice || undefined,
+        totalPrice || undefined
+      );
     }
     return cloned;
   });

@@ -14,7 +14,7 @@ export const useAndAdministrationOfEpinephrineAutoInjectorsSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/cNicN5c3tgZZgs50I26Vq0B",
+        registerUrl: "#",
         registerPrice: "35.00",
         classDetails: [
           { label: "Online only" },

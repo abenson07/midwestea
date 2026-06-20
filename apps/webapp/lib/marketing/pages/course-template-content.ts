@@ -9,7 +9,7 @@ export const courseTemplateSections = [
       images: [{ src: "/images/bls.avif", alt: "Basic Life Support training" }],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/cNicN57NdgZZ5Nr0I26Vq0m",
+        registerUrl: "#",
         registerPrice: "49.99",
         classDetails: [
           { label: "Online class" },

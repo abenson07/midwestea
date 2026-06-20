@@ -14,7 +14,7 @@ export const emergencyUseOfMedicalOxygenSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/7sYbJ10kL5hh5NrbmG6Vq0g",
+        registerUrl: "#",
         registerPrice: "19.99",
         classDetails: [
           { label: "Online class" },

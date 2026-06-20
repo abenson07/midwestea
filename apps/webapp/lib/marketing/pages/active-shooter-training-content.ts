@@ -9,7 +9,7 @@ export const activeShooterTrainingSections = [
       images: [{ src: "/images/avert-2.png", alt: "Active Violence Emergency Response Training" }],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/eVqeVd9Vl8ttdfT0I26Vq0l",
+        registerUrl: "#",
         registerPrice: "39.99",
         classDetails: [
           { label: "Online class" },

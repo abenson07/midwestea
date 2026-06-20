@@ -1,5 +1,6 @@
 "use client";
 
+import { registerLinkAttributes } from "@/lib/marketing/register-link";
 import clsx from "clsx";
 import { useRef } from "react";
 import { useHeroVideoScrub } from "@/hooks/marketing/use-hero-video-scrub";
@@ -119,8 +120,7 @@ export const ProgramHero = (props: ProgramHeroProps) => {
                   <a
                     href={registerHref}
                     className="mea-button-primary inline-flex items-center gap-1"
-                    target="_blank"
-                    rel="noreferrer"
+                    {...registerLinkAttributes(registerHref)}
                   >
                     {registerLabel}
                     {registerPrice ? `$${registerPrice}` : null}
@@ -145,7 +145,7 @@ export const ProgramHeroDefaults: Props = {
     "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $750.",
   variant: "waitlist",
   waitlistLabel: "Coming soon",
-  registerHref: "https://buy.stripe.com/6oUeVdebBgZZcbP4Yi6Vq0w",
+  registerHref: "#",
   video: {
     poster: "/videos/emr-hero-vid-2_poster.jpg",
     mp4: "/videos/emr-hero-vid-2_mp4.mp4",

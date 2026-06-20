@@ -14,7 +14,7 @@ export const pediatricAdvancedLifeSupportSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/14A4gzffF399fo10I26Vq0D",
+        registerUrl: "#",
         registerPrice: "34.99",
         classDetails: [
           { label: "Online class" },

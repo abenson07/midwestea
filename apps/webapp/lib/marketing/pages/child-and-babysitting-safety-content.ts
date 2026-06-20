@@ -14,7 +14,7 @@ export const childAndBabysittingSafetySections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/9B6fZh7Nd111dfT2Qa6Vq0i",
+        registerUrl: "#",
         registerPrice: "34.99",
         classDetails: [
           { label: "Online class" },

@@ -1,5 +1,6 @@
 "use client";
 
+import { registerLinkAttributes } from "@/lib/marketing/register-link";
 import clsx from "clsx";
 import { useEnrollmentBarScroll } from "@/hooks/marketing/use-enrollment-bar-scroll";
 
@@ -106,8 +107,7 @@ export const EnrollmentBar = (props: EnrollmentBarProps) => {
               <a
                 href={registerHref}
                 className="mea-button-primary whitespace-nowrap"
-                target="_blank"
-                rel="noreferrer"
+                {...registerLinkAttributes(registerHref)}
               >
                 {registerLabel}
               </a>

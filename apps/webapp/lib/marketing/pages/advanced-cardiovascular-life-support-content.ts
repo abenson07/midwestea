@@ -14,7 +14,7 @@ export const advancedCardiovascularLifeSupportSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/eVqfZh2sT255cbPbmG6Vq0k",
+        registerUrl: "#",
         registerPrice: "149.99",
         classDetails: [
           { label: "Online class" },

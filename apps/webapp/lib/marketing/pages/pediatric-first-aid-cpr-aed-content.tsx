@@ -14,7 +14,7 @@ export const pediatricFirstAidCprAedSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/cNi9AT5F5cJJfo14Yi6Vq0f",
+        registerUrl: "#",
         registerPrice: "34.99",
         classDetails: [
           { label: "Online class" },

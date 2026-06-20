@@ -1,7 +1,7 @@
 import type { PageSection } from "@/lib/marketing/site-config";
 import { programTeamSection } from "@/lib/marketing/program-team-section";
 
-const registerHref = "https://buy.stripe.com/bJe6oHd7xdNNejXaiC6Vq0A";
+const registerHref = "#";
 
 export const advancedTacticalCasualtyCareSections: PageSection[] = [
   {

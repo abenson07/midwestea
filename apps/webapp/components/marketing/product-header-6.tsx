@@ -1,5 +1,6 @@
 "use client";
 
+import { registerLinkAttributes } from "@/lib/marketing/register-link";
 import React, { useState } from "react";
 import {
   Accordion,
@@ -278,8 +279,7 @@ function CourseHeaderPanel({
 
       <a
         href={courseHeader.registerUrl}
-        target="_blank"
-        rel="noreferrer"
+        {...registerLinkAttributes(courseHeader.registerUrl)}
         className="mb-2 mt-2 flex w-full items-center justify-center rounded-mea-sm bg-mea-yellow px-6 py-4 text-lg font-bold uppercase text-text transition-opacity hover:opacity-90"
       >
         Register for ${courseHeader.registerPrice}

@@ -14,7 +14,7 @@ export const bloodbornePathogensSections = [
       ],
       overlayNav: true,
       courseHeader: {
-        registerUrl: "https://buy.stripe.com/5kQbJ13wX6llejX76q6Vq0j",
+        registerUrl: "#",
         registerPrice: "19.99",
         classDetails: [
           { label: "Online class" },

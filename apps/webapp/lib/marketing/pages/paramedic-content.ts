@@ -15,7 +15,7 @@ export const paramedicSections = [
       variant: "register",
       registerLabel: "Register now for just",
       registerPrice: "8800",
-      registerHref: "https://buy.stripe.com/28E28r9VldNNa3HeyS6Vq0v",
+      registerHref: "#",
       scrollHeight: "300vh",
       video: {
         poster: "/videos/paramedic-hero-vid_poster.jpg",
@@ -36,7 +36,7 @@ export const paramedicSections = [
       price: "150",
       totalPrice: "8800",
       registerLabel: "Register",
-      registerHref: "https://buy.stripe.com/28E28r9VldNNa3HeyS6Vq0v",
+      registerHref: "#",
     },
   },
   {
