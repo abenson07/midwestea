@@ -4,6 +4,12 @@ export function checkoutDetailsUrl(classId: string, courseCode?: string): string
   return `/checkout/details?${params.toString()}`;
 }
 
+/** Waitlist signup when no active class is open for registration. */
+export function waitlistUrl(courseCode: string): string {
+  const params = new URLSearchParams({ courseCode });
+  return `/checkout/waitlist?${params.toString()}`;
+}
+
 /** Course detail page URL with class pre-selected (matches legacy Webflow gallery links). */
 export function courseDetailUrlWithClass(
   route: string,

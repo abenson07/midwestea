@@ -1,6 +1,6 @@
 import type { PageConfig, PageSection } from "@/lib/marketing/site-config";
 import type { ActiveClass } from "@/lib/marketing/active-classes-server";
-import { checkoutDetailsUrl, courseDetailUrlWithClass } from "@/lib/marketing/checkout-url";
+import { checkoutDetailsUrl, courseDetailUrlWithClass, waitlistUrl } from "@/lib/marketing/checkout-url";
 import {
   formatActiveClassDisplayPrice,
   formatPriceForProse,
@@ -203,6 +203,27 @@ async function enrichProgramGallerySections(
   return enriched;
 }
 
+function applyWaitlistUrlToProps(
+  props: Record<string, unknown>,
+  url: string
+): void {
+  props.waitlistHref = url;
+}
+
+function enrichSectionsWithWaitlistUrl(
+  sections: PageSection[],
+  courseCode: string
+): PageSection[] {
+  const url = waitlistUrl(courseCode);
+  return sections.map((section) => {
+    const cloned = cloneSectionProps(section);
+    if (cloned.props) {
+      applyWaitlistUrlToProps(cloned.props, url);
+    }
+    return cloned;
+  });
+}
+
 export async function enrichPageWithCheckoutUrls(page: PageConfig): Promise<PageConfig> {
   if (page.route === "/courses") {
     return {
@@ -219,19 +240,27 @@ export async function enrichPageWithCheckoutUrls(page: PageConfig): Promise<Page
   }
 
   const activeClass = await getPrimaryActiveClassForRoute(page.route);
-  if (!activeClass) {
+  if (activeClass) {
+    const registerUrl = checkoutDetailsUrl(activeClass.classId, activeClass.courseCode);
+
+    const sections = page.sections.map((section) => {
+      const cloned = cloneSectionProps(section);
+      if (cloned.props) {
+        applyActiveClassPricingToProps(cloned.props, activeClass, registerUrl);
+      }
+      return cloned;
+    });
+
+    return { ...page, sections };
+  }
+
+  const courseCode = getCourseCodeFromRoute(page.route);
+  if (!courseCode) {
     return page;
   }
 
-  const registerUrl = checkoutDetailsUrl(activeClass.classId, activeClass.courseCode);
-
-  const sections = page.sections.map((section) => {
-    const cloned = cloneSectionProps(section);
-    if (cloned.props) {
-      applyActiveClassPricingToProps(cloned.props, activeClass, registerUrl);
-    }
-    return cloned;
-  });
-
-  return { ...page, sections };
+  return {
+    ...page,
+    sections: enrichSectionsWithWaitlistUrl(page.sections, courseCode),
+  };
 }

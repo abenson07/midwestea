@@ -96,9 +96,19 @@ export const EnrollmentBar = (props: EnrollmentBarProps) => {
 
         <div className="flex shrink-0 items-center gap-4">
           {variant === "waitlist" ? (
-            <span className="inline-flex items-center rounded-mea-xs border border-mea-yellow bg-neutral-lighter px-4 py-2 text-base font-semibold text-text">
-              {waitlistLabel}
-            </span>
+            waitlistHref && waitlistHref !== "#" ? (
+              <a
+                href={waitlistHref}
+                className="inline-flex items-center rounded-mea-xs border border-mea-yellow bg-neutral-lighter px-4 py-2 text-base font-semibold text-text transition-opacity hover:opacity-90"
+                {...registerLinkAttributes(waitlistHref)}
+              >
+                {waitlistLabel}
+              </a>
+            ) : (
+              <span className="inline-flex items-center rounded-mea-xs border border-mea-yellow bg-neutral-lighter px-4 py-2 text-base font-semibold text-text">
+                {waitlistLabel}
+              </span>
+            )
           ) : (
             <>
               {totalPrice ? (

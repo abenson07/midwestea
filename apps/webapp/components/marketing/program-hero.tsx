@@ -19,6 +19,7 @@ type Props = {
   priceNote: string;
   variant?: "waitlist" | "register";
   waitlistLabel?: string;
+  waitlistHref?: string;
   registerLabel?: string;
   registerHref?: string;
   registerPrice?: string;
@@ -37,6 +38,7 @@ export const ProgramHero = (props: ProgramHeroProps) => {
     priceNote,
     variant = "waitlist",
     waitlistLabel = "Coming soon",
+    waitlistHref = "#",
     registerLabel = "Register now for just",
     registerHref = "#",
     registerPrice,
@@ -113,9 +115,19 @@ export const ProgramHero = (props: ProgramHeroProps) => {
 
               <div className="mt-6 md:mt-8">
                 {variant === "waitlist" ? (
-                  <span className="inline-flex items-center rounded-mea-xs border border-mea-yellow bg-neutral-lightest px-6 py-3 text-base font-semibold text-text">
-                    {waitlistLabel}
-                  </span>
+                  waitlistHref && waitlistHref !== "#" ? (
+                    <a
+                      href={waitlistHref}
+                      className="inline-flex items-center rounded-mea-xs border border-mea-yellow bg-neutral-lightest px-6 py-3 text-base font-semibold text-text transition-opacity hover:opacity-90"
+                      {...registerLinkAttributes(waitlistHref)}
+                    >
+                      {waitlistLabel}
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center rounded-mea-xs border border-mea-yellow bg-neutral-lightest px-6 py-3 text-base font-semibold text-text">
+                      {waitlistLabel}
+                    </span>
+                  )
                 ) : (
                   <a
                     href={registerHref}
@@ -145,6 +157,7 @@ export const ProgramHeroDefaults: Props = {
     "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $750.",
   variant: "waitlist",
   waitlistLabel: "Coming soon",
+  waitlistHref: "#",
   registerHref: "#",
   video: {
     poster: "/videos/emr-hero-vid-2_poster.jpg",
