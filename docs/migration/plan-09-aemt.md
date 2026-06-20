@@ -12,13 +12,15 @@
 
 | Step | What | Who |
 |------|------|-----|
-| **9.1** | Create AEMT **program** + **class** rows in Supabase | You |
+| **9.1** | Create AEMT **program** + **class** rows in Supabase | Agent (via workspace Supabase MCP) |
 | **9.2** | Provide updated AEMT **hero image/video** assets | You |
 | **9.3** | Duplicate EMT marketing page → AEMT route + content file | Agent |
 | **9.4** | Wire program gallery, nav, sitemap, metadata | Agent |
 | **9.5** | Verify register/waitlist CTAs from Supabase active class | You (smoke test) |
 
-## 9.1 Supabase (you)
+## 9.1 Supabase (agent + you)
+
+**Workspace MCP:** `.cursor/mcp.json` → `supabase-midwestea` (project `rvhwgvzueoefemchvbcs`). First use opens Supabase OAuth in the browser.
 
 Create records mirroring EMT structure:
 
@@ -63,7 +65,7 @@ Copy all EMT sections (hero, enrollment bar, Layout blocks, FAQ, team, etc.) and
 
 ## Done criteria
 
-- AEMT program + class exist in Supabase (created by you)
+- AEMT program + class exist in Supabase
 - AEMT marketing page live on staging with your hero media
 - Gallery + navigation updated
 - Register/waitlist CTAs behave like EMT
