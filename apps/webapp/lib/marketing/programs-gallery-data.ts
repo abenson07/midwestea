@@ -8,6 +8,7 @@ export type ProgramGalleryPanel = {
   image: string;
 };
 
+/** Static program catalog; prices and class links are enriched from Supabase at render time. */
 export const programGalleryPanels: ProgramGalleryPanel[] = [
   {
     title: "Emergency Medical Responder",

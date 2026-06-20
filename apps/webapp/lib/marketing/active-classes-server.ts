@@ -75,3 +75,65 @@ export function formatPriceFromCents(cents: number | null | undefined): string {
   if (cents == null) return "";
   return (cents / 100).toFixed(2);
 }
+
+/** Whole-dollar amounts without trailing .00 (e.g. program tuition on enrollment bar). */
+export function formatWholeDollarsFromCents(
+  cents: number | null | undefined
+): string {
+  const formatted = formatPriceFromCents(cents);
+  if (formatted.endsWith(".00")) return formatted.slice(0, -3);
+  return formatted;
+}
+
+/** Display/register price: registration fee when set, otherwise full class price. */
+export function getActiveClassRegisterPriceCents(
+  activeClass: ActiveClass
+): number | null {
+  if (activeClass.registrationFee != null && activeClass.registrationFee > 0) {
+    return activeClass.registrationFee;
+  }
+  return activeClass.price;
+}
+
+/** Program total tuition when a separate registration fee exists. */
+export function getActiveClassTotalPriceCents(
+  activeClass: ActiveClass
+): number | null {
+  const hasRegistrationFee =
+    activeClass.registrationFee != null && activeClass.registrationFee > 0;
+  if (hasRegistrationFee && activeClass.price != null) {
+    return activeClass.price;
+  }
+  return null;
+}
+
+export function formatActiveClassDisplayPrice(activeClass: ActiveClass): string {
+  return formatPriceFromCents(getActiveClassRegisterPriceCents(activeClass));
+}
+
+/** Full program tuition (`price` column), falling back to registration fee. */
+export function getActiveClassProgramPriceCents(
+  activeClass: ActiveClass
+): number | null {
+  return activeClass.price ?? activeClass.registrationFee;
+}
+
+/** Formats a price for prose (e.g. priceNote): $2,150 or $49.99 */
+export function formatPriceForProse(cents: number | null | undefined): string {
+  if (cents == null) return "";
+  const amount = cents / 100;
+  if (amount % 1 === 0) {
+    return amount.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+  return amount.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+export function replaceEmbeddedDollarAmount(
+  text: string,
+  formattedPrice: string
+): string {
+  return text.replace(/\$[\d,]+(?:\.\d{1,2})?/, `$${formattedPrice}`);
+}

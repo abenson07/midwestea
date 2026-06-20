@@ -28,6 +28,7 @@ const courseGalleryFaqQuestions = [
   },
 ];
 
+/** Static course catalog; prices and class links are enriched from Supabase at render time. */
 const certificationCourses = [
   {
     name: "Child & Babysitting Safety",

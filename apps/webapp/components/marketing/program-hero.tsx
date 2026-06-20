@@ -123,7 +123,7 @@ export const ProgramHero = (props: ProgramHeroProps) => {
                     {...registerLinkAttributes(registerHref)}
                   >
                     {registerLabel}
-                    {registerPrice ? `$${registerPrice}` : null}
+                    {registerPrice ? ` $${registerPrice}` : null}
                   </a>
                 )}
               </div>
