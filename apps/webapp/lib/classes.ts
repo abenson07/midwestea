@@ -215,7 +215,7 @@ export async function generateClassId(courseCode: string): Promise<{ classId: st
 
 /**
  * Create a new class in the classes table (via server-side API route)
- * This ensures Webflow sync happens server-side with proper authentication
+ * Creates a class via the server-side API route.
  */
 export async function createClass(
   courseUuid: string,
@@ -250,11 +250,7 @@ export async function createClass(
 
     console.log('[Client] Session found, calling API route...');
     // Determine base path for API route
-    const basePath = typeof window !== 'undefined' 
-      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-      : '';
-
-    const apiUrl = `${basePath}/api/classes/create`;
+    const apiUrl = `/api/classes/create`;
     console.log('[Client] Calling API:', apiUrl);
 
     // Call the server-side API route
@@ -295,16 +291,7 @@ export async function createClass(
       return { success: false, error: result.error || 'Failed to create class' };
     }
 
-    // Log Webflow sync status
-    if (result.webflowSync) {
-      if (result.webflowSync.success) {
-        console.log('[Client] Webflow sync successful, item ID:', result.webflowSync.webflowItemId);
-      } else {
-        console.error('[Client] Webflow sync failed:', result.webflowSync.error);
-      }
-    }
-
-    console.log('[Client] Class created successfully, webflow_item_id:', result.class?.webflow_item_id);
+    console.log('[Client] Class created successfully');
     return { success: true, class: result.class as Class };
   } catch (err: any) {
     console.error('[Client] Exception creating class:', err);
@@ -363,11 +350,7 @@ export async function updateClass(
       return { success: false, error: 'Not authenticated. Please log in.' };
     }
 
-    const basePath = typeof window !== 'undefined' 
-      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-      : '';
-
-    const response = await fetch(`${basePath}/api/classes/${id}/update`, {
+    const response = await fetch(`/api/classes/${id}/update`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -616,11 +599,7 @@ export async function deleteClass(classId: string): Promise<{ success: boolean; 
       return { success: false, error: 'Not authenticated. Please log in.' };
     }
 
-    const basePath = typeof window !== 'undefined' 
-      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-      : '';
-
-    const response = await fetch(`${basePath}/api/classes/${classId}/delete`, {
+    const response = await fetch(`/api/classes/${classId}/delete`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',

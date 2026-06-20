@@ -13,12 +13,12 @@ import {
 
 // Order: Courses, Programs, Students, Trainers (Instructors), Transactions, Approvals (R to L)
 const navigation = [
-    { name: "Courses", href: "/dashboard/courses", icon: BookOpen },
-    { name: "Programs", href: "/dashboard/programs", icon: FolderOpen },
-    { name: "Students", href: "/dashboard/students", icon: GraduationCap },
-    { name: "Trainers", href: "/dashboard/instructors", icon: FileText },
-    { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
-    { name: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
+    { name: "Courses", href: "/admin/courses", icon: BookOpen },
+    { name: "Programs", href: "/admin/programs", icon: FolderOpen },
+    { name: "Students", href: "/admin/students", icon: GraduationCap },
+    { name: "Trainers", href: "/admin/instructors", icon: FileText },
+    { name: "Transactions", href: "/admin/payments", icon: CreditCard },
+    { name: "Approvals", href: "/admin/approvals", icon: CheckSquare },
 ];
 
 export function MobileNav() {

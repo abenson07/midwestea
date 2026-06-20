@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
-import { createWebflowClassItem, getWebflowConfig } from '@/lib/webflow';
 import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -38,7 +37,7 @@ function mapDatabaseError(error: PostgrestError | Error, context: string = ""): 
 }
 
 /**
- * Server-side API route to create a class in Supabase and sync to Webflow
+ * Server-side API route to create a class in Supabase.
  * Requires authentication
  */
 export async function POST(request: NextRequest) {
@@ -141,83 +140,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sync to Webflow
-    let webflowItemId: string | null = null;
-    let webflowError: string | null = null;
+    // Log class creation (for class detail page, course detail page, and program detail page)
     let courseProgramType: string | null = null;
-    console.log('[API] Starting Webflow sync for class:', classData.id);
     try {
-      // Look up the course/program to determine program_type
-      const { data: course, error: courseError } = await supabase
+      const { data: course } = await supabase
         .from('courses')
         .select('program_type')
         .eq('id', courseUuid)
         .single();
-      
       courseProgramType = course?.program_type || null;
-
-      if (courseError) {
-        console.error('[API] Error fetching course:', courseError);
-        webflowError = `Course lookup failed: ${mapDatabaseError(courseError, "course")}`;
-      } else if (course) {
-        console.log('[API] Found course with program_type:', course.program_type);
-        const webflowConfig = getWebflowConfig(course.program_type);
-
-        if (!webflowConfig) {
-          const envStatus = {
-            apiToken: process.env.WEBFLOW_API_TOKEN ? 'SET' : 'MISSING',
-            siteId: process.env.WEBFLOW_SITE_ID ? 'SET' : 'MISSING',
-            collectionId: process.env.WEBFLOW_CLASSES_COLLECTION_ID ? 'SET' : 'MISSING',
-          };
-          console.error('[API] Webflow config is null. Environment variables:', envStatus);
-          webflowError = `Webflow config missing. Check: ${JSON.stringify(envStatus)}`;
-        } else {
-          console.log('[API] Webflow config created, collectionId:', webflowConfig.collectionId);
-          const isProgram = course.program_type === 'program';
-          const { webflowItemId: itemId, error: wfError } = await createWebflowClassItem(
-            webflowConfig,
-            classData,
-            isProgram
-          );
-
-          if (itemId && !wfError) {
-            console.log('[API] Webflow item created successfully:', itemId);
-            webflowItemId = itemId;
-            
-            // Store webflow_item_id back in Supabase
-            const { error: updateError } = await supabase
-              .from('classes')
-              .update({ webflow_item_id: itemId })
-              .eq('id', classData.id);
-            
-            if (updateError) {
-              console.error('[API] Error updating webflow_item_id in Supabase:', updateError);
-              webflowError = `Failed to save webflow_item_id: ${updateError.message}`;
-            } else {
-              console.log('[API] Successfully stored webflow_item_id in Supabase');
-            }
-            
-            classData.webflow_item_id = itemId;
-          } else if (wfError) {
-            console.error('[API] Webflow sync failed:', wfError);
-            webflowError = `Webflow API error: ${wfError}`;
-          } else {
-            console.error('[API] Webflow sync returned no itemId and no error - unexpected');
-            webflowError = 'Webflow sync returned no itemId';
-          }
-        }
-      } else {
-        console.error('[API] Course not found for courseUuid:', courseUuid);
-        webflowError = `Course not found: ${courseUuid}`;
-      }
-    } catch (webflowErr: any) {
-      // Log error but don't fail class creation
-      console.error('[API] Exception during Webflow sync:', webflowErr);
-      console.error('[API] Error stack:', webflowErr.stack);
-      webflowError = `Exception: ${webflowErr.message}`;
+    } catch {
+      // Non-fatal if course lookup fails for logging
     }
 
-    // Log class creation (for class detail page, course detail page, and program detail page)
     try {
       const { admin } = await getCurrentAdmin(user.id);
       if (admin) {
@@ -259,15 +194,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      class: {
-        ...classData,
-        webflow_item_id: webflowItemId,
-      },
-      webflowSync: {
-        success: webflowItemId !== null,
-        webflowItemId,
-        error: webflowError,
-      },
+      class: classData,
     });
   } catch (error: any) {
     console.error('Error in create class API:', error);

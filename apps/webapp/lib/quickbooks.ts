@@ -210,18 +210,9 @@ async function apiRequest<T>(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `QuickBooks API error: ${response.status}`;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:268',message:'API request failed',data:{status:response.status,statusText:response.statusText,errorText,url,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    
+    let errorMessage = `QuickBooks API error: ${response.status}`;    
     try {
-      const errorData: QuickBooksError = JSON.parse(errorText);
-      // #region agent log
-      fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:275',message:'Parsed error response',data:{errorData:JSON.stringify(errorData),errorCode:errorData.Fault?.Error?.[0]?.code,errorMessage:errorData.Fault?.Error?.[0]?.Message,errorDetail:errorData.Fault?.Error?.[0]?.Detail},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-      // #endregion
-      if (errorData.Fault?.Error?.[0]) {
+      const errorData: QuickBooksError = JSON.parse(errorText);      if (errorData.Fault?.Error?.[0]) {
         errorMessage = `QuickBooks API error: ${errorData.Fault.Error[0].Message} (${errorData.Fault.Error[0].code})`;
       }
     } catch {
@@ -582,11 +573,6 @@ export async function createInvoice(
       Name: field.Name,
     }));
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:583',message:'Before createInvoice API request',data:{invoiceData:JSON.stringify(invoiceData),hasDepartmentRef:false,hasClassRef:!!lineItem.SalesItemLineDetail?.ClassRef,customFieldsCount:customFields?.length || 0},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(
     '/invoice',
     {
@@ -594,11 +580,6 @@ export async function createInvoice(
       body: JSON.stringify(invoiceData),
     }
   );
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:595',message:'After createInvoice API request',data:{hasInvoice:!!response.Invoice,invoiceId:response.Invoice?.Id,hasSyncToken:!!response.Invoice?.SyncToken},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-  // #endregion
-
   return response.Invoice;
 }
 
@@ -616,11 +597,6 @@ export async function saveInvoice(invoice: QuickBooksInvoice): Promise<QuickBook
     Id: invoice.Id,
     SyncToken: invoice.SyncToken,
   };
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:597',message:'Before saveInvoice API request',data:{updateData:JSON.stringify(updateData),invoiceId:invoice.Id,syncToken:invoice.SyncToken},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-
   const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(
     '/invoice',
     {
@@ -628,11 +604,6 @@ export async function saveInvoice(invoice: QuickBooksInvoice): Promise<QuickBook
       body: JSON.stringify(updateData),
     }
   );
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:610',message:'After saveInvoice API request',data:{hasInvoice:!!response.Invoice,invoiceId:response.Invoice?.Id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-
   return response.Invoice;
 }
 
@@ -655,18 +626,8 @@ export async function getInvoice(invoiceId: string, include?: string, minorVersi
   
   if (params.toString()) {
     endpoint += `?${params.toString()}`;
-  }
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:650',message:'Before getInvoice API request',data:{endpoint,invoiceId,include,minorVersion},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'G'})}).catch(()=>{});
-  // #endregion
-  
-  const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(endpoint);
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:662',message:'After getInvoice API request',data:{hasInvoice:!!response.Invoice,hasInvoiceLink:!!response.Invoice?.InvoiceLink,hasPaymentLink:!!response.Invoice?.PaymentLink,invoiceLink:response.Invoice?.InvoiceLink,paymentLink:response.Invoice?.PaymentLink},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'G'})}).catch(()=>{});
-  // #endregion
-  
+  }  
+  const response = await apiRequest<{ Invoice: QuickBooksInvoice }>(endpoint);  
   // Transform Sandbox URL if needed (based on forum solution)
   if (response.Invoice?.InvoiceLink && response.Invoice.InvoiceLink.includes('developer.intuit.com/comingSoonview/')) {
     // Replace Sandbox URL format with working format
@@ -674,12 +635,7 @@ export async function getInvoice(invoiceId: string, include?: string, minorVersi
       'https://developer.intuit.com/comingSoonview/',
       'https://connect.intuit.com/t/'
     );
-    response.Invoice.InvoiceLink = transformedLink;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:672',message:'Transformed Sandbox invoice link',data:{originalLink:response.Invoice.InvoiceLink,transformedLink},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
-  }
+    response.Invoice.InvoiceLink = transformedLink;  }
   
   return response.Invoice;
 }
@@ -705,21 +661,11 @@ export async function sendInvoice(invoiceId: string, syncToken: string, emailAdd
     sendData.Invoice.BillEmail = {
       Address: emailAddress,
     };
-  }
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:695',message:'Before sendInvoice API request',data:{invoiceId,syncToken,emailAddress,endpoint},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
-  // #endregion
-  
+  }  
   await apiRequest(endpoint, {
     method: 'POST',
     body: JSON.stringify(sendData),
-  });
-  
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'quickbooks.ts:707',message:'After sendInvoice API request',data:{invoiceId},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'I'})}).catch(()=>{});
-  // #endregion
-}
+  });}
 
 /**
  * Create subsequent invoices for tuition payments

@@ -21,11 +21,7 @@ export interface InvoiceToImport {
 /**
  * Get the next invoice number from the sequence
  */
-async function getNextInvoiceNumber(): Promise<number> {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:24',message:'getNextInvoiceNumber called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-  const supabase = createSupabaseAdminClient();
+async function getNextInvoiceNumber(): Promise<number> {  const supabase = createSupabaseAdminClient();
   
   // Use a database function to get the next invoice number
   // We'll use a simple approach: get the max invoice number and add 1, or start at 100001
@@ -35,11 +31,6 @@ async function getNextInvoiceNumber(): Promise<number> {
     .order('invoice_number', { ascending: false })
     .limit(1)
     .single();
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:35',message:'getNextInvoiceNumber query result',data:{hasError:!!error,errorCode:error?.code,errorMessage:error?.message,hasData:!!data,currentMax:data?.invoice_number},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-  // #endregion
-
   if (error && error.code !== 'PGRST116') {
     // PGRST116 is "not found" which is fine if table is empty
     throw new Error(`Failed to get next invoice number: ${error.message}`);
@@ -62,11 +53,7 @@ export async function createRegistrationFeeInvoices(
   classRecord: Class,
   customerEmail: string,
   paymentDate: Date
-): Promise<InvoiceToImport[]> {
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:53',message:'createRegistrationFeeInvoices called',data:{paymentId,classId:classRecord.id,classIdText:classRecord.class_id,customerEmail,price:classRecord.price,registrationFee:classRecord.registration_fee},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-  // #endregion
-  const supabase = createSupabaseAdminClient();
+): Promise<InvoiceToImport[]> {  const supabase = createSupabaseAdminClient();
 
   // Get invoice due dates from class, or calculate from class_start_date
   let invoice1DueDate = (classRecord as any)['invoice_1_due_date'];
@@ -198,20 +185,10 @@ export async function createRegistrationFeeInvoices(
     invoiceNumbers: invoicesToInsert.map(i => i.invoice_number),
     paymentId,
   });
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:159',message:'About to insert invoices to database',data:{count:invoicesToInsert.length,invoiceNumbers:invoicesToInsert.map(i=>i.invoice_number),paymentId,classId:invoicesToInsert[0].class_id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
-
   const { data: insertedInvoices, error } = await supabase
     .from('invoices_to_import')
     .insert(invoicesToInsert)
     .select();
-
-  // #region agent log
-  fetch('http://127.0.0.1:7244/ingest/12521c72-3f93-40b1-89c8-52ae2b633e31',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'invoices.ts:164',message:'Database insert result',data:{hasError:!!error,errorCode:error?.code,errorMessage:error?.message,errorDetails:error?.details,errorHint:error?.hint,insertedCount:insertedInvoices?.length,insertedInvoiceNumbers:insertedInvoices?.map(i=>i.invoice_number)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-  // #endregion
-
   if (error) {
     const errorDetails = {
       error: error.message,

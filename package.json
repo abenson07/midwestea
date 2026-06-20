@@ -16,15 +16,11 @@
     "test-otp-email": "tsx scripts/test-otp-email.ts",
     "test-email-templates": "tsx scripts/test-email-templates.ts",
     "render-email-preview": "tsx scripts/render-email-preview.ts",
-    "webflow": "webflow",
-    "webflow:auth:login": "webflow auth login",
-    "webflow:cloud:init": "webflow cloud init",
-    "webflow:cloud:deploy": "webflow cloud deploy",
-    "webflow:cloud:list": "webflow cloud list"
+    "dev": "npm run dev --workspace=@midwestea/webapp",
+    "build": "npm run build --workspace=@midwestea/webapp"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "@webflow/webflow-cli": "^1.8.49",
     "dotenv": "^16.4.5",
     "tsx": "^4.7.0"
   }

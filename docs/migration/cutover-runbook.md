@@ -1,0 +1,70 @@
+# Production DNS Cutover Runbook
+
+**Prerequisites:** Plan 8 E2E checklist passes on staging.
+
+## Pre-cutover
+
+- [ ] Full Plan 8 matrix passes on staging one final time
+- [ ] Production env vars prepared (`pk_live_`, `sk_live_`, production Supabase if separate)
+- [ ] TTL lowered on DNS records (300s) for cutover window
+
+## 1. Production Vercel environment
+
+- Promote staging config to Production in Vercel
+- Set production environment variables
+- Add `midwestea.com` and `www.midwestea.com` in Vercel → Settings → Domains
+
+## 2. DNS
+
+- Point `midwestea.com` and `www` to Vercel per Vercel DNS instructions
+- Verify propagation: `curl -I https://midwestea.com/` returns 200 with Vercel headers
+
+## 3. Production Stripe webhook
+
+- Add endpoint: `https://midwestea.com/api/webhooks/stripe`
+- Use **live** signing secret in production `STRIPE_WEBHOOK_SECRET`
+- Disable/delete old Webflow Cloud webhook endpoint
+
+## 4. Supabase production auth
+
+- Site URL: `https://midwestea.com`
+- Redirect URLs: `https://midwestea.com/admin/**`
+
+## 5. Legacy redirects
+
+Verify on production:
+
+- `/app/*` → new paths (no basePath)
+- `/dashboard/*` → `/admin/*`
+- `/course-template` → `/courses`
+- `/program-template`, `/program-gallery` → `/programs`
+
+## 6. Decommission Webflow Cloud
+
+- Remove Webflow Cloud app deployments (checkout, webapp, student, instructor mounts)
+- Cancel or downgrade Webflow hosting if marketing is fully replaced
+- Remove Webflow custom code scripts from Designer
+
+## Cutover window checks
+
+- [ ] `curl -I https://midwestea.com/` → 200, served by Vercel
+- [ ] `/admin/login` works on production domain
+- [ ] Test purchase with live Stripe (small real charge or agreed test approach)
+- [ ] Old `/app/checkout/details` redirects correctly
+
+## Post-cutover monitoring (48 hours)
+
+- [ ] Vercel logs — no spike in 5xx errors
+- [ ] Stripe webhook delivery dashboard — 100% success
+- [ ] Resend email delivery healthy
+- [ ] Spot-check 10 marketing pages + checkout + admin login
+- [ ] Google Search Console — no crawl spike of 404s
+- [ ] No enrollment failures in Supabase logs
+
+## Rollback
+
+If critical issues arise within the cutover window:
+
+1. Revert DNS to Webflow Cloud (keep TTL low)
+2. Re-enable Webflow Cloud webhook in Stripe temporarily
+3. Document incident and fix before re-attempting cutover

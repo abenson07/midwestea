@@ -88,11 +88,7 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const basePath = typeof window !== 'undefined' 
-          ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-          : '';
-        
-        const emailResponse = await fetch(`${basePath}/api/students/${id}/email`, {
+        const emailResponse = await fetch(`/api/students/${id}/email`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${session.access_token}`,
@@ -200,13 +196,9 @@ export async function updateStudent(
           return { success: false, error: "Not authenticated" };
         }
 
-        const basePath = typeof window !== 'undefined' 
-          ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-          : '';
-        
         console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${email.trim()}`);
         
-        const emailResponse = await fetch(`${basePath}/api/students/${id}/update-email`, {
+        const emailResponse = await fetch(`/api/students/${id}/update-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

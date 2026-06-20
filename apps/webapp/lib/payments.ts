@@ -262,14 +262,10 @@ export async function getTransactions(): Promise<{ transactions: TransactionWith
         const token = session?.access_token;
         
         if (token) {
-          const basePath = typeof window !== 'undefined' 
-            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-            : '';
-          
           // Fetch emails in batches
           const emailPromises = studentIds.map(async (studentId: string) => {
             try {
-              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+              const response = await fetch(`/api/students/${studentId}/email`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
@@ -445,13 +441,9 @@ export async function getPayoutsToReconcile(): Promise<{
         const token = session?.access_token;
         
         if (token) {
-          const basePath = typeof window !== 'undefined' 
-            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-            : '';
-          
           const emailPromises = studentIds.map(async (studentId: string) => {
             try {
-              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+              const response = await fetch(`/api/students/${studentId}/email`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
@@ -590,13 +582,9 @@ export async function getReconciledPayouts(): Promise<{
         const token = session?.access_token;
         
         if (token) {
-          const basePath = typeof window !== 'undefined' 
-            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-            : '';
-          
           const emailPromises = studentIds.map(async (studentId: string) => {
             try {
-              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+              const response = await fetch(`/api/students/${studentId}/email`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },
@@ -661,11 +649,7 @@ export async function reconcileTransaction(
   try {
     console.log("[reconcileTransaction] Reconciling transaction:", transactionId);
     
-    const basePath = typeof window !== 'undefined' 
-      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-      : '';
-    
-    const response = await fetch(`${basePath}/api/transactions/reconcile`, {
+    const response = await fetch(`/api/transactions/reconcile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -697,11 +681,7 @@ export async function undoReconciliation(
   try {
     console.log("[undoReconciliation] Undoing reconciliation for transaction:", transactionId);
     
-    const basePath = typeof window !== 'undefined' 
-      ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-      : '';
-    
-    const response = await fetch(`${basePath}/api/transactions/unreconcile`, {
+    const response = await fetch(`/api/transactions/unreconcile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -770,13 +750,9 @@ export async function getTransactionsWithPayoutId(): Promise<{
         const token = session?.access_token;
         
         if (token) {
-          const basePath = typeof window !== 'undefined' 
-            ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-            : '';
-          
           const emailPromises = studentIds.map(async (studentId: string) => {
             try {
-              const response = await fetch(`${basePath}/api/students/${studentId}/email`, {
+              const response = await fetch(`/api/students/${studentId}/email`, {
                 headers: {
                   'Authorization': `Bearer ${token}`,
                 },

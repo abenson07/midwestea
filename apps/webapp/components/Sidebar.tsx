@@ -19,13 +19,13 @@ import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
 
 const navigation = [
-  { name: "Courses", href: "/dashboard/courses", icon: BookOpen },
-  { name: "Programs", href: "/dashboard/programs", icon: FolderOpen },
-  { name: "Classes", href: "/dashboard/classes", icon: Users },
-  { name: "Students", href: "/dashboard/students", icon: GraduationCap },
-  { name: "Instructors", href: "/dashboard/instructors", icon: FileText },
-  { name: "Transactions", href: "/dashboard/payments", icon: CreditCard },
-  { name: "Approvals", href: "/dashboard/approvals", icon: CheckSquare },
+  { name: "Courses", href: "/admin/courses", icon: BookOpen },
+  { name: "Programs", href: "/admin/programs", icon: FolderOpen },
+  { name: "Classes", href: "/admin/classes", icon: Users },
+  { name: "Students", href: "/admin/students", icon: GraduationCap },
+  { name: "Instructors", href: "/admin/instructors", icon: FileText },
+  { name: "Transactions", href: "/admin/payments", icon: CreditCard },
+  { name: "Approvals", href: "/admin/approvals", icon: CheckSquare },
 ];
 
 export function Sidebar() {
@@ -45,15 +45,14 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/dashboard/login");
+    router.push("/admin/login");
   };
 
   const handleDownloadInvoices = async () => {
     setIsDownloading(true);
     try {
       console.log('[Sidebar] Exporting transactions to CSV...');
-      const basePath = '/app';
-      const csvResponse = await fetch(`${basePath}/api/export-transactions-csv`, {
+      const csvResponse = await fetch(`/api/export-transactions-csv`, {
         method: 'GET',
       });
 
@@ -113,7 +112,7 @@ export function Sidebar() {
         <ul className="space-y-1 px-3">
           {navigation.map((item) => {
             // Check if we're on class detail page with a 'from' parameter
-            const isClassDetailPage = pathname.startsWith('/dashboard/classes/') && pathname !== '/dashboard/classes';
+            const isClassDetailPage = pathname.startsWith('/admin/classes/') && pathname !== '/admin/classes';
             const fromParam = isClassDetailPage ? searchParams?.get('from') : null;
             
             let isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -152,14 +151,14 @@ export function Sidebar() {
         </ul>
         <div className="px-3 pt-4 border-t border-gray-200 space-y-1">
           <Link
-            href="/dashboard/reconcile"
+            href="/admin/reconcile"
             className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors w-full ${
-              pathname === "/dashboard/reconcile"
+              pathname === "/admin/reconcile"
                 ? "bg-gray-100 text-gray-900"
                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             }`}
           >
-            <CheckSquare className={`h-5 w-5 ${pathname === "/dashboard/reconcile" ? "text-black" : "text-gray-400"}`} />
+            <CheckSquare className={`h-5 w-5 ${pathname === "/admin/reconcile" ? "text-black" : "text-gray-400"}`} />
             <span>Reconcile</span>
           </Link>
           <button

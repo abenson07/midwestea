@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
-import { updateWebflowClassItem, getWebflowConfig } from '@/lib/webflow';
 import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import type { PostgrestError } from '@supabase/supabase-js';
 
@@ -139,78 +138,6 @@ export async function PUT(
       );
     }
 
-    // Sync to Webflow if webflow_item_id exists
-    let webflowError: string | null = null;
-    if (currentClass.webflow_item_id) {
-      console.log('[API] Starting Webflow sync for class update:', classId);
-      try {
-        // Look up the course/program to determine program_type and get wf_class_link
-        const { data: course, error: courseError } = await supabase
-          .from('courses')
-          .select('program_type, wf_class_link')
-          .eq('id', currentClass.course_uuid)
-          .single();
-        
-        if (courseError) {
-          console.error('[API] Error fetching course:', courseError);
-          webflowError = `Course lookup failed: ${mapDatabaseError(courseError, "course")}`;
-        } else if (course) {
-          console.log('[API] Found course with program_type:', course.program_type);
-          const webflowConfig = getWebflowConfig(course.program_type);
-
-          if (!webflowConfig) {
-            const envStatus = {
-              apiToken: process.env.WEBFLOW_API_TOKEN ? 'SET' : 'MISSING',
-              siteId: process.env.WEBFLOW_SITE_ID ? 'SET' : 'MISSING',
-              collectionId: process.env.WEBFLOW_CLASSES_COLLECTION_ID ? 'SET' : 'MISSING',
-            };
-            console.error('[API] Webflow config is null. Environment variables:', envStatus);
-            webflowError = `Webflow config missing. Check: ${JSON.stringify(envStatus)}`;
-          } else {
-            console.log('[API] Webflow config created, collectionId:', webflowConfig.collectionId);
-            
-            // Use the updated class data for Webflow sync, ensuring wf_class_link is from course
-            const isProgram = course.program_type === 'program';
-            const wfClassLinkFromCourse = course.wf_class_link || null;
-            const classDataForWebflow = {
-              ...updatedClass,
-              wf_class_link: wfClassLinkFromCourse,
-            };
-            const { success, error: wfError } = await updateWebflowClassItem(
-              webflowConfig,
-              currentClass.webflow_item_id,
-              classDataForWebflow,
-              isProgram
-            );
-
-            if (!success) {
-              console.error('[API] Webflow sync failed:', wfError);
-              webflowError = `Webflow API error: ${wfError || 'Unknown error'}`;
-            } else {
-              console.log('[API] Webflow item updated successfully');
-              // Update the class's wf_class_link in the database to match the course
-              if (wfClassLinkFromCourse !== updatedClass.wf_class_link) {
-                await supabase
-                  .from('classes')
-                  .update({ wf_class_link: wfClassLinkFromCourse })
-                  .eq('id', classId);
-              }
-            }
-          }
-        } else {
-          console.error('[API] Course not found for courseUuid:', currentClass.course_uuid);
-          webflowError = `Course not found: ${currentClass.course_uuid}`;
-        }
-      } catch (webflowErr: any) {
-        // Log error but don't fail class update
-        console.error('[API] Exception during Webflow sync:', webflowErr);
-        console.error('[API] Error stack:', webflowErr.stack);
-        webflowError = `Exception: ${webflowErr.message}`;
-      }
-    } else {
-      console.log('[API] No webflow_item_id found, skipping Webflow sync');
-    }
-
     // Log class update
     try {
       const { admin } = await getCurrentAdmin(user.id);
@@ -231,10 +158,6 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       class: updatedClass,
-      webflowSync: {
-        success: webflowError === null,
-        error: webflowError,
-      },
     });
   } catch (error: any) {
     console.error('Error in update class API:', error);

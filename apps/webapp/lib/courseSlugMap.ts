@@ -42,32 +42,40 @@ const SLUG_TO_COURSE_CODE: Record<string, string> = {
   
   // Child & Babysitting Safety
   'child-babysitting-safety': 'CABS',
+  'child-and-babysitting-safety': 'CABS',
   'cabs': 'CABS',
-  
+
   // Active Violence Emergency Response
   'active-violence-emergency-response': 'AVERT',
+  'active-shooter-training': 'AVERT',
   'avert': 'AVERT',
-  
-  // Pediatric CPR
+
+  // Pediatric CPR / First Aid
   'pediatric-cpr': 'PEDS',
+  'pediatric-first-aid-cpr-aed': 'PEDS',
   'peds': 'PEDS',
-  
+
+  // Emergency Medical Responder
+  'emergency-medical-responder': 'EMR',
+
   // Emergency Oxygen
   'emergency-oxygen': 'OXY',
+  'emergency-use-of-medical-oxygen': 'OXY',
   'oxy': 'OXY',
-  
+
+  // Epinephrine
+  'epinephrine': 'EPI',
+  'use-and-administration-of-epinephrine-auto-injectors': 'EPI',
+  'epi': 'EPI',
+
   // Pediatric Advanced Life Support
   'pediatric-advanced-life-support': 'PALS',
   'pals': 'PALS',
-  
+
   // Bloodborne Pathogens
   'bloodborne-pathogens': 'PATH',
   'path': 'PATH',
-  'bloodborne-pathodgens': 'PATH', // Handle typo variant
-  
-  // Epinephrine
-  'epinephrine': 'EPI',
-  'epi': 'EPI',
+  'bloodborne-pathodgens': 'PATH',
 };
 
 /**

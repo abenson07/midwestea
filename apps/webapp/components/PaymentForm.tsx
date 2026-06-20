@@ -45,7 +45,7 @@ export default function PaymentForm({
       const { error: submitError, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/app/checkout/success`,
+          return_url: `${window.location.origin}/checkout/success`,
           payment_method_data: {
             billing_details: {
               name: nameOnCard,
