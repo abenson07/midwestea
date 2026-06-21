@@ -52,20 +52,24 @@ export const Team2 = (props: Team2Props) => {
           </h2>
           <p className="md:text-md">{description}</p>
         </div>
-        <div className="grid grid-cols-1 items-start justify-center gap-x-8 gap-y-12 md:grid-cols-2 md:gap-y-16 lg:grid-cols-4">
+        <div className="grid grid-cols-1 items-start justify-center gap-x-8 gap-y-12 md:grid-cols-2 md:gap-y-16 lg:grid-cols-3">
           {teamMembers.map((member, index) => (
             <TeamMember key={index} member={member} />
           ))}
         </div>
-        <div className="mx-auto mt-14 w-full max-w-md text-center md:mt-20 lg:mt-24">
-          <h4 className="mea-heading-h4 mb-3 md:mb-4">
-            {footer.heading}
-          </h4>
-          <p className="md:text-md">{footer.description}</p>
-          <div className="mt-6 flex items-center justify-center gap-x-4 text-center md:mt-8">
-            <Button {...footer.button}>{footer.button.title}</Button>
+        {footer.heading || footer.description || footer.button.title ? (
+          <div className="mx-auto mt-14 w-full max-w-md text-center md:mt-20 lg:mt-24">
+            {footer.heading ? (
+              <h4 className="mea-heading-h4 mb-3 md:mb-4">{footer.heading}</h4>
+            ) : null}
+            {footer.description ? <p className="md:text-md">{footer.description}</p> : null}
+            {footer.button.title ? (
+              <div className="mt-6 flex items-center justify-center gap-x-4 text-center md:mt-8">
+                <Button {...footer.button}>{footer.button.title}</Button>
+              </div>
+            ) : null}
           </div>
-        </div>
+        ) : null}
       </div>
     </section>
   );
@@ -74,18 +78,18 @@ export const Team2 = (props: Team2Props) => {
 const TeamMember = ({ member }: { member: TeamMember }) => {
   return (
     <div className="flex flex-col text-center">
-      <div className="relative mb-5 size-full overflow-hidden pt-[66%] md:mb-6 md:pt-[100%]">
+      <div className="relative mb-5 size-full overflow-hidden rounded-mea-sm pt-[66%] md:mb-6 md:pt-[100%]">
         <img
           src={member.image.src}
           alt={member.image.alt}
-          className="absolute inset-0 size-full object-cover"
+          className="absolute inset-0 size-full object-cover object-top"
         />
       </div>
-      <div className="mb-3 md:mb-4">
-        <h5 className="text-md font-semibold md:text-lg">{member.name}</h5>
+      <div className="flex flex-col items-center gap-1">
+        <h5 className="mea-heading-h4 uppercase">{member.name}</h5>
         <h6 className="md:text-md">{member.jobTitle}</h6>
+        <p className="text-sm text-neutral-dark">{member.description}</p>
       </div>
-      <p>{member.description}</p>
       <div className="mt-6 grid grid-flow-col grid-cols-[max-content] gap-3.5 self-center">
         {member.socialLinks.map((link, index) => (
           <a key={index} href={link.href}>
