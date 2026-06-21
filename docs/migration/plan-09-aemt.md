@@ -1,6 +1,6 @@
 # Plan 9 — Add AEMT program + class
 
-**Status:** `pending`
+**Status:** `in_progress`
 
 **Goal:** Add Advanced Emergency Medical Technician (AEMT) to the marketing site and wire it to Supabase like the existing EMT program. Duplicate the EMT program page content and structure; swap in AEMT-specific copy, assets, and Supabase records.
 
@@ -10,26 +10,27 @@
 
 ## Who does what
 
-| Step | What | Who |
-|------|------|-----|
-| **9.1** | Create AEMT **program** + **class** rows in Supabase | Agent (via workspace Supabase MCP) |
-| **9.2** | Provide updated AEMT **hero image/video** assets | You |
-| **9.3** | Duplicate EMT marketing page → AEMT route + content file | Agent |
-| **9.4** | Wire program gallery, nav, sitemap, metadata | Agent |
-| **9.5** | Verify register/waitlist CTAs from Supabase active class | You (smoke test) |
+| Step | What | Who | Status |
+|------|------|-----|--------|
+| **9.1** | Create AEMT **program** + **class** rows in Supabase | Agent | Done |
+| **9.2** | Provide updated AEMT **hero image/video** assets | You | Pending |
+| **9.3** | Duplicate EMT marketing page → AEMT route + content file | Agent | Done |
+| **9.4** | Wire program gallery, nav, sitemap, metadata | Agent | Done (no sitemap route in app) |
+| **9.5** | Verify register/waitlist CTAs from Supabase active class | You | Pending (checkout test on hold) |
 
-## 9.1 Supabase (agent + you)
+## 9.1 Supabase — done
 
-**Workspace MCP:** `.cursor/mcp.json` → `supabase-midwestea` (project `rvhwgvzueoefemchvbcs`). First use opens Supabase OAuth in the browser.
+**Program** (`AEMT`): type `program`, Hybrid, $5,600 tuition / $100 registration fee.
 
-Create records mirroring EMT structure:
+**Class** (`AEMT-001`):
 
-- **Program** row (course type `program`, course code e.g. `AEMT`)
-- **Class** row linked to program (e.g. `AEMT-001`) with:
-  - `class_start_date`, pricing fields, `stripe_price_id` (live price when ready)
-  - `is_active` / registration flags consistent with other programs
-
-Reference existing EMT program + class rows when duplicating field values.
+| Field | Value |
+|-------|--------|
+| Location | Topeka, Kansas |
+| Orientation | 2026-08-19 |
+| Enrollment | Open through 2026-07-29 |
+| Stripe product | `prod_UkK3r0Ebcrkcl7` |
+| Stripe price | `price_1TkpPFEOeSayLzNmKWZIYhaW` ($100 registration fee) |
 
 ## 9.2 Assets (you)
 
@@ -40,32 +41,31 @@ Provide hero media for AEMT (replace EMT placeholders):
 
 Place under `apps/webapp/public/` following EMT naming (e.g. `/videos/aemt-hero-*`, `/images/aemt-hero.avif`).
 
-## 9.3 Marketing page (agent)
+Current page still uses EMT hero video and gallery image as placeholders.
 
-Duplicate EMT implementation:
+## 9.3 Marketing page — done
 
 | EMT (reference) | AEMT (new) |
 |-----------------|------------|
-| `/emergency-medical-technician` | TBD route (e.g. `/advanced-emergency-medical-technician`) |
-| `emergency-medical-technician-content.ts` | `advanced-emergency-medical-technician-content.ts` (or agreed slug) |
-| `programs-gallery-data.ts` entry | New AEMT gallery card |
-| `site-config` / nav links | Add AEMT where EMT appears |
+| `/emergency-medical-technician` | `/advanced-emergency-medical-technician` |
+| `emergency-medical-technician-content.ts` | `advanced-emergency-medical-technician-content.ts` |
+| `programs-gallery-data.ts` entry | AEMT gallery card |
+| `site-config` / nav / footer / redirects | Wired |
 
-Copy all EMT sections (hero, enrollment bar, Layout blocks, FAQ, team, etc.) and update titles/copy for AEMT. Register CTAs use existing Supabase enrichment (`enrich-page-checkout`) — no checkout code changes expected.
+Register CTAs use existing Supabase enrichment (`enrich-page-checkout`).
 
-## 9.4 Verification (smoke test)
+## 9.4 Verification
 
-- [ ] AEMT page loads on staging
-- [ ] Program appears on `/programs` gallery
-- [ ] With active class: Register → checkout URL with correct `classID`
-- [ ] With no active class: Coming soon → waitlist URL with correct `courseCode`
-- [ ] Admin shows new program + class rows
-
-**Not in scope:** Full Stripe checkout E2E (already covered by Plan 8).
+- [x] AEMT page loads locally (register shows $100 / $5,600 from Supabase)
+- [x] Program appears on `/programs` gallery
+- [x] With active class: Register → checkout URL with `classID=AEMT-001`
+- [ ] With no active class: waitlist URL (not re-tested)
+- [x] Admin shows AEMT program + class rows
+- [ ] Stripe checkout E2E on hold
 
 ## Done criteria
 
-- AEMT program + class exist in Supabase
-- AEMT marketing page live on staging with your hero media
-- Gallery + navigation updated
-- Register/waitlist CTAs behave like EMT
+- [x] AEMT program + class exist in Supabase
+- [ ] AEMT marketing page with **your** hero media (placeholders today)
+- [x] Gallery + navigation updated
+- [x] Register CTAs behave like EMT (verified locally; payment test deferred)

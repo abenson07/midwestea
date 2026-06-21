@@ -36,10 +36,10 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
     title: "Advanced Emergency Medical Technician",
     description:
       "Build on your EMT foundation with advanced assessment, medication administration, and expanded scope skills. Our state-approved AEMT program blends online learning with in-person skills days.",
-    classLabel: "Next class starts",
-    classDate: "Coming soon",
+    classLabel: "Orientation",
+    classDate: "August 19–20, 2026 · Topeka, Kansas",
     priceNote:
-      "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $2,150.",
+      "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $5,600.",
     href: "/advanced-emergency-medical-technician",
     image: "/images/emt-hero.avif",
   },

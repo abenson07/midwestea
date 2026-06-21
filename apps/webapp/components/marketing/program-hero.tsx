@@ -6,7 +6,7 @@ import { useRef } from "react";
 import { useHeroVideoScrub } from "@/hooks/marketing/use-hero-video-scrub";
 
 type VideoProps = {
-  poster: string;
+  poster?: string;
   mp4: string;
   webm?: string;
 };
@@ -67,7 +67,7 @@ export const ProgramHero = (props: ProgramHeroProps) => {
             muted
             playsInline
             preload="metadata"
-            poster={video.poster}
+            {...(video.poster ? { poster: video.poster } : {})}
             className="size-full object-cover"
           >
             {video.webm ? <source src={video.webm} type="video/webm" /> : null}

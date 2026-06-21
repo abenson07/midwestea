@@ -17,7 +17,7 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `done` | | Staging live; smoke tests passed in browser |
 | 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `done` | | Register buttons, course/program galleries, and pricing wired to Supabase; verified locally |
 | 8 | [E2E checkout test](migration/plan-08-e2e.md) | `done` | `staging` | Core E2E passed Jun 2026; email moved to Plan 12 |
-| 9 | [Add AEMT program + class](migration/plan-09-aemt.md) | `pending` | | Duplicate EMT page; Supabase rows + hero assets |
+| 9 | [Add AEMT program + class](migration/plan-09-aemt.md) | `in_progress` | | Supabase + page wired; hero assets + checkout smoke test pending |
 | 10 | [Migrate to paid Supabase](migration/plan-10-supabase-db.md) | `pending` | | New DB; verify Stripe + checkout still wired |
 | 11 | [Admin panel design update](migration/plan-11-admin-design.md) | `pending` | | Designs TBD |
 | 12 | [Email (Resend)](migration/plan-12-email.md) | `pending` | | Confirmation + invoice email; Kyle/account |
@@ -53,8 +53,10 @@ Completed on staging Jun 2026 (`BLS-001`, `PARA-002`, waitlist). See [`migration
 
 **Email (Plan 12):**
 
-- [ ] Resend account (new or via Kyle) + `RESEND_API_KEY` / `EMAIL_FROM` on Vercel
-- [ ] Confirmation email sent
+- [ ] Personal Resend account + `midwestea.com` DNS verified in Resend
+- [ ] `RESEND_API_KEY` / `EMAIL_FROM` on Vercel; Supabase Auth SMTP configured
+- [ ] Admin OTP + confirmation email sent
+- [ ] Client Resend account + DNS/key rotation at cutover (Plan 13)
 
 ## How to use
 
