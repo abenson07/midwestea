@@ -45,8 +45,10 @@ export async function signInWithOTP(email: string): Promise<AuthResponse> {
       body: JSON.stringify({ email }),
     });
 
-    if (error) {
-      return { success: false, error: otpSendErrorMessage(error) };
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return { success: false, error: otpSendErrorMessage(data) };
     }
 
     return { success: true };

@@ -81,7 +81,7 @@ function CheckoutDetailsContent() {
           // 410 = enrollment closed: redirect to an open class in same course, or to waitlist
           if (classResponse.status === 410 && errorData.courseCode) {
             console.log('[checkout/details] 410 with courseCode, checking for open classes:', errorData.courseCode);
-            const classesResponse = await fetch(`${basePath}/api/classes/by-course-code/${errorData.courseCode}`);
+            const classesResponse = await fetch(`/api/classes/by-course-code/${errorData.courseCode}`);
             console.log('[checkout/details] by-course-code response:', { ok: classesResponse.ok, status: classesResponse.status });
             if (classesResponse.ok) {
               const classesResult = await classesResponse.json();

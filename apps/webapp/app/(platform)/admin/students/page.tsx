@@ -44,7 +44,16 @@ function StudentsPageContent() {
     // Handle URL params for deep linking
     useEffect(() => {
         const studentId = searchParams.get("studentId");
-        if (studentId) {
+        const mode = searchParams.get("mode");
+        if (mode === "add") {
+            setIsAddMode(true);
+            setIsSidebarOpen(true);
+            setSelectedStudent(null);
+            setAddFormName("");
+            setAddFormEmail("");
+            setAddFormPhone("");
+            setCreateError(null);
+        } else if (studentId) {
             const student = students.find(s => s.id === studentId);
             if (student) {
                 setSelectedStudent(student);
@@ -127,7 +136,58 @@ function StudentsPageContent() {
 
     const handleCloseSidebar = () => {
         setIsSidebarOpen(false);
+        setIsAddMode(false);
+        setCreateError(null);
+        setAddFormName("");
+        setAddFormEmail("");
+        setAddFormPhone("");
         router.push("/admin/students");
+    };
+
+    const handleOpenAddStudent = () => {
+        router.push("/admin/students?mode=add");
+    };
+
+    const handleCreateStudent = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!addFormName.trim() || !addFormEmail.trim()) return;
+
+        setCreating(true);
+        setCreateError(null);
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setCreateError("Not authenticated");
+                return;
+            }
+
+            const basePath = typeof window !== "undefined" && window.location.pathname.startsWith("/app") ? "/app" : "";
+            const res = await fetch(`${basePath}/api/students/create`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    email: addFormEmail.trim(),
+                    fullName: addFormName.trim(),
+                    phone: addFormPhone.trim() || undefined,
+                }),
+            });
+            const data = await res.json();
+            if (!data.success) {
+                setCreateError(data.error || "Failed to create student");
+                return;
+            }
+
+            await loadStudents();
+            handleCloseSidebar();
+        } catch (err: any) {
+            setCreateError(err.message || "Failed to create student");
+        } finally {
+            setCreating(false);
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {

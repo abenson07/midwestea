@@ -31,7 +31,7 @@ export default function CheckoutPaymentSchedule({
     return `$${(amount / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  if (!hasRegistrationFee) {
+  if (!hasTuition) {
     if (!hasPrice) {
       return null;
     }
@@ -93,7 +93,7 @@ export default function CheckoutPaymentSchedule({
                 color: 'var(--semantics-text, #191920)'
               }}
             >
-              {registrationFee ? formatCurrency(registrationFee) : '$0.00'} {registrationFee ? 'registration fee' : ''}
+              {formatCurrency(price!)}
             </p>
             <p
               style={{

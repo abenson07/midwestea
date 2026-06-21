@@ -15,6 +15,7 @@ import {
   Loader2,
   Settings,
   MapPin,
+  FileText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";

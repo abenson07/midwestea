@@ -8,6 +8,8 @@ import {
     FolderOpen,
     CreditCard,
     MapPin,
+    FileText,
+    CheckSquare,
 } from "lucide-react";
 
 // Order: Courses, Programs, Locations, Students, Transactions (R to L)

@@ -218,7 +218,8 @@ export async function updateStudent(
           return { success: false, error: "Not authenticated" };
         }
 
-        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${email.trim()}`);
+        const emailValue = email?.trim() ?? "";
+        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${emailValue}`);
         
         const emailResponse = await fetch(`/api/students/${id}/update-email`, {
           method: 'POST',

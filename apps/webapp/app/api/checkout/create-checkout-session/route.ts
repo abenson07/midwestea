@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     let classRecord;
     try {
-      const { data, error: classError } = await supabase
+      let { data, error: classError } = await supabase
         .from('classes')
         .select('stripe_price_id, id, class_id')
         .eq('class_id', classId)
