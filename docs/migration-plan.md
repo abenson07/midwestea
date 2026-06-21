@@ -17,13 +17,13 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 6 | [Deploy Vercel staging](migration/plan-06-vercel.md) | `done` | | Staging live; smoke tests passed in browser |
 | 7 | [Wire register buttons + gallery](migration/plan-07-supabase.md) | `done` | | Register buttons, course/program galleries, and pricing wired to Supabase; verified locally |
 | 8 | [E2E checkout test](migration/plan-08-e2e.md) | `done` | `staging` | Core E2E passed Jun 2026; email moved to Plan 12 |
-| 9 | [Add AEMT program + class](migration/plan-09-aemt.md) | `in_progress` | | Supabase + page wired; hero assets + checkout smoke test pending |
-| 10 | [Migrate to paid Supabase](migration/plan-10-supabase-db.md) | `pending` | | New DB; verify Stripe + checkout still wired |
-| 11 | [Admin panel design update](migration/plan-11-admin-design.md) | `pending` | | Designs TBD |
+| 9 | [Add AEMT program + class](migration/plan-09-aemt.md) | `done` | | AEMT program, page, assets, CTAs complete |
+| 10 | [Migrate to paid Supabase](migration/plan-10-supabase-db.md) | `in_progress` | | DB cloned; key swap + staging validation pending |
+| 11 | [Admin panel design update](migration/plan-11-admin-design.md) | `deferred` | | Post-launch; current `/admin` ships as-is |
 | 12 | [Email (Resend)](migration/plan-12-email.md) | `pending` | | Confirmation + invoice email; Kyle/account |
 | 13 | [DNS cutover — go live](migration/plan-13-cutover.md) | `pending` | | Merge to `main`, DNS in Vercel, retire Webflow |
 
-Status values: `pending` | `in_progress` | `done` | `blocked`
+Status values: `pending` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Deferred to later plans
 
@@ -33,6 +33,7 @@ Status values: `pending` | `in_progress` | `done` | `blocked`
 | Resend email env vars (confirmation + invoice) | 12 |
 | Daily-log cron / `CRON_SECRET` (likely remove on paid DB) | 10 |
 | Production DNS + Webflow decommission | 13 |
+| New admin panel UI/UX (design refresh) | 11 (post-launch) |
 
 ## Plan 8 E2E checklist (complete)
 
@@ -63,7 +64,7 @@ Completed on staging Jun 2026 (`BLS-001`, `PARA-002`, waitlist). See [`migration
 1. Work one plan at a time; update status in this file after each phase.
 2. Branch per plan: `migration/plan-09-aemt`, etc.
 3. Do not start plan N+1 until plan N "Done criteria" in its detail doc are met.
-4. **Plan 13 is last** — production cutover only after 9–12.
+4. **Plan 13 is last pre-launch** — production cutover after 9, 10, and 12 (Plan 11 admin redesign is post-launch).
 
 ## Staging deploy
 
@@ -81,11 +82,11 @@ flowchart LR
     P1[Merge] --> P2[basePath]
     P2 --> P8[E2E test]
   end
-  subgraph prelaunch [Plans 9-12]
+  subgraph prelaunch [Plans 9-10, 12-13]
     P8 --> P9[AEMT program]
     P9 --> P10[Paid Supabase]
-    P10 --> P11[Admin design]
-    P11 --> P12[Email]
+    P10 --> P12[Email]
+    P12 --> P13[Cutover go live]
   end
-  P12 --> P13[Cutover go live]
+  P13 --> P11[Admin design post-launch]
 ```

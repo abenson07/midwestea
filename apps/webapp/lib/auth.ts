@@ -8,6 +8,24 @@ export interface AuthResponse {
   error?: string;
 }
 
+const OTP_504_ERROR_MESSAGE =
+  "Issue logging in, please contact us. Mention Error 504";
+
+function otpSendErrorMessage(error: {
+  message?: string;
+  status?: number;
+}): string {
+  if (
+    error.status === 504 ||
+    error.message?.includes("504") ||
+    error.message?.toLowerCase().includes("upstream request timeout")
+  ) {
+    return OTP_504_ERROR_MESSAGE;
+  }
+
+  return error.message || "Failed to send OTP";
+}
+
 /**
  * Send OTP to email address
  */
@@ -22,13 +40,13 @@ export async function signInWithOTP(email: string): Promise<AuthResponse> {
     });
 
     if (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: otpSendErrorMessage(error) };
     }
 
     return { success: true };
   } catch (err) {
     const error = err as AuthError;
-    return { success: false, error: error.message || "Failed to send OTP" };
+    return { success: false, error: otpSendErrorMessage(error) };
   }
 }
 

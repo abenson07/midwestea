@@ -1,6 +1,6 @@
 # Plan 10 — Migrate to paid Supabase project
 
-**Status:** `pending`
+**Status:** `in_progress`
 
 **Goal:** Move from the current shared Supabase project (live Webflow + staging Vercel) to a **new paid Supabase project**. Confirm Stripe, Vercel, webhooks, and admin still work end-to-end against the new database.
 
@@ -42,8 +42,8 @@ npm run migration:check-env
 ## Scope
 
 - [x] Provision new Supabase project (paid tier)
-- [ ] Apply schema to new project (full backup/restore from old, then repo migrations)
-- [ ] Migrate data: programs, classes, students, enrollments, transactions, waitlist, admins, auth.users
+- [x] Apply schema to new project (full backup/restore from old)
+- [x] Migrate data: programs, classes, students, enrollments, transactions, waitlist, admins, auth.users
 - [ ] Configure new project Auth redirect URLs (staging + localhost only — not production Site URL until Plan 13)
 - [ ] Validation on **staging** against new DB (local first, then Vercel Preview)
 - [ ] **End of Plan 10:** switch Vercel **Preview** env vars to new Supabase keys (Production stays on old DB until Plan 13)

@@ -4,7 +4,7 @@
 
 **Goal:** Configure transactional email on staging/production and verify enrollment confirmation emails (and related invoice email work when ready).
 
-**Prerequisites:** Plan 11 complete (or parallel if blocked only on Kyle/account access).
+**Prerequisites:** Plan 10 complete (paid Supabase migration validated).
 
 > Previously tracked as Plan 8.6. Deferred until Resend account access (Kyle or new free account).
 

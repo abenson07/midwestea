@@ -1,6 +1,6 @@
 # Plan 9 — Add AEMT program + class
 
-**Status:** `in_progress`
+**Status:** `done`
 
 **Goal:** Add Advanced Emergency Medical Technician (AEMT) to the marketing site and wire it to Supabase like the existing EMT program. Duplicate the EMT program page content and structure; swap in AEMT-specific copy, assets, and Supabase records.
 

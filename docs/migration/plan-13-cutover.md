@@ -2,9 +2,9 @@
 
 **Goal:** Production domain points to Vercel. Push staging to `main`, configure production, switch DNS, decommission Webflow Cloud.
 
-**Prerequisites:** Plans 9–12 complete (or explicitly waived items documented).
+**Prerequisites:** Plans 9, 10, and 12 complete (or explicitly waived items documented). Plan 11 (admin redesign) is post-launch.
 
-> **This is the last plan.** Cutover happens after AEMT, paid Supabase migration, admin design, and email work.
+> **This is the last pre-launch plan.** Cutover happens after AEMT, paid Supabase migration, and email work. The existing `/admin` panel ships as-is; the new admin design (Plan 11) follows launch.
 
 ## Step-by-step
 

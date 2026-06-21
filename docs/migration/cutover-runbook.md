@@ -1,12 +1,12 @@
 # Production DNS Cutover Runbook
 
-**Prerequisites:** Plans 9–12 complete. Plan 8 E2E passed on staging.
+**Prerequisites:** Plans 9, 10, and 12 complete. Plan 8 E2E passed on staging. Plan 11 (admin redesign) is post-launch.
 
 See [plan-13-cutover.md](plan-13-cutover.md) for full detail.
 
 ## Pre-cutover
 
-- [ ] Plans 9–12 done (AEMT, paid Supabase, admin design, email)
+- [ ] Plans 9, 10, and 12 done (AEMT, paid Supabase, email)
 - [ ] Final smoke pass on staging
 - [ ] Merge `staging` → `main`
 - [ ] Production env vars prepared (`pk_live_`, `sk_live_`, production Supabase if separate)

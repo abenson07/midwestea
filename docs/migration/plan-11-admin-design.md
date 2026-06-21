@@ -1,10 +1,10 @@
 # Plan 11 — Admin panel design update
 
-**Status:** `pending`
+**Status:** `deferred` (post-launch)
 
 **Goal:** Implement the updated admin panel UI/UX from provided designs — layout, navigation, and page structure migrated to match the new design system.
 
-**Prerequisites:** Plan 10 complete (paid Supabase migration validated).
+**Prerequisites:** Plan 13 complete (production cutover). Current `/admin` ships unchanged for launch.
 
 > **Details TBD.** You will provide designs; we will write a migration checklist (components, routes, data tables, sidebar, etc.) before implementation.
 

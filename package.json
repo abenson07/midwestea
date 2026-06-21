@@ -18,6 +18,7 @@
     "render-email-preview": "tsx scripts/render-email-preview.ts",
     "migration:check-env": "tsx scripts/migration-check-env.ts",
     "export:supabase-json": "tsx scripts/export-supabase-json.ts",
+    "generate:auth-import-sql": "tsx scripts/generate-auth-import-sql.ts backups/auth-users-export.json backups/auth-identities-export.json",
     "migration:generate-sql": "tsx scripts/generate-migration-sql.ts",
     "dev": "npm run dev --workspace=@midwestea/webapp",
     "build": "npm run build --workspace=@midwestea/webapp"
