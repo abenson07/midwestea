@@ -103,7 +103,30 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
 
     // Transform student to include name from full_name field and email from students table
     const name = data.full_name || "Unknown Student";
-    const email = data.email ?? null;
+
+    // Fetch email from auth via API route
+    let email: string | null = null;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const emailResponse = await fetch(`/api/students/${id}/email`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (emailResponse.ok) {
+          const emailResult = await emailResponse.json();
+          if (emailResult.success) {
+            email = emailResult.email;
+          }
+        }
+      }
+    } catch (emailError) {
+      console.warn("[getStudentById] Failed to fetch email:", emailError);
+      // Don't fail the whole request if email fetch fails
+    }
 
     const studentWithEmail: StudentWithEmail = {
       ...data,
@@ -195,14 +218,9 @@ export async function updateStudent(
           return { success: false, error: "Not authenticated" };
         }
 
-        const basePath = typeof window !== 'undefined' 
-          ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-          : '';
+        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${email.trim()}`);
         
-        const emailValue = email !== null ? String(email).trim() : '';
-        console.log(`[updateStudent] Calling update-email API for student ${id} with email: ${emailValue || '(empty)'}`);
-        
-        const emailResponse = await fetch(`${basePath}/api/students/${id}/update-email`, {
+        const emailResponse = await fetch(`/api/students/${id}/update-email`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

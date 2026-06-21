@@ -97,12 +97,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Parse full name into first and last name
-    const nameParts = fullName.trim().split(/\s+/);
+    const trimmedFullName = fullName.trim();
+    const nameParts = trimmedFullName.split(/\s+/);
     const firstName = nameParts[0] || '';
     const lastName = nameParts.slice(1).join(' ') || '';
 
     if (!existingStudent) {
-      // Create student record
+      // Create student record with name
       console.log(`[Waitlist] Creating student record for user ${userId}...`);
       const { data: newStudent, error: createStudentError } = await supabase
         .from('students')
@@ -110,6 +111,7 @@ export async function POST(request: NextRequest) {
           id: userId,
           first_name: firstName || null,
           last_name: lastName || null,
+          full_name: trimmedFullName || null,
           phone: null,
           stripe_customer_id: null,
           has_required_info: false,
@@ -129,23 +131,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`[Waitlist] Student record created for user ${userId}`);
+      console.log(`[Waitlist] Student record created for user ${userId} with name: ${trimmedFullName}`);
     } else {
-      // Update student name if not already set
-      if ((!existingStudent.first_name || !existingStudent.last_name) && (firstName || lastName)) {
-        console.log(`[Waitlist] Updating student name for user ${userId}...`);
-        const { error: updateError } = await supabase
-          .from('students')
-          .update({
-            first_name: existingStudent.first_name || firstName || null,
-            last_name: existingStudent.last_name || lastName || null,
-          })
-          .eq('id', userId);
+      // Always update student name with the name provided from waitlist form
+      console.log(`[Waitlist] Updating student name for user ${userId}...`);
+      const { error: updateError } = await supabase
+        .from('students')
+        .update({
+          first_name: firstName || null,
+          last_name: lastName || null,
+          full_name: trimmedFullName || null,
+        })
+        .eq('id', userId);
 
-        if (updateError) {
-          console.error('Error updating student name:', updateError);
-          // Don't fail the request, just log the error
-        }
+      if (updateError) {
+        console.error('Error updating student name:', updateError);
+        // Don't fail the request, just log the error
+      } else {
+        console.log(`[Waitlist] Student name updated for user ${userId} with name: ${trimmedFullName}`);
       }
     }
 

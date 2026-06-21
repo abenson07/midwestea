@@ -46,3 +46,7 @@ CREATE POLICY "Authenticated users can read email logs"
   TO authenticated
   USING (true);
 
+
+
+
+

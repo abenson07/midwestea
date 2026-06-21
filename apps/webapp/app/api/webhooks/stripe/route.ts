@@ -14,7 +14,6 @@ import {
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
   updateStudentStripeCustomerId,
-  getNextTransactionInvoiceNumber,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
@@ -27,8 +26,7 @@ import {
 
 export const runtime = 'nodejs';
 
-export async function POST(request: NextRequest) {
-  
+export async function POST(request: NextRequest) {  
   // Get the raw body as text - critical for Stripe signature verification
   // Read as ArrayBuffer first to ensure we get the exact raw bytes without any transformation
   const bodyBuffer = await request.arrayBuffer();
@@ -79,15 +77,12 @@ export async function POST(request: NextRequest) {
   try {
     // Important: body must be the raw string, signature must be from headers
     // If this fails, the body was likely modified before reaching this handler
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-  } catch (err: any) {
-    console.error('[webhook] Webhook signature verification failed:', err.message);
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);  } catch (err: any) {    console.error('[webhook] Webhook signature verification failed:', err.message);
     return NextResponse.json(
       { error: `Webhook signature verification failed: ${err.message}` },
       { status: 400 }
     );
   }
-
   // Handle checkout.session.completed event (for payment links)
   if (event.type === 'checkout.session.completed') {
     try {
@@ -215,15 +210,9 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Get the next invoice number (before creating any transactions)
-      // This ensures invoice numbers are assigned sequentially
-      const baseInvoiceNumber = await getNextTransactionInvoiceNumber();
-      console.log('[webhook] Next invoice number:', baseInvoiceNumber);
-
-      // Step 5: Create transactions based on class type
+      // Step 4: Create transactions (invoice numbers deferred — see Plan 8.6 / invoice integration)
       const now = new Date().toISOString();
       const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
-      let invoiceNumberCounter = baseInvoiceNumber;
 
       if (courseType === 'course') {
         // For courses: Create 1 transaction (Registration Fee)
@@ -240,7 +229,7 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(transaction);
         console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
@@ -260,12 +249,12 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(regFeeTransaction);
         console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
 
-        // 2. Tuition A (pending, due 3 weeks before class start) - second invoice number
+        // 2. Tuition A (pending, due 3 weeks before class start)
         let tuitionADueDate: string | null = null;
         if (classStartDate) {
           const startDate = new Date(classStartDate);
@@ -286,7 +275,7 @@ export async function POST(request: NextRequest) {
           dueDate: tuitionADueDate,
           amountDue: price,
           amountPaid: null,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(tuitionATransaction);
         console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
@@ -312,7 +301,7 @@ export async function POST(request: NextRequest) {
           dueDate: tuitionBDueDate,
           amountDue: price,
           amountPaid: null,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(tuitionBTransaction);
         console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
@@ -332,7 +321,7 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(transaction);
       }
@@ -660,6 +649,24 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Fallback: Try to get email from charge billing_details if not found in customer
+      if (!email && paymentIntent.latest_charge) {
+        try {
+          const chargeId = typeof paymentIntent.latest_charge === 'string' 
+            ? paymentIntent.latest_charge 
+            : paymentIntent.latest_charge.id;
+          const charge = await stripe.charges.retrieve(chargeId);
+          if (charge.billing_details?.email) {
+            email = charge.billing_details.email;
+          }
+          if (charge.billing_details?.name && !fullName) {
+            fullName = charge.billing_details.name;
+          }
+        } catch (err) {
+          console.warn('[webhook] Failed to retrieve charge:', err);
+        }
+      }
+
       // Validate required data
       if (!email) {
         console.error('[webhook] Could not extract email from payment intent');
@@ -670,11 +677,12 @@ export async function POST(request: NextRequest) {
       }
 
       if (!classId) {
-        console.error('[webhook] Could not extract classId from payment intent metadata');
-        return NextResponse.json(
-          { error: 'Could not extract classId from payment intent metadata' },
-          { status: 400 }
-        );
+        // Checkout Sessions put metadata on the session, not the PI — ignore these events
+        console.log('[webhook] Ignoring payment_intent.succeeded without classId (handled by checkout.session.completed)');
+        return NextResponse.json({
+          received: true,
+          message: 'No classId on payment intent; checkout.session.completed handles this flow',
+        });
       }
 
       const paymentIntentId = paymentIntent.id;
@@ -734,14 +742,9 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Get the next invoice number (before creating any transactions)
-      const baseInvoiceNumber = await getNextTransactionInvoiceNumber();
-      console.log('[webhook] Next invoice number:', baseInvoiceNumber);
-
-      // Step 5: Create transactions based on class type
+      // Step 4: Create transactions (invoice numbers deferred — see Plan 8.6 / invoice integration)
       const now = new Date().toISOString();
       const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
-      let invoiceNumberCounter = baseInvoiceNumber;
 
       if (courseType === 'course') {
         // For courses: Create 1 transaction (Registration Fee)
@@ -758,7 +761,7 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(transaction);
         console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
@@ -778,12 +781,12 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(regFeeTransaction);
         console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
 
-        // 2. Tuition A (pending, due 3 weeks before class start) - second invoice number
+        // 2. Tuition A (pending, due 3 weeks before class start)
         let tuitionADueDate: string | null = null;
         if (classStartDate) {
           const startDate = new Date(classStartDate);
@@ -804,7 +807,7 @@ export async function POST(request: NextRequest) {
           dueDate: tuitionADueDate,
           amountDue: price,
           amountPaid: null,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(tuitionATransaction);
         console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
@@ -830,7 +833,7 @@ export async function POST(request: NextRequest) {
           dueDate: tuitionBDueDate,
           amountDue: price,
           amountPaid: null,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(tuitionBTransaction);
         console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
@@ -850,7 +853,7 @@ export async function POST(request: NextRequest) {
           dueDate: now,
           amountDue: registrationFee,
           amountPaid: amountTotal,
-          invoiceNumber: invoiceNumberCounter++,
+          invoiceNumber: null,
         });
         transactions.push(transaction);
       }
@@ -1015,8 +1018,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // Return success for other event types (we only handle payment_intent.succeeded)
-  console.log('[webhook] Received unhandled event type:', event.type);
+  // Return success for other event types (we only handle payment_intent.succeeded)  console.log('[webhook] Received unhandled event type:', event.type);
   return NextResponse.json({ received: true });
 }
 

@@ -21,8 +21,7 @@ export interface InvoiceToImport {
 /**
  * Get the next invoice number from the sequence
  */
-async function getNextInvoiceNumber(): Promise<number> {
-  const supabase = createSupabaseAdminClient();
+async function getNextInvoiceNumber(): Promise<number> {  const supabase = createSupabaseAdminClient();
   
   // Use a database function to get the next invoice number
   // We'll use a simple approach: get the max invoice number and add 1, or start at 100001
@@ -32,7 +31,6 @@ async function getNextInvoiceNumber(): Promise<number> {
     .order('invoice_number', { ascending: false })
     .limit(1)
     .single();
-
   if (error && error.code !== 'PGRST116') {
     // PGRST116 is "not found" which is fine if table is empty
     throw new Error(`Failed to get next invoice number: ${error.message}`);
@@ -55,8 +53,7 @@ export async function createRegistrationFeeInvoices(
   classRecord: Class,
   customerEmail: string,
   paymentDate: Date
-): Promise<InvoiceToImport[]> {
-  const supabase = createSupabaseAdminClient();
+): Promise<InvoiceToImport[]> {  const supabase = createSupabaseAdminClient();
 
   // Get invoice due dates from class, or calculate from class_start_date
   let invoice1DueDate = (classRecord as any)['invoice_1_due_date'];
@@ -188,12 +185,10 @@ export async function createRegistrationFeeInvoices(
     invoiceNumbers: invoicesToInsert.map(i => i.invoice_number),
     paymentId,
   });
-
   const { data: insertedInvoices, error } = await supabase
     .from('invoices_to_import')
     .insert(invoicesToInsert)
     .select();
-
   if (error) {
     const errorDetails = {
       error: error.message,

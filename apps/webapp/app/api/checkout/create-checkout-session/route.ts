@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStripeClient, createStripeCustomerWithFetch, createStripeCheckoutSessionWithFetch } from '@/lib/stripe';
+import {
+  getStripeClient,
+  createStripeCustomerWithFetch,
+  createStripeCheckoutSessionWithFetch,
+} from '@/lib/stripe';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import Stripe from 'stripe';
 
@@ -8,7 +12,7 @@ export async function POST(request: NextRequest) {
     let body;
     try {
       body = await request.json();
-    } catch (parseError: any) {
+    } catch (parseError: unknown) {
       console.error('Error parsing request body:', parseError);
       return NextResponse.json(
         { error: 'Invalid request body. Expected JSON.' },
@@ -19,50 +23,32 @@ export async function POST(request: NextRequest) {
     const { email, fullName, classId } = body;
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     if (!fullName) {
-      return NextResponse.json(
-        { error: 'Full name is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
     }
 
     if (!classId) {
-      return NextResponse.json(
-        { error: 'Class ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
     }
 
-    // Get Stripe secret key from environment
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    
     if (!stripeSecretKey) {
       console.error('STRIPE_SECRET_KEY is not configured');
-      console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('STRIPE')));
       return NextResponse.json(
-        { error: 'Payment configuration is missing. Please contact support.' },
+        { error: 'Stripe secret key is not configured' },
         { status: 500 }
       );
     }
 
-    // Check Supabase environment variables
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    
     if (!supabaseUrl || !supabaseServiceKey) {
-      console.error('Missing Supabase credentials:', {
-        hasUrl: !!supabaseUrl,
-        hasServiceKey: !!supabaseServiceKey,
-        availableEnvVars: Object.keys(process.env).filter(k => k.includes('SUPABASE'))
-      });
+      console.error('Missing Supabase credentials');
       return NextResponse.json(
-        { error: 'Database configuration is missing. Please contact support.' },
+        { error: 'Database configuration error. Please contact support.' },
         { status: 500 }
       );
     }
@@ -70,10 +56,10 @@ export async function POST(request: NextRequest) {
     let stripe: Stripe;
     try {
       stripe = getStripeClient(stripeSecretKey);
-    } catch (stripeError: any) {
+    } catch (stripeError: unknown) {
       console.error('Error initializing Stripe client:', stripeError);
       return NextResponse.json(
-        { error: 'Payment service could not be initialized. Please try again.' },
+        { error: 'Payment service configuration error' },
         { status: 500 }
       );
     }
@@ -81,41 +67,27 @@ export async function POST(request: NextRequest) {
     let supabase;
     try {
       supabase = createSupabaseAdminClient();
-      // Test the connection by making a simple query
       const { error: testError } = await supabase.from('classes').select('id').limit(1);
       if (testError) {
         console.error('Supabase connection test failed:', testError);
         return NextResponse.json(
-          { error: 'Database connection failed. Please try again.' },
+          { error: `Database connection error: ${testError.message}` },
           { status: 500 }
         );
       }
-    } catch (supabaseError: any) {
-      console.error('Error initializing Supabase client:', {
-        error: supabaseError,
-        message: supabaseError?.message,
-        stack: supabaseError?.stack,
-        hasUrl: !!supabaseUrl,
-        hasServiceKey: !!supabaseServiceKey
-      });
+    } catch (supabaseError: unknown) {
+      const message =
+        supabaseError instanceof Error ? supabaseError.message : 'Unknown error';
+      console.error('Error initializing Supabase client:', supabaseError);
       return NextResponse.json(
-        { 
-          error: `Database connection error: ${supabaseError?.message || 'Unknown error'}`,
-          envCheck: {
-            hasSupabaseUrl: !!supabaseUrl,
-            hasSupabaseServiceKey: !!supabaseServiceKey,
-            supabaseUrlPrefix: supabaseUrl?.substring(0, 30) || 'missing'
-          }
-        },
+        { error: `Database connection error: ${message}` },
         { status: 500 }
       );
     }
 
-    // Fetch class from database to get stripe_price_id
     let classRecord;
     try {
-      console.log(`Fetching class with class_id: ${classId}`);
-      let { data, error: classError } = await supabase
+      const { data, error: classError } = await supabase
         .from('classes')
         .select('stripe_price_id, id, class_id')
         .eq('class_id', classId)
@@ -133,219 +105,114 @@ export async function POST(request: NextRequest) {
       }
 
       if (classError) {
-        console.error('Supabase query error:', {
-          error: classError,
-          message: classError.message,
-          code: classError.code,
-          details: classError.details,
-          hint: classError.hint
-        });
+        console.error('Supabase query error:', classError);
         return NextResponse.json(
-          { error: 'Class not found. Please check the link and try again.' },
+          { error: `Class not found with class_id: ${classId}. Error: ${classError.message}` },
           { status: 404 }
         );
       }
 
       if (!data) {
-        console.error(`No class record found for class_id: ${classId}`);
         return NextResponse.json(
-          { error: 'Class not found. Please check the link and try again.' },
+          { error: `Class not found with class_id: ${classId}` },
           { status: 404 }
         );
       }
 
-      console.log(`Found class record:`, { id: data.id, class_id: data.class_id, has_stripe_price_id: !!data.stripe_price_id });
       classRecord = data;
-    } catch (dbError: any) {
-      console.error('Database query error:', {
-        error: dbError,
-        message: dbError?.message,
-        stack: dbError?.stack,
-        name: dbError?.name
-      });
+    } catch (dbError: unknown) {
+      const message = dbError instanceof Error ? dbError.message : 'Unknown error';
+      console.error('Database query error:', dbError);
       return NextResponse.json(
-        { error: 'Database error. Please try again.' },
+        { error: `Failed to fetch class information: ${message}. Please try again.` },
         { status: 500 }
       );
     }
 
     if (!classRecord.stripe_price_id) {
-      console.error(`Class ${classId} missing stripe_price_id`);
       return NextResponse.json(
-        { error: 'Class is missing price configuration. Please contact support.' },
+        { error: `Class ${classId} does not have a stripe_price_id configured` },
         { status: 400 }
       );
     }
 
-    // Create or find Stripe customer by email
-    // WORKAROUND: In Cloudflare Workers, skip customer lookup and always create new customer
-    // This avoids connection issues with Stripe API from Workers environment
     let customerId: string;
     try {
-      
-      // Skip customer lookup in Cloudflare Workers - just create new customer directly
-      // Stripe will handle duplicate emails if needed, and this avoids connection issues
-      
-      console.log(`Creating Stripe customer for email: ${email} (using raw fetch for Workers compatibility)`);
-      // Use raw fetch instead of Stripe SDK for Cloudflare Workers compatibility
       const customer = await Promise.race([
         createStripeCustomerWithFetch(email, fullName, stripeSecretKey),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Customer create timeout after 20s')), 20000))
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Customer create timeout after 20s')), 20000)
+        ),
       ]);
-      
       customerId = customer.id;
-      console.log(`Created Stripe customer: ${customerId}`);
-      
-      /* ORIGINAL CODE - COMMENTED OUT DUE TO CONNECTION ISSUES IN CLOUDFLARE WORKERS
-      // Try to find existing customer first, but if connection fails, create new customer directly
-      let customers;
-      try {
-        customers = await Promise.race([
-          stripe.customers.list({
-            email: email,
-            limit: 1,
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Customer list timeout after 15s')), 15000))
-        ]);
-      } catch (listError: any) {
-        console.error('Stripe customer list error:', {
-          message: listError?.message,
-          type: listError?.type,
-          code: listError?.code,
-          statusCode: listError?.statusCode,
-          requestId: listError?.requestId,
-          stack: listError?.stack
-        });
-        // If listing fails due to connection error, skip lookup and create new customer
-        if (listError?.type === 'StripeConnectionError' || listError?.message?.includes('connection') || listError?.message?.includes('timeout')) {
-          console.warn('Stripe customer list failed, will create new customer:', listError.message);
-          customers = { data: [] }; // Treat as no existing customer
-        } else {
-          throw listError; // Re-throw if it's a different error
-        }
+    } catch (stripeCustomerError: unknown) {
+      const err = stripeCustomerError as { message?: string; type?: string };
+      let errorMessage = err?.message || 'Unknown error';
+      if (err?.type === 'StripeConnectionError') {
+        errorMessage =
+          'Unable to connect to Stripe. This may be a temporary network issue. Please try again in a moment.';
       }
-
-      if (customers.data.length > 0) {
-        customerId = customers.data[0].id;
-        console.log(`Found existing Stripe customer: ${customerId}`);
-      } else {
-        // This branch should not be reached with the new skip-lookup strategy
-        throw new Error('Unexpected code path - customer lookup was skipped');
-      }
-      */
-    } catch (stripeCustomerError: any) {
-      console.error('Stripe customer error - FULL DETAILS:', {
-        error: stripeCustomerError,
-        message: stripeCustomerError?.message,
-        type: stripeCustomerError?.type,
-        code: stripeCustomerError?.code,
-        statusCode: stripeCustomerError?.statusCode,
-        requestId: stripeCustomerError?.requestId,
-        headers: stripeCustomerError?.headers,
-        stack: stripeCustomerError?.stack,
-        cause: stripeCustomerError?.cause,
-        allProperties: Object.keys(stripeCustomerError || {})
-      });
-      
-      // Provide more helpful error message for connection errors
-      let errorMessage = stripeCustomerError?.message || 'Unknown error';
-      if (stripeCustomerError?.type === 'StripeConnectionError') {
-        errorMessage = 'Unable to connect to Stripe. This may be a temporary network issue. Please try again in a moment.';
-      }
-      
+      console.error('Stripe customer error:', stripeCustomerError);
       return NextResponse.json(
-        { 
-          error: `Failed to process customer information: ${errorMessage}. Please try again.`, 
-          errorDetails: {
-            type: stripeCustomerError?.type,
-            code: stripeCustomerError?.code,
-            statusCode: stripeCustomerError?.statusCode,
-            requestId: stripeCustomerError?.requestId,
-            isConnectionError: stripeCustomerError?.type === 'StripeConnectionError',
-            isTimeout: stripeCustomerError?.message?.includes('timeout')
-          }
-        },
+        { error: `Failed to process customer information: ${errorMessage}. Please try again.` },
         { status: 500 }
       );
     }
 
-    // Determine base path for redirect URLs
-    const origin = request.headers.get('origin') || 
-                   request.nextUrl.origin ||
-                   (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
-    
-    // Determine base path - check the full URL to see if it includes /app
-    // Next.js strips basePath from pathname, but we can check the full URL
-    const fullUrl = request.url;
-    const basePath = fullUrl.includes('/app/api') ? '/app' : '';
+    const origin =
+      request.headers.get('origin') ||
+      request.nextUrl.origin ||
+      process.env.NEXT_PUBLIC_BASE_URL ||
+      'http://localhost:3000';
 
-    // Create checkout session
     let session;
     try {
-      console.log(`Creating Stripe checkout session for class ${classId} with price ${classRecord.stripe_price_id} (using raw fetch for Workers compatibility)`);
-      // Success URL goes to base domain (no /app path) - this is the Webflow site
       const successUrl = `${origin}/purchase-confirmation/general`;
-      console.log(`Success URL: ${successUrl}`);
-      console.log(`Cancel URL: ${origin}${basePath}/checkout/details?classID=${classId}`);
-      
-      // Use raw fetch instead of Stripe SDK for Cloudflare Workers compatibility
+      const cancelUrl = `${origin}/checkout/details?classID=${classId}`;
+
       const sessionResult = await createStripeCheckoutSessionWithFetch(
         customerId,
         classRecord.stripe_price_id,
         successUrl,
-        `${origin}${basePath}/checkout/details?classID=${classId}`,
+        cancelUrl,
         {
           full_name: fullName,
           class_id: classId,
         },
         stripeSecretKey
       );
-      
-      // Convert to format expected by rest of code
+
       session = { id: sessionResult.id, url: sessionResult.url };
-      console.log(`Checkout session created successfully: ${session.id}`);
-    } catch (stripeSessionError: any) {
-      console.error('Stripe checkout session creation error:', {
-        error: stripeSessionError,
-        message: stripeSessionError?.message,
-        type: stripeSessionError?.type,
-        code: stripeSessionError?.code,
-        statusCode: stripeSessionError?.statusCode,
-        param: stripeSessionError?.param
-      });
+    } catch (stripeSessionError: unknown) {
+      const message =
+        stripeSessionError instanceof Error ? stripeSessionError.message : 'Unknown error';
+      console.error('Stripe checkout session creation error:', stripeSessionError);
       return NextResponse.json(
-        { error: stripeSessionError?.message || 'Failed to create checkout session. Please try again.' },
+        { error: `Failed to create checkout session: ${message}. Please try again.` },
         { status: 500 }
       );
     }
 
     if (!session.url) {
-      console.error('Checkout session created but no URL returned');
       return NextResponse.json(
-        { error: 'Checkout URL could not be generated. Please try again or contact support.' },
+        { error: 'Failed to generate checkout URL. Please try again.' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ checkoutUrl: session.url });
-  } catch (error: any) {
-    console.error('Unexpected error creating checkout session:', {
-      error: error,
-      message: error?.message,
-      stack: error?.stack,
-      name: error?.name,
-      type: error?.type,
-      code: error?.code
-    });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    console.error('Unexpected error creating checkout session:', error);
     return NextResponse.json(
-      { 
-        error: error?.message || 'An unexpected error occurred. Please try again.',
-        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+      {
+        error: `${message} Please try again.`,
+        details:
+          process.env.NODE_ENV === 'development' && error instanceof Error
+            ? error.stack
+            : undefined,
       },
       { status: 500 }
     );
   }
 }
-
-
-

@@ -1,0 +1,295 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --mea-red: #ff4b33;
+  --mea-yellow: #ffb452;
+  --mea-background: #f7f6f3;
+  --mea-text: #191920;
+  /* mobile: nav row only; desktop adds wrapper padding */
+  --mea-nav-row-height: calc(1.5rem + 2.62rem);
+  --mea-nav-offset: var(--mea-nav-row-height);
+  --mea-nav-height: var(--mea-nav-offset);
+
+  --heading-h1: 10rem;
+  --heading-h2: 6rem;
+  --heading-h3: 3.5rem;
+  --heading-h4: 2rem;
+  --heading-h5: 1.25rem;
+  --heading-h6: 1rem;
+
+  --radius-extra-small: 0.25rem;
+  --radius-small: 0.5rem;
+  --radius-medium: 0.75rem;
+  --radius-large: 1rem;
+}
+
+@media screen and (min-width: 768px) {
+  :root {
+    --mea-nav-offset: calc(3rem + var(--mea-nav-row-height));
+    --mea-nav-height: var(--mea-nav-offset);
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  :root {
+    --mea-nav-height: calc(3rem + 1rem + 4.5rem);
+  }
+}
+
+@media screen and (max-width: 991px) {
+  :root {
+    --heading-h1: 3.25rem;
+    --heading-h2: 2.75rem;
+    --heading-h3: 2.25rem;
+    --heading-h4: 1.75rem;
+  }
+}
+
+@media screen and (max-width: 479px) {
+  :root {
+    --heading-h1: 2.5rem;
+    --heading-h2: 2.25rem;
+    --heading-h6: 1.125rem;
+  }
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  .mea-heading-h1 {
+    @apply font-heading text-[length:var(--heading-h1)] font-bold uppercase leading-[0.9];
+  }
+
+  .mea-heading-h2 {
+    @apply font-heading text-[length:var(--heading-h2)] font-bold uppercase leading-[0.9];
+  }
+
+  .mea-heading-h3 {
+    @apply font-heading text-[length:var(--heading-h3)] font-bold leading-[0.9];
+  }
+
+  .mea-heading-h3-sentence {
+    @apply font-heading text-[length:var(--heading-h3)] font-bold normal-case leading-[0.9];
+  }
+
+  .mea-heading-h4 {
+    @apply font-heading text-[length:var(--heading-h4)] font-bold leading-[1.3];
+  }
+
+  .mea-heading-h4-card {
+    @apply font-heading text-[length:var(--heading-h4)] font-bold uppercase leading-[1.3];
+  }
+
+  .mea-heading-h5 {
+    @apply font-heading text-[length:var(--heading-h5)] font-bold leading-[1.4];
+  }
+
+  .mea-heading-h6 {
+    @apply font-heading text-[length:var(--heading-h6)] font-bold leading-[1.4];
+  }
+
+  .mea-tagline {
+    @apply font-heading text-base font-medium uppercase leading-[1.2] text-mea-red;
+  }
+
+  .mea-body-md {
+    @apply font-body text-base leading-[1.4];
+  }
+
+  .mea-text-medium-semibold {
+    @apply font-body text-base font-semibold leading-[1.4] normal-case;
+  }
+
+  .mea-display-stat {
+    @apply font-heading text-[length:var(--heading-h1)] font-bold leading-[0.9];
+  }
+
+  .mea-button-primary {
+    @apply inline-flex items-center justify-center rounded-mea-xs border border-mea-yellow bg-mea-yellow px-4 py-2 text-base font-semibold text-text no-underline transition-opacity hover:opacity-90;
+  }
+
+  .mea-button-secondary {
+    @apply inline-flex items-center justify-center gap-3 rounded-mea-xs border border-mea-red bg-neutral-lightest px-4 py-2 text-base font-semibold text-text no-underline transition-opacity hover:opacity-90;
+  }
+
+  .mea-pt-below-nav {
+    padding-top: 11rem;
+  }
+
+  .mea-policy-rich-text {
+    @apply font-body text-base leading-[1.4] text-text;
+  }
+
+  .mea-policy-rich-text :is(h1, h2, h3, h4, h5, h6) {
+    @apply font-heading font-bold;
+  }
+
+  .mea-policy-rich-text :is(h2, h3, h4) {
+    @apply mb-4 mt-6;
+  }
+
+  .mea-policy-rich-text h4 {
+    @apply text-[length:var(--heading-h4)] leading-[1.3];
+  }
+
+  .mea-policy-rich-text p {
+    @apply mb-4;
+  }
+
+  .mea-policy-rich-text :is(ol, ul) {
+    @apply mb-4 list-outside pl-6;
+  }
+
+  .mea-policy-rich-text ol {
+    @apply list-decimal;
+  }
+
+  .mea-policy-rich-text ul {
+    @apply list-disc;
+  }
+
+  .mea-policy-rich-text li {
+    @apply mb-2;
+  }
+
+  .mea-policy-rich-text a {
+    @apply text-text underline hover:opacity-80;
+  }
+
+  .mea-policy-rich-text strong {
+    @apply font-semibold;
+  }
+
+  .split-heading .line {
+    @apply block;
+  }
+
+  .home-hero-slider {
+    @apply relative flex h-full w-full items-end justify-center overflow-hidden rounded-mea-sm text-text-alternative;
+  }
+
+  .home-hero-slider__list {
+    @apply grid h-full w-full place-items-center overflow-hidden;
+    grid-template-rows: 100%;
+    grid-template-columns: 100%;
+  }
+
+  .home-hero-slider__slide {
+    @apply relative grid h-full w-full place-items-center overflow-hidden;
+    grid-area: 1 / 1 / -1 / -1;
+    opacity: 0;
+    pointer-events: none;
+    will-change: transform, opacity;
+  }
+
+  .home-hero-slider__slide.is--current {
+    @apply flex items-center justify-center opacity-100;
+    pointer-events: auto;
+  }
+
+  .home-hero-slider__image {
+    @apply absolute inset-0 h-full w-full object-cover;
+    will-change: transform;
+  }
+
+  .home-hero-slider__hotzone {
+    @apply absolute inset-y-0 z-[2] w-1/2;
+    pointer-events: auto;
+  }
+
+  .home-hero-slider__headline {
+    @apply pointer-events-none absolute inset-0 z-[1] flex h-full max-w-[122.5rem] flex-col justify-center px-[5%] py-40;
+  }
+
+  .home-hero-slider__spacer {
+    @apply pointer-events-none flex flex-1 items-center px-[5px] py-1;
+  }
+
+  .home-hero-slider__spacer--one {
+    @apply justify-start pl-[9%];
+  }
+
+  .home-hero-slider__spacer--two {
+    @apply items-center justify-end pr-[9%];
+  }
+
+  .home-hero-slider__spacer--four {
+    @apply items-center justify-center;
+  }
+
+  .home-testimonial {
+    @apply -mt-[20vh] aspect-[2.1/3.9] overflow-hidden bg-[url('/images/testimonial-gradient.avif')] bg-[length:auto_100%] bg-[position:50%_0] bg-no-repeat pt-[40vh];
+  }
+
+  /* Embla viewport (direct child of Carousel root) needs overflow hidden */
+  .courses-home-carousel > div {
+    overflow: hidden;
+  }
+}
+
+/*
+ * Relume sections ship text-5xl / md:text-7xl / lg:text-8xl utilities that cap
+ * headings at ~3rem. Remap those patterns to Midwest EA tokens inside #relume.
+ */
+#relume :is(h1, h2).text-5xl,
+#relume :is(h1, h2).md\:text-7xl,
+#relume :is(h1, h2).lg\:text-8xl {
+  font-size: var(--heading-h2) !important;
+  line-height: 0.9 !important;
+  text-transform: uppercase !important;
+}
+
+#relume h1.text-6xl,
+#relume h1.md\:text-9xl,
+#relume h1.lg\:text-10xl {
+  font-size: var(--heading-h1) !important;
+  line-height: 0.9 !important;
+  text-transform: uppercase !important;
+}
+
+#relume h3.text-4xl,
+#relume h3.md\:text-5xl,
+#relume h3.lg\:text-6xl {
+  font-size: var(--heading-h3) !important;
+  line-height: 1.3 !important;
+  text-transform: none !important;
+}
+
+#relume :is(h3, h4).text-2xl,
+#relume :is(h3, h4).md\:text-3xl,
+#relume :is(h3, h4).lg\:text-4xl {
+  font-size: var(--heading-h4) !important;
+  line-height: 1.3 !important;
+  text-transform: none !important;
+}
+
+#relume :is(h2, h3).text-xl,
+#relume :is(h2, h3).md\:text-2xl {
+  font-size: var(--heading-h5) !important;
+  line-height: 1.4 !important;
+  text-transform: none !important;
+}
+
+#relume p.mea-display-stat,
+#relume p.text-6xl.font-bold {
+  font-size: var(--heading-h1) !important;
+  line-height: 0.9 !important;
+}
+
+#relume p.md\:text-9xl.font-bold,
+#relume p.lg\:text-10xl.font-bold {
+  font-size: var(--heading-h1) !important;
+  line-height: 0.9 !important;
+}
+

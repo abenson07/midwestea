@@ -123,3 +123,7 @@ The error suggests `findClassWithCourse('PARA-002')` is failing. Check:
 
 
 
+
+
+
+

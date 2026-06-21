@@ -15,6 +15,8 @@ export default function CheckoutPaymentSchedule({
   invoice1DueDate,
   invoice2DueDate
 }: CheckoutPaymentScheduleProps) {
+  const hasPrice = !!(price && price > 0);
+
   const formatDate = (dateString: string | null | undefined): string => {
     if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00');
@@ -29,8 +31,12 @@ export default function CheckoutPaymentSchedule({
     return `$${(amount / 100).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}`;
   };
 
-  if (!hasTuition) {
-    // Simple payment: just show the registration fee due today
+  if (!hasRegistrationFee) {
+    if (!hasPrice) {
+      return null;
+    }
+
+    // Simple payment: just show the price due today
     return (
       <div
         className="checkout-payment-schedule"
@@ -191,176 +197,177 @@ export default function CheckoutPaymentSchedule({
           </div>
         </div>
 
-        {/* Installment Payments Section */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            width: '100%'
-          }}
-        >
-          <p
-            style={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontSize: '14px',
-              fontWeight: 400,
-              lineHeight: 1.4,
-              margin: 0,
-              color: 'var(--semantics-text, #191920)'
-            }}
-          >
-            The remainder of your tuition will be {price ? formatCurrency(price) : '$0.00'} and due in two installments.
-          </p>
+        {hasPrice && (
           <div
             style={{
               display: 'flex',
-              gap: '4px',
-              width: '100%',
-              marginTop: '1rem'
+              flexDirection: 'column',
+              gap: '8px',
+              width: '100%'
             }}
           >
-            {/* First Payment */}
-            <div
+            <p
               style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px'
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '14px',
+                fontWeight: 400,
+                lineHeight: 1.4,
+                margin: 0,
+                color: 'var(--semantics-text, #191920)'
               }}
             >
+              The remainder of your tuition will be {formatCurrency(price!)} and due in two installments.
+            </p>
+            <div
+              style={{
+                display: 'flex',
+                gap: '4px',
+                width: '100%',
+                marginTop: '1rem'
+              }}
+            >
+              {/* First Payment */}
               <div
                 style={{
+                  flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  gap: '4px'
                 }}
               >
-                <p
+                <div
                   style={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      lineHeight: 1.4,
+                      margin: 0,
+                      textTransform: 'uppercase',
+                      color: 'var(--semantics-text-neutral, #6e6e70)',
+                      width: '100%'
+                    }}
+                  >
+                    First Payment
+                  </p>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
                     lineHeight: 1.4,
-                    margin: 0,
-                    textTransform: 'uppercase',
-                    color: 'var(--semantics-text-neutral, #6e6e70)',
-                    width: '100%'
+                    color: 'var(--semantics-text, #191920)'
                   }}
                 >
-                  First Payment
-                </p>
+                  <p
+                    style={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      margin: 0
+                    }}
+                  >
+                    {formatCurrency(halfPrice)}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      margin: 0
+                    }}
+                  >
+                    Due {invoice1DueDate ? formatDate(invoice1DueDate) : 'Placeholder date'}
+                  </p>
+                </div>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  lineHeight: 1.4,
-                  color: 'var(--semantics-text, #191920)'
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    margin: 0
-                  }}
-                >
-                  {formatCurrency(halfPrice)}
-                </p>
-                <p
-                  style={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    margin: 0
-                  }}
-                >
-                  Due {invoice1DueDate ? formatDate(invoice1DueDate) : 'Placeholder date'}
-                </p>
-              </div>
-            </div>
 
-            {/* Second Payment */}
-            <div
-              style={{
-                flex: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '4px'
-              }}
-            >
+              {/* Second Payment */}
               <div
                 style={{
+                  flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  gap: '4px'
                 }}
               >
-                <p
+                <div
                   style={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '12px',
-                    fontWeight: 600,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <p
+                    style={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      lineHeight: 1.4,
+                      margin: 0,
+                      textTransform: 'uppercase',
+                      color: 'var(--semantics-text-neutral, #6e6e70)',
+                      width: '100%'
+                    }}
+                  >
+                    Second payment
+                  </p>
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px',
                     lineHeight: 1.4,
-                    margin: 0,
-                    textTransform: 'uppercase',
-                    color: 'var(--semantics-text-neutral, #6e6e70)',
-                    width: '100%'
+                    color: 'var(--semantics-text, #191920)'
                   }}
                 >
-                  Second payment
-                </p>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  lineHeight: 1.4,
-                  color: 'var(--semantics-text, #191920)'
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    margin: 0
-                  }}
-                >
-                  {formatCurrency(remainder)}
-                </p>
-                <p
-                  style={{
-                    fontFamily: '"DM Sans", sans-serif',
-                    fontSize: '14px',
-                    fontWeight: 400,
-                    margin: 0
-                  }}
-                >
-                  Due {invoice2DueDate ? formatDate(invoice2DueDate) : 'Placeholder date'}
-                </p>
+                  <p
+                    style={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      margin: 0
+                    }}
+                  >
+                    {formatCurrency(remainder)}
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: '"DM Sans", sans-serif',
+                      fontSize: '14px',
+                      fontWeight: 400,
+                      margin: 0
+                    }}
+                  >
+                    Due {invoice2DueDate ? formatDate(invoice2DueDate) : 'Placeholder date'}
+                  </p>
+                </div>
               </div>
             </div>
+            <p
+              style={{
+                fontFamily: '"DM Sans", sans-serif',
+                fontSize: '14px',
+                fontWeight: 400,
+                lineHeight: 1.4,
+                margin: 0,
+                color: 'var(--semantics-text-neutral, #6e6e70)'
+              }}
+            >
+              You will receive emails reminding you of these dates.
+            </p>
           </div>
-          <p
-            style={{
-              fontFamily: '"DM Sans", sans-serif',
-              fontSize: '14px',
-              fontWeight: 400,
-              lineHeight: 1.4,
-              margin: 0,
-              color: 'var(--semantics-text-neutral, #6e6e70)'
-            }}
-          >
-            You will receive emails reminding you of these dates.
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );

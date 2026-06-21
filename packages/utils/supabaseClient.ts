@@ -13,11 +13,7 @@ async function fetchConfig(): Promise<{ supabaseUrl: string; supabaseAnonKey: st
   configPromise = (async () => {
     try {
       // Determine base path - in production it's /app, in dev it might be empty
-      const basePath = typeof window !== 'undefined' 
-        ? (window.location.pathname.startsWith('/app') ? '/app' : '')
-        : '';
-      
-      const response = await fetch(`${basePath}/api/config`);
+      const response = await fetch(`/api/config`);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.message || errorData.error || 'Failed to fetch config';

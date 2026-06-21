@@ -21,7 +21,7 @@ export function MobileHeader() {
 
     const handleSignOut = async () => {
         await signOut();
-        router.push("/dashboard/login");
+        router.push("/admin/login");
     };
 
     return (

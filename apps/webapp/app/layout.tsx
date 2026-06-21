@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
+import { ErrorReporter } from "@/components/ErrorReporter";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Midwest EA",
-  description: "Midwest EA Platform",
+  description: "Midwest Emergency Academy",
+  icons: {
+    icon: "/images/favicon.png",
+    shortcut: "/images/favicon.png",
+    apple: "/images/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -13,17 +19,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="data:," />
-      </head>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <ErrorReporter />
+        {children}
+      </body>
     </html>
   );
 }
-
-
-
-
-
-
-
