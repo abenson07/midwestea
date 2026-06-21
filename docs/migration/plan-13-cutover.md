@@ -25,7 +25,27 @@
 - **Live** signing secret in production `STRIPE_WEBHOOK_SECRET`
 - Disable/delete old Webflow Cloud webhook endpoint
 
-### 13.4 Supabase auth URLs (cutover day only)
+### 13.4 Resend — client account at cutover {#138-resend--client-account-at-cutover}
+
+Pre-cutover email uses a **personal** Resend account (Plan 12). At cutover, move to the **client Midwest EA** Resend account:
+
+1. **Client account:** Create or access the Midwest EA Resend account (Kyle / client billing).
+2. **Remove domain from personal account** (or accept that only one account can verify `midwestea.com`).
+3. **Add domain in client Resend** → Domains → `midwestea.com`.
+4. **Update DNS** at the domain host with the **new** records from the client account (DKIM host/value will differ from the personal account):
+   - SPF: `v=spf1 include:_spf.resend.com ~all`
+   - DKIM: copy from client Resend dashboard
+   - DMARC: `v=DMARC1; p=none; rua=mailto:dmarc@midwestea.com` (unchanged unless client prefers stricter policy)
+5. Wait for **Verified** in client Resend dashboard.
+6. **Rotate keys everywhere:**
+   - New API key in **Vercel** → `RESEND_API_KEY` (Production + Preview if used)
+   - Same key in **Supabase** → Authentication → SMTP password
+   - Revoke old personal-account API key
+7. Smoke-test: admin OTP, confirmation email, Resend delivery logs.
+
+See [`docs/resend-smtp-setup.md`](../resend-smtp-setup.md) and [Plan 12](plan-12-email.md).
+
+### 13.5 Supabase auth URLs (cutover day only)
 
 Shared DB note: **do not change Site URL until cutover**, or live admin on Webflow era can break.
 
@@ -38,20 +58,20 @@ At cutover (after DNS points to Vercel):
    - Staging preview URL if still needed for OTP testing
 3. Remove obsolete Webflow Cloud redirect URLs after verifying production admin login
 
-### 13.5 Legacy URL redirects
+### 13.6 Legacy URL redirects
 
 Ensure on production:
 - `/app/*` → new paths
 - `/dashboard/*` → `/admin/*`
 - Audit Webflow sitemap vs Next.js redirects
 
-### 13.6 Decommission Webflow Cloud
+### 13.7 Decommission Webflow Cloud
 
 - Remove Webflow Cloud app deployments (checkout, webapp, student, instructor mounts)
 - Cancel or downgrade Webflow hosting if marketing fully replaced
 - Remove Webflow custom code scripts from Designer
 
-### 13.7 Post-cutover monitoring (48 hours)
+### 13.8 Post-cutover monitoring (48 hours)
 
 - Vercel Analytics / Logs — 5xx errors
 - Stripe webhook delivery — 100% success
@@ -65,7 +85,8 @@ Ensure on production:
 
 **Cutover window:**
 - [ ] `curl -I https://midwestea.com/` → 200, served by Vercel
-- [ ] `/admin/login` on production domain
+- [ ] Client Resend account: domain verified, keys rotated (Vercel + Supabase SMTP)
+- [ ] `/admin/login` on production domain (OTP email delivers)
 - [ ] Live Stripe purchase (small real charge or agreed approach)
 - [ ] Legacy `/app/checkout/details` redirects
 

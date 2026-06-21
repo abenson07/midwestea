@@ -29,7 +29,20 @@ See [plan-13-cutover.md](plan-13-cutover.md) for full detail.
 - Use **live** signing secret in production `STRIPE_WEBHOOK_SECRET`
 - Disable/delete old Webflow Cloud webhook endpoint
 
-## 4. Supabase auth (final step — cutover day only)
+## 4. Resend — move to client account
+
+Pre-cutover: personal Resend account + DNS for `midwestea.com` (Plan 12).
+
+At cutover:
+
+1. Add `midwestea.com` in the **client** Midwest EA Resend account (remove from personal account if needed).
+2. Update DNS with **new DKIM** (and any other records) from the client Resend dashboard.
+3. Create new API key → update **Vercel** `RESEND_API_KEY` and **Supabase** SMTP password.
+4. Revoke personal-account key; test admin OTP + confirmation email.
+
+Full steps: [plan-13-cutover.md §13.4](plan-13-cutover.md#138-resend--client-account-at-cutover).
+
+## 5. Supabase auth (final step — cutover day only)
 
 **While staging runs in parallel with Webflow, leave Supabase auth URLs as-is.**
 
@@ -40,7 +53,7 @@ At cutover:
 3. Remove old Webflow Cloud admin redirect URLs once production admin login is verified
 4. (Optional, pre-cutover) Add `https://<staging-domain>.vercel.app/admin/**` only if testing admin OTP on staging — never change Site URL until cutover
 
-## 5. Legacy redirects
+## 6. Legacy redirects
 
 Verify on production:
 
@@ -49,7 +62,7 @@ Verify on production:
 - `/course-template` → `/courses`
 - `/program-template`, `/program-gallery` → `/programs`
 
-## 6. Decommission Webflow Cloud
+## 7. Decommission Webflow Cloud
 
 - Remove Webflow Cloud app deployments (checkout, webapp, student, instructor mounts)
 - Cancel or downgrade Webflow hosting if marketing is fully replaced

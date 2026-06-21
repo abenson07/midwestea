@@ -16,6 +16,9 @@
     "test-otp-email": "tsx scripts/test-otp-email.ts",
     "test-email-templates": "tsx scripts/test-email-templates.ts",
     "render-email-preview": "tsx scripts/render-email-preview.ts",
+    "migration:check-env": "tsx scripts/migration-check-env.ts",
+    "export:supabase-json": "tsx scripts/export-supabase-json.ts",
+    "migration:generate-sql": "tsx scripts/generate-migration-sql.ts",
     "dev": "npm run dev --workspace=@midwestea/webapp",
     "build": "npm run build --workspace=@midwestea/webapp"
   },

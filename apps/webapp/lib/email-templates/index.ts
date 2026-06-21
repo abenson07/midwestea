@@ -48,6 +48,27 @@ export interface ProgramEnrollmentTemplateData {
   outstandingInvoices: OutstandingInvoice[];
 }
 
+/**
+ * Data structure for waitlist confirmation email template
+ */
+export interface WaitlistConfirmationTemplateData {
+  studentName: string;
+  courseName: string;
+  courseCode: string;
+}
+
+/**
+ * Data structure for tuition payment reminder email template
+ */
+export interface TuitionReminderTemplateData {
+  studentName: string;
+  programName: string;
+  invoiceDescription: string;
+  amountDue: number; // Amount in cents
+  invoiceNumber: number;
+  dueDate: string | Date;
+}
+
 // ============================================================================
 // Template Loading
 // ============================================================================
@@ -309,4 +330,54 @@ export function getCourseEnrollmentSubject(courseName: string): string {
 export function getProgramEnrollmentSubject(programName: string): string {
   return `Welcome to ${programName} - Enrollment Confirmed`;
 }
+
+/**
+ * Render waitlist confirmation email template
+ */
+export function renderWaitlistConfirmationTemplate(
+  data: WaitlistConfirmationTemplateData
+): string {
+  let html = getTemplate('waitlist-confirmation');
+
+  const templateData: Record<string, string> = {
+    studentName: escapeHtml(data.studentName || 'Student'),
+    courseName: escapeHtml(data.courseName),
+    courseCode: escapeHtml(data.courseCode),
+    currentYear: String(new Date().getFullYear()),
+  };
+
+  return renderTemplate(html, templateData);
+}
+
+/**
+ * Render tuition payment reminder email template
+ */
+export function renderTuitionReminderTemplate(
+  data: TuitionReminderTemplateData
+): string {
+  let html = getTemplate('tuition-reminder');
+
+  const templateData: Record<string, string> = {
+    studentName: escapeHtml(data.studentName || 'Student'),
+    programName: escapeHtml(data.programName),
+    invoiceDescription: escapeHtml(data.invoiceDescription),
+    amountDue: formatCurrency(data.amountDue),
+    invoiceNumber: String(data.invoiceNumber),
+    dueDate: formatDate(data.dueDate, 'date'),
+    currentYear: String(new Date().getFullYear()),
+  };
+
+  return renderTemplate(html, templateData);
+}
+
+export function getWaitlistConfirmationSubject(courseName: string): string {
+  return `You're on the waitlist for ${courseName}`;
+}
+
+export function getTuitionReminderSubject(programName: string): string {
+  return `Payment reminder — ${programName}`;
+}
+
+/** Supabase Auth OTP subject line (paste into Supabase dashboard) */
+export const ADMIN_OTP_SUBJECT = 'Your Midwest EA admin login code';
 

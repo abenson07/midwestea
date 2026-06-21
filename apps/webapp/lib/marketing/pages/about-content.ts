@@ -1,4 +1,5 @@
 import type { PageSection } from "@/lib/marketing/site-config";
+import { trainerTeamMembers } from "@/lib/marketing/trainer-team-members";
 
 const placeholder = "/images/placeholder-image.svg";
 const icon = "/images/icon.svg";
@@ -149,64 +150,7 @@ export const aboutSections: PageSection[] = [
       heading: "Learn from the pros",
       description:
         "Every MidwestEA instructor is selected for both experience and the ability to teach clearly. They come from EMS, fire, transport, and clinical backgrounds—and they share a common goal: helping students succeed without intimidation or shortcuts.",
-      teamMembers: [
-        {
-          image: { src: placeholder, alt: "Marcus Rivera" },
-          name: "Marcus Rivera",
-          jobTitle: "Lead EMT Instructor",
-          description: "Kansas City Fire & EMS",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "Jessica Park" },
-          name: "Jessica Park",
-          jobTitle: "Paramedic Program Director",
-          description: "Johnson County EMS",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "David Chen" },
-          name: "David Chen",
-          jobTitle: "ACLS & BLS Instructor",
-          description: "Saint Luke's Health System",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "Angela Brooks" },
-          name: "Angela Brooks",
-          jobTitle: "EMR & Community Training Lead",
-          description: "Midwest Emergency Academy",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "Tyler Morrison" },
-          name: "Tyler Morrison",
-          jobTitle: "Tactical Casualty Care Instructor",
-          description: "Overland Park Fire",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "Rachel Nguyen" },
-          name: "Rachel Nguyen",
-          jobTitle: "Pediatric & PALS Specialist",
-          description: "Children's Mercy",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "James Okafor" },
-          name: "James Okafor",
-          jobTitle: "Critical Care Transport Instructor",
-          description: "Life Flight Network",
-          socialLinks: [],
-        },
-        {
-          image: { src: placeholder, alt: "Lauren Mitchell" },
-          name: "Lauren Mitchell",
-          jobTitle: "Continuing Education Coordinator",
-          description: "Midwest Emergency Academy",
-          socialLinks: [],
-        },
-      ],
+      teamMembers: [...trainerTeamMembers],
       footer: {
         heading: "Interested in training the next generation of EMS?",
         description:

@@ -13,6 +13,8 @@ import fs from 'fs';
 import {
   renderCourseEnrollmentTemplate,
   renderProgramEnrollmentTemplate,
+  renderWaitlistConfirmationTemplate,
+  renderTuitionReminderTemplate,
 } from '../apps/webapp/lib/email-templates';
 
 // Load environment variables
@@ -82,6 +84,37 @@ try {
   fs.writeFileSync(programPath, programHtml, 'utf-8');
   console.log(`✅ Program enrollment template rendered: ${programPath}`);
 
+  const waitlistData = {
+    studentName: 'Jane Smith',
+    courseName: 'Advanced Emergency Medical Technician',
+    courseCode: 'AEMT',
+  };
+  const waitlistHtml = renderWaitlistConfirmationTemplate(waitlistData);
+  const waitlistPath = path.join(outputDir, 'waitlist-confirmation-preview.html');
+  fs.writeFileSync(waitlistPath, waitlistHtml, 'utf-8');
+  console.log(`✅ Waitlist confirmation template rendered: ${waitlistPath}`);
+
+  const tuitionData = {
+    studentName: 'Jane Smith',
+    programName: 'Emergency Medical Technician',
+    invoiceDescription: 'Tuition A (Due 3 weeks before start)',
+    amountDue: 107500,
+    invoiceNumber: 12346,
+    dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+  };
+  const tuitionHtml = renderTuitionReminderTemplate(tuitionData);
+  const tuitionPath = path.join(outputDir, 'tuition-reminder-preview.html');
+  fs.writeFileSync(tuitionPath, tuitionHtml, 'utf-8');
+  console.log(`✅ Tuition reminder template rendered: ${tuitionPath}`);
+
+  const adminOtpSource = path.resolve(
+    __dirname,
+    '../apps/webapp/lib/email-templates/admin-otp.html'
+  );
+  const adminOtpPath = path.join(outputDir, 'admin-otp-supabase.html');
+  fs.copyFileSync(adminOtpSource, adminOtpPath);
+  console.log(`✅ Admin OTP template copied (Supabase paste-in): ${adminOtpPath}`);
+
   // Validate HTML structure
   console.log('\n🔍 Validating HTML structure...');
   
@@ -143,6 +176,8 @@ try {
 
   validateHtml(courseHtml, 'Course enrollment');
   validateHtml(programHtml, 'Program enrollment');
+  validateHtml(waitlistHtml, 'Waitlist confirmation');
+  validateHtml(tuitionHtml, 'Tuition reminder');
 
   console.log('\n✨ Email templates rendered successfully!');
   console.log(`\n📁 Preview files saved to: ${outputDir}`);
