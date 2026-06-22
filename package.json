@@ -20,7 +20,8 @@
     "generate:auth-import-sql": "tsx scripts/generate-auth-import-sql.ts backups/auth-users-export.json backups/auth-identities-export.json",
     "migration:generate-sql": "tsx scripts/generate-migration-sql.ts",
     "dev": "npm run dev --workspace=@midwestea/webapp",
-    "build": "npm run build --workspace=@midwestea/webapp"
+    "build": "npm run build --workspace=@midwestea/webapp",
+    "verify:webflow-redirects": "tsx apps/webapp/scripts/verify-webflow-redirects.ts"
   },
   "devDependencies": {
     "stripe": "^14.21.0",

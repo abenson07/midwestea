@@ -1,5 +1,7 @@
 /** Marketing URL redirects (ported from midwestea-site). */
-export const programRedirects = [
+import { webflowCartRedirects, webflowPathRedirects } from "./webflow-redirects";
+
+const existingShortUrls = [
   { source: "/course-gallery", destination: "/courses", permanent: true },
   { source: "/emt", destination: "/emergency-medical-technician", permanent: true },
   { source: "/aemt", destination: "/advanced-emergency-medical-technician", permanent: true },
@@ -10,4 +12,10 @@ export const programRedirects = [
   { source: "/policies-list", destination: "/policies", permanent: true },
   { source: "/policy-list", destination: "/policies", permanent: true },
   { source: "/policy", destination: "/policies", permanent: true },
+] as const;
+
+export const programRedirects = [
+  ...existingShortUrls,
+  ...webflowCartRedirects,
+  ...webflowPathRedirects,
 ];
