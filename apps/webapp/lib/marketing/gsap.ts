@@ -10,6 +10,7 @@ let slideshowEaseCreated = false;
 export function ensureGsapScrollTrigger() {
   if (typeof window === "undefined" || scrollTriggerRegistered) return;
   gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.clearScrollMemory("manual");
   scrollTriggerRegistered = true;
 }
 

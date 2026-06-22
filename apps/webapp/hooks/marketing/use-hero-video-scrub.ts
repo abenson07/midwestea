@@ -60,16 +60,16 @@ export function useHeroVideoScrub(
       invalidateOnRefresh: true,
     });
 
-    const refresh = () => ScrollTrigger.refresh();
+    const refresh = () => {
+      requestAnimationFrame(() => trigger.refresh());
+    };
     videoEl.addEventListener("loadedmetadata", refresh);
-    window.addEventListener("load", refresh);
 
     return () => {
       cleanupListeners();
       gsap.ticker.remove(tick);
       trigger.kill();
       videoEl.removeEventListener("loadedmetadata", refresh);
-      window.removeEventListener("load", refresh);
     };
   }, [trackRef, videoRef]);
 }
