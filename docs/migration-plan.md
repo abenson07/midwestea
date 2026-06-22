@@ -21,7 +21,7 @@ Single Next.js app on Vercel: `/` marketing, `/checkout/*`, `/admin/*`, `/api/*`
 | 10 | [Migrate to paid Supabase](migration/plan-10-supabase-db.md) | `done` | | Paid Supabase live on Vercel |
 | 11 | [Admin panel design update](migration/plan-11-admin-design.md) | `deferred` | | Post-launch; current `/admin` ships as-is |
 | 12 | [Email (Resend)](migration/plan-12-email.md) | `deferred` | | Post-launch; confirmation + invoice email |
-| 13 | [DNS cutover — go live](migration/plan-13-cutover.md) | `in_progress` | | Merge to `main`, DNS in Vercel, retire Webflow |
+| 13 | [DNS cutover — go live](migration/plan-13-cutover.md) | `done` | `main` | Live on midwestea.com — Jun 2026 |
 
 Status values: `pending` | `in_progress` | `done` | `blocked` | `deferred`
 
@@ -62,7 +62,7 @@ Completed on staging Jun 2026 (`BLS-001`, `PARA-002`, waitlist). See [`migration
 1. Work one plan at a time; update status in this file after each phase.
 2. Branch per plan: `migration/plan-09-aemt`, etc.
 3. Do not start plan N+1 until plan N "Done criteria" in its detail doc are met.
-4. **Plan 13 is the only pre-launch item left** — Plans 11 and 12 are post-launch.
+4. **Migration complete** — Plans 1–10 and 13 done. Plans 11–12 are post-launch backlog.
 
 ## Staging deploy
 
@@ -80,9 +80,7 @@ flowchart LR
     P1[Merge] --> P2[basePath]
     P2 --> P8[E2E test]
   end
-  subgraph prelaunch [Plan 13 only]
-    P8 --> P9[AEMT program]
-    P9 --> P10[Paid Supabase]
+  subgraph launch [Plan 13 done]
     P10 --> P13[Cutover go live]
   end
   P13 --> P12[Email post-launch]

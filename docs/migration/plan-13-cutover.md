@@ -1,10 +1,12 @@
 # Plan 13 — DNS cutover + go live
 
+**Status:** `done` — Jun 2026
+
 **Goal:** Production domain points to Vercel. Push staging to `main`, configure production, switch DNS, decommission Webflow Cloud.
 
 **Prerequisites:** Plans 9–10 complete. Plan 11 (admin redesign) and Plan 12 (confirmation/invoice email) are post-launch.
 
-> **This is the only pre-launch plan left.** Keep the existing Resend account; transfer login to Kyle post-cutover if needed. The existing `/admin` panel ships as-is.
+> **Complete.** Production live on `midwestea.com`. Post-launch: Plan 11 (admin redesign), Plan 12 (email).
 
 ## Step-by-step
 
