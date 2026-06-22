@@ -144,6 +144,7 @@ function StudentDetailContent() {
                 id,
                 enrolled_at,
                 class_id,
+                enrollment_status,
                 classes (*)
             `)
             .eq("student_id", studentId)
@@ -162,9 +163,19 @@ function StudentDetailContent() {
             return;
         }
 
+        const activeEnrollments = enrollments.filter(
+            (enrollment: { enrollment_status?: string | null }) => enrollment.enrollment_status !== "removed"
+        );
+
+        if (activeEnrollments.length === 0) {
+            setClasses([]);
+            setLoadingClasses(false);
+            return;
+        }
+
         // Fetch transactions for each enrollment and calculate payment status
         const classesWithStatus: (ClassWithEnrollment | null)[] = await Promise.all(
-            enrollments.map(async (enrollment: any) => {
+            activeEnrollments.map(async (enrollment: any) => {
                 const classRecord = enrollment.classes;
                 if (!classRecord) return null;
 

@@ -576,8 +576,12 @@ export async function getClassesByStudentId(studentId: string): Promise<{ classe
       return { classes: [], error: null };
     }
 
+    const activeEnrollments = data.filter(
+      (enrollment: { enrollment_status?: string | null }) => enrollment.enrollment_status !== "removed"
+    );
+
     // Transform enrollments to extract classes
-    const classes: Class[] = data
+    const classes: Class[] = activeEnrollments
       .map((enrollment: any) => {
         const classRecord = enrollment.classes;
         if (!classRecord) return null;

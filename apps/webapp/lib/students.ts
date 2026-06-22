@@ -170,8 +170,12 @@ export async function getStudentsByClassId(classId: string): Promise<{ students:
       return { students: [], error: null };
     }
 
+    const activeEnrollments = data.filter(
+      (enrollment: { enrollment_status?: string | null }) => enrollment.enrollment_status !== "removed"
+    );
+
     // Transform enrollments to extract students with name and email from students table
-    const studentsWithEmail: StudentWithEmail[] = data
+    const studentsWithEmail: StudentWithEmail[] = activeEnrollments
       .map((enrollment: any) => {
         const student = enrollment.students;
         if (!student) return null;

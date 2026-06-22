@@ -8,6 +8,7 @@ import { getStudentsByClassId, getStudents, getStudentEmailFromAuth } from "@/li
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
@@ -38,6 +39,11 @@ type Student = {
     id: string;
     name: string;
     email: string;
+};
+
+type PendingUndoRemoval = {
+    studentId: string;
+    studentName: string;
 };
 
 function ClassDetailContent() {
@@ -79,6 +85,8 @@ function ClassDetailContent() {
     // Navigation context
     const [fromContext, setFromContext] = useState<'course' | 'program' | 'classes' | null>(null);
     const [parentEntity, setParentEntity] = useState<Course | null>(null);
+    const [pendingUndoRemoval, setPendingUndoRemoval] = useState<PendingUndoRemoval | null>(null);
+    const [undoingRemoval, setUndoingRemoval] = useState(false);
 
     useEffect(() => {
         if (classId) {
@@ -322,7 +330,10 @@ function ClassDetailContent() {
 
     const handleRemoveStudent = async (studentId: string) => {
         if (!confirm("Are you sure you want to remove this student from the class?")) return;
-        
+
+        const student = students.find((s) => s.id === studentId);
+        const studentName = student?.name ?? "Student";
+
         try {
             const supabase = await createSupabaseClient();
             const { data: { session } } = await supabase.auth.getSession();
@@ -331,20 +342,52 @@ function ClassDetailContent() {
                 return;
             }
 
-            // Remove enrollment
-            const { error: removeError } = await supabase
-                .from("enrollments")
-                .delete()
-                .eq("student_id", studentId)
-                .eq("class_id", classId);
+            const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
 
-            if (removeError) {
-                alert(`Failed to remove student: ${removeError.message}`);
+            const removeResponse = await fetch(`${basePath}/api/enrollments/remove`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    class_id: classId,
+                }),
+            });
+
+            const removeResult = await removeResponse.json().catch(() => ({}));
+
+            if (!removeResponse.ok || !removeResult.success) {
+                alert(`Failed to remove student: ${removeResult.error || 'Unknown error'}`);
                 return;
             }
 
-            // Log the action
-            await fetch(`/api/logs/student-enrollment`, {
+            await loadStudents();
+            setPendingUndoRemoval({ studentId, studentName });
+        } catch (err: any) {
+            alert(`Failed to remove student: ${err.message}`);
+        }
+    };
+
+    const handleUndoRemoveStudent = async () => {
+        if (!pendingUndoRemoval || undoingRemoval) return;
+
+        const { studentId } = pendingUndoRemoval;
+        setUndoingRemoval(true);
+        setPendingUndoRemoval(null);
+
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                alert("Not authenticated");
+                return;
+            }
+
+            const basePath = typeof window !== 'undefined' && window.location.pathname.startsWith('/app') ? '/app' : '';
+
+            const restoreResponse = await fetch(`${basePath}/api/enrollments/restore`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -353,13 +396,21 @@ function ClassDetailContent() {
                 body: JSON.stringify({
                     student_id: studentId,
                     class_id: classId,
-                    action: 'remove',
                 }),
             });
 
+            const restoreResult = await restoreResponse.json().catch(() => ({}));
+
+            if (!restoreResponse.ok || !restoreResult.success) {
+                alert(`Failed to undo removal: ${restoreResult.error || 'Unknown error'}`);
+                return;
+            }
+
             await loadStudents();
         } catch (err: any) {
-            alert(`Failed to remove student: ${err.message}`);
+            alert(`Failed to undo removal: ${err.message}`);
+        } finally {
+            setUndoingRemoval(false);
         }
     };
 
@@ -785,6 +836,14 @@ function ClassDetailContent() {
                     editingClass={classData}
                     programs={programs}
                     courses={courses}
+                />
+            )}
+            {pendingUndoRemoval && (
+                <UndoToast
+                    title={pendingUndoRemoval.studentName}
+                    description="Removed from class"
+                    onUndo={handleUndoRemoveStudent}
+                    onExpire={() => setPendingUndoRemoval(null)}
                 />
             )}
         </div>
