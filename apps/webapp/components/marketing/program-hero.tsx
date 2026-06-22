@@ -16,6 +16,7 @@ type Props = {
   description: string;
   classStartLabel: string;
   classStartDate: string;
+  classStartHref?: string;
   priceNote: string;
   variant?: "waitlist" | "register";
   waitlistLabel?: string;
@@ -35,6 +36,7 @@ export const ProgramHero = (props: ProgramHeroProps) => {
     description,
     classStartLabel,
     classStartDate,
+    classStartHref,
     priceNote,
     variant = "waitlist",
     waitlistLabel = "Coming soon",
@@ -53,6 +55,24 @@ export const ProgramHero = (props: ProgramHeroProps) => {
   const trackRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   useHeroVideoScrub(trackRef, videoRef);
+
+  const classStartDateNode = classStartHref ? (
+    <a
+      href={classStartHref}
+      className="text-inherit transition-opacity hover:opacity-90"
+      {...registerLinkAttributes(classStartHref)}
+    >
+      {classStartDate}
+    </a>
+  ) : (
+    classStartDate
+  );
+
+  const classStartLine = (
+    <>
+      {classStartLabel} {classStartDateNode}
+    </>
+  );
 
   return (
     <div
@@ -79,13 +99,8 @@ export const ProgramHero = (props: ProgramHeroProps) => {
         <div className="relative z-10 flex h-full flex-col px-[5%] pb-8 pt-[var(--mea-nav-height)] md:pb-16">
           <div className="container flex h-full flex-col gap-8 md:flex-row md:items-stretch md:justify-between md:gap-12">
             <div className="flex flex-1 flex-col justify-center md:max-w-[42rem]">
-              <div className="mb-4 flex gap-2 md:hidden">
-                <span className="text-sm font-semibold uppercase text-text-alternative">
-                  {classStartLabel}
-                </span>
-                <span className="text-sm font-semibold uppercase text-text-alternative">
-                  {classStartDate}
-                </span>
+              <div className="mb-4 text-sm font-semibold uppercase text-text-alternative md:hidden">
+                {classStartLine}
               </div>
 
               <h1 className="mea-heading-h2 mb-5 uppercase text-text-alternative md:mb-6">
@@ -100,13 +115,8 @@ export const ProgramHero = (props: ProgramHeroProps) => {
             </div>
 
             <div className="flex flex-col justify-end md:max-w-md md:pb-8 lg:pb-16">
-              <div className="hidden gap-2 md:flex">
-                <span className="mea-heading-h5 uppercase text-text-alternative">
-                  {classStartLabel}
-                </span>
-                <span className="mea-heading-h5 uppercase text-text-alternative">
-                  {classStartDate}
-                </span>
+              <div className="mea-heading-h5 hidden uppercase text-text-alternative md:block">
+                {classStartLine}
               </div>
 
               <p className="mt-3 hidden text-text-alternative md:mt-4 md:block md:text-md">

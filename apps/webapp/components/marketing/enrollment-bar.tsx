@@ -15,6 +15,7 @@ type EnrollmentBarProps = {
   waitlistHref?: string;
   classStartLabel?: string;
   classStartDate?: string;
+  classStartHref?: string;
   priceNote?: string;
   price?: string;
   totalPrice?: string;
@@ -38,6 +39,7 @@ export const EnrollmentBar = (props: EnrollmentBarProps) => {
     waitlistHref = "#",
     classStartLabel = "Next class starts",
     classStartDate,
+    classStartHref,
     priceNote = "Get certified today for just",
     price,
     totalPrice,
@@ -47,6 +49,26 @@ export const EnrollmentBar = (props: EnrollmentBarProps) => {
     animateOnHeroScroll = true,
   } = props;
   const barRef = useEnrollmentBarScroll(animateOnHeroScroll);
+
+  const classStartDateNode =
+    classStartDate && classStartHref ? (
+      <a
+        href={classStartHref}
+        className="text-inherit transition-opacity hover:opacity-90"
+        {...registerLinkAttributes(classStartHref)}
+      >
+        {classStartDate}
+      </a>
+    ) : (
+      classStartDate
+    );
+
+  const classStartLine =
+    classStartDate ? (
+      <>
+        {classStartLabel} {classStartDateNode}
+      </>
+    ) : null;
 
   return (
     <div ref={barRef} className={clsx("px-[2%] pb-4", className)}>
@@ -87,9 +109,8 @@ export const EnrollmentBar = (props: EnrollmentBarProps) => {
                 </>
               ) : (
                 <>
-                  <div className="flex gap-2 text-sm font-semibold">
-                    <span>{classStartLabel}</span>
-                    {classStartDate ? <span>{classStartDate}</span> : null}
+                  <div className="text-sm font-semibold">
+                    {classStartLine}
                   </div>
                   {price ? (
                     <p className="text-sm text-neutral-dark">

@@ -1,6 +1,7 @@
 import type { PageConfig, PageSection } from "@/lib/marketing/site-config";
 import { checkoutDetailsUrl, courseDetailUrlWithClass } from "@/lib/marketing/checkout-url";
 import {
+  formatClassStartDateOrdinal,
   formatPriceForProse,
   formatPriceFromCents,
   formatWholeDollarsFromCents,
@@ -95,7 +96,11 @@ function applyPricingToProps(
   }
 
   if (pricing.classStartDate && typeof props.classStartDate === "string") {
-    props.classStartDate = pricing.classStartDate;
+    props.classStartDate = formatClassStartDateOrdinal(pricing.classStartDate);
+  }
+
+  if (pricing.mode === "register" && pricing.actionUrl) {
+    props.classStartHref = pricing.actionUrl;
   }
 }
 

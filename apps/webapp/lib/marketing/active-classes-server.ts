@@ -145,3 +145,32 @@ export function replaceEmbeddedDollarAmount(
 ): string {
   return text.replace(/\$[\d,]+(?:\.\d{1,2})?/, `$${formattedPrice}`);
 }
+
+function getOrdinalSuffix(day: number): string {
+  const suffixes = ["th", "st", "nd", "rd"];
+  const value = day % 100;
+  return suffixes[(value - 20) % 10] || suffixes[value] || suffixes[0];
+}
+
+/** Formats YYYY-MM-DD (or parseable date strings) as "August 19th, 2026". */
+export function formatClassStartDateOrdinal(
+  dateString: string | null | undefined
+): string {
+  if (!dateString) return "";
+
+  const isoMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = isoMatch
+    ? new Date(
+        Number(isoMatch[1]),
+        Number(isoMatch[2]) - 1,
+        Number(isoMatch[3])
+      )
+    : new Date(dateString);
+
+  if (isNaN(date.getTime())) return dateString;
+
+  const day = date.getDate();
+  const month = date.toLocaleDateString("en-US", { month: "long" });
+  const year = date.getFullYear();
+  return `${month} ${day}${getOrdinalSuffix(day)}, ${year}`;
+}
