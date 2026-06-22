@@ -2,32 +2,38 @@
 export const trainerTeamMembers = [
   {
     image: {
-      src: "/images/instructors/tyler-bloom.png",
-      alt: "Tyler Bloom, Battalion Chief at Olathe Fire Department",
+      src: "/images/instructors/Hajmohammad.jpg",
+      alt: "Ghalib (Gabe) Hajmohammad, President",
     },
-    name: "Tyler Bloom",
-    jobTitle: "Battalion Chief",
-    description: "Olathe Fire Department",
+    name: "Gabe Hajmohammad",
+    jobTitle: "President",
     socialLinks: [],
   },
   {
     image: {
-      src: "/images/instructors/reed.png",
-      alt: "Mr. Reed, Firefighter/Paramedic at Lee's Summit Fire Department",
+      src: "/images/instructors/Brower.jpg",
+      alt: "Kyle Brower, Vice President",
     },
-    name: "Mr. Reed",
-    jobTitle: "Firefighter/Paramedic",
-    description: "Lee's Summit Fire Department",
+    name: "Kyle Brower",
+    jobTitle: "Vice President",
     socialLinks: [],
   },
   {
     image: {
-      src: "/images/instructors/ghalib-hajmohammad.png",
-      alt: "Ghalib (Gabe) Hajmohammad, Paramedic at Johnson County, KS",
+      src: "/images/instructors/Jonathan.jpg",
+      alt: "Jonathan Reed, Missouri EMT Program Director",
     },
-    name: 'Ghalib (Gabe) Hajmohammad',
-    jobTitle: "Paramedic",
-    description: "Johnson County, KS",
+    name: "Jonathan Reed",
+    jobTitle: "Missouri EMT Program Director",
+    socialLinks: [],
+  },
+  {
+    image: {
+      src: "/images/instructors/Crawford.jpg",
+      alt: "Jason Crawford, Paramedic Program Director",
+    },
+    name: "Jason Crawford",
+    jobTitle: "Paramedic Program Director",
     socialLinks: [],
   },
 ] as const;

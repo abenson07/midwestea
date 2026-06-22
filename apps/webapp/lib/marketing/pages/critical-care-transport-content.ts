@@ -1,5 +1,4 @@
 import type { PageSection } from "@/lib/marketing/site-config";
-import { programTeamSection } from "@/lib/marketing/program-team-section";
 
 const registerHref = "#";
 
@@ -118,7 +117,6 @@ export const criticalCareTransportSections: PageSection[] = [
       ],
     },
   },
-  programTeamSection,
   {
     type: "component",
     component: "Layout 493",

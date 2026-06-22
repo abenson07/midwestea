@@ -1,4 +1,3 @@
-import { programTeamSection } from "@/lib/marketing/program-team-section";
 
 export const emergencyMedicalResponderSections = [
   {
@@ -134,7 +133,6 @@ export const emergencyMedicalResponderSections = [
       ],
     },
   },
-  programTeamSection,
   {
     type: "component" as const,
     component: "Layout 493" as const,

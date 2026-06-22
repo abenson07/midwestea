@@ -1,4 +1,3 @@
-import { programTeamSection } from "@/lib/marketing/program-team-section";
 
 export const paramedicSections = [
   {
@@ -130,7 +129,6 @@ export const paramedicSections = [
     component: "Paramedic Pricing" as const,
     props: {},
   },
-  programTeamSection,
   {
     type: "component" as const,
     component: "Layout 493" as const,

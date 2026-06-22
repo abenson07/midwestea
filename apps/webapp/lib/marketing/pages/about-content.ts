@@ -146,10 +146,10 @@ export const aboutSections: PageSection[] = [
     type: "component",
     component: "Team 2",
     props: {
-      tagline: "The best in the midwest",
-      heading: "Learn from the pros",
+      tagline: "Kansas City's best instructors",
+      heading: "Learn from real responders",
       description:
-        "Every MidwestEA instructor is selected for both experience and the ability to teach clearly. They come from EMS, fire, transport, and clinical backgrounds—and they share a common goal: helping students succeed without intimidation or shortcuts.",
+        "Kansas City's top EMS professionals bring real experience and field-tested insight to every course.",
       teamMembers: [...trainerTeamMembers],
       footer: {
         heading: "Interested in training the next generation of EMS?",

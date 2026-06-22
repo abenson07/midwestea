@@ -1,5 +1,4 @@
 import type { PageSection } from "@/lib/marketing/site-config";
-import { programTeamSection } from "@/lib/marketing/program-team-section";
 
 const registerHref = "#";
 
@@ -10,11 +9,11 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
     props: {
       titleLines: ["Advanced Emergency", "Medical Technician"],
       description:
-        "Build on your EMT foundation with advanced patient assessment, medication administration, and expanded scope skills. Our state-approved AEMT program blends online learning with in-person skills days so you can advance with confidence.",
+        "Build on your EMT foundation with advanced patient assessment, medication administration, and expanded scope skills. Our state-approved, shift-friendly AEMT program is primarily offered in person—with classes two days per week covering the same material so you can attend the day that best fits your schedule.",
       classStartLabel: "Next class starts",
-      classStartDate: "August 19–20, 2026 (Orientation) · Topeka, Kansas",
+      classStartDate: "August 19th, 2026",
       priceNote:
-        "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $0",
+        "This state-approved AEMT program helps you earn your certification in six months — all for $0",
       variant: "register",
       registerLabel: "Register now for just",
       registerHref,
@@ -32,7 +31,7 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
       titleLines: ["Advanced Emergency", "Medical Technician"],
       variant: "register",
       classStartLabel: "Next class starts",
-      classStartDate: "August 19–20, 2026 (Orientation) · Topeka, Kansas",
+      classStartDate: "August 19th, 2026",
       priceNote: "Get certified today for just",
       price: "0",
       registerLabel: "Register",
@@ -45,7 +44,7 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
     props: {
       heading: "Advance your EMS scope of practice",
       description:
-        "AEMTs build on core EMT skills with expanded assessment, treatment, and medication capabilities. This program prepares you for greater clinical responsibility with hands-on scenarios, instructor-led skills labs, and field-ready practice.",
+        "AEMTs build on core EMT skills with expanded assessment, treatment, and medication capabilities. This shift-friendly program prepares you for greater clinical responsibility with hands-on scenarios, instructor-led skills labs, and field-ready practice.",
       cards: [
         { src: "/images/paramedic-1.avif", alt: "AEMT training" },
         { src: "/images/buddy-care-3.avif", alt: "Patient care training" },
@@ -82,7 +81,6 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
       ],
     },
   },
-  programTeamSection,
   {
     type: "component",
     component: "Layout 493",
@@ -90,7 +88,7 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
       tagline: "Getting certified has never been easier",
       heading: "Get started today",
       description:
-        "Our programs are designed to make advanced EMS training clear, supportive, and straightforward. You'll follow a structured path that blends expert-led instruction, real-world skill development, and the testing steps required for certification or licensure.",
+        "Our shift-friendly programs are designed to make advanced EMS training clear, supportive, and straightforward. You'll follow a structured path that blends expert-led, in-person instruction, real-world skill development, and the testing steps required for certification or licensure.",
       tabs: [
         {
           heading: "Apply & Get Prepared",
@@ -101,7 +99,7 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
         {
           heading: "Learn From Expert Instructors",
           description:
-            "Each program blends online learning with hands-on instruction. You'll study with experienced EMS educators who break down complex topics into clear, practical lessons you can apply right away.",
+            "Training is primarily delivered in person with experienced EMS educators who break down complex topics into clear, practical lessons. Online instruction may be used occasionally due to weather or other special circumstances.",
           image: { src: "/images/student.avif", alt: "Learn from expert instructors" },
         },
         {
@@ -137,18 +135,23 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
             "Yes. You must hold a current EMT certification (state or NREMT) before enrolling in the AEMT program.",
         },
         {
-          title: "Is BLS required before the first AEMT class?",
-          answer:
-            "Yes, but if you don't have BLS yet, we provide the certification during the program.",
-        },
-        {
           title: "How long is AEMT certification valid?",
           answer:
             "AEMT licenses follow state requirements; NREMT certification is typically valid for two years with continuing education.",
         },
         {
           title: "How long is the program?",
-          answer: "Twelve weeks, with a mix of online and in-person sessions.",
+          answer: "Six months.",
+        },
+        {
+          title: "Is the course offered in-person or online?",
+          answer:
+            "AEMT is primarily offered in person. Online instruction may be utilized occasionally due to weather conditions or other special circumstances, but the program is not designed as a fully online course.",
+        },
+        {
+          title: "What does shift-friendly mean?",
+          answer:
+            "Classes are offered two days per week covering the same material. Students may attend the day that best fits their schedule each week.",
         },
         {
           title: "Is this program state-approved?",

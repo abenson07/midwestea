@@ -52,7 +52,7 @@ export const Team2 = (props: Team2Props) => {
           </h2>
           <p className="md:text-md">{description}</p>
         </div>
-        <div className="grid grid-cols-1 items-start justify-center gap-x-8 gap-y-12 md:grid-cols-2 md:gap-y-16 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start justify-center gap-x-8 gap-y-12 md:grid-cols-2 md:gap-y-16 lg:grid-cols-4">
           {teamMembers.map((member, index) => (
             <TeamMember key={index} member={member} />
           ))}
