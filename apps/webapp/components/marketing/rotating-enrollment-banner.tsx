@@ -36,11 +36,14 @@ export function RotatingEnrollmentBanner({ items }: RotatingEnrollmentBannerProp
   return (
     <Link
       href={item.href}
-      className="hidden h-12 w-full bg-neutral-lighter transition-opacity duration-300 md:flex md:items-center md:justify-center hover:opacity-90"
-      style={{ opacity: visible ? 1 : 0 }}
+      className="hidden h-12 w-full bg-neutral-lighter md:flex md:items-center md:justify-center hover:opacity-90"
     >
-      <span className="px-4 text-center text-xs leading-[1.4] text-text">
-        {item.message}
+      <span
+        className="px-4 text-center text-xs leading-[1.4] text-text transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+      >
+        <span className="font-bold">{item.headline}</span>
+        {item.detail ? ` ${item.detail}` : null}
       </span>
     </Link>
   );

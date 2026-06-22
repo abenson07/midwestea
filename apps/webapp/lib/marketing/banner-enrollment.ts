@@ -7,7 +7,8 @@ import { programLinks } from "@/lib/marketing/nav-data";
 
 export type BannerEnrollmentItem = {
   id: string;
-  message: string;
+  headline: string;
+  detail: string;
   href: string;
 };
 
@@ -61,25 +62,34 @@ function buildMessage(
   kind: MessageKind,
   row: BannerClassRow,
   today: string
-): string {
+): { headline: string; detail: string } {
   if (kind === "justOpened") {
-    return `${programName} class is open for enrollment. Click here to learn more`;
+    return {
+      headline: `${programName} class is open for enrollment.`,
+      detail: "Click here to learn more",
+    };
   }
 
   if (kind === "closingSoon" && row.enrollment_close) {
     const daysUntilClose = daysBetween(today, row.enrollment_close);
     if (daysUntilClose <= 1) {
-      return `${programName} closes soon`;
+      return { headline: `${programName} closes soon`, detail: "" };
     }
-    return `${programName} enrollment closes in ${daysUntilClose} days`;
+    return {
+      headline: `${programName} enrollment closes in ${daysUntilClose} days`,
+      detail: "",
+    };
   }
 
   if (row.class_start_date) {
     const startDate = formatDate(row.class_start_date, "long");
-    return `Enroll in ${programName} class today. Classes start ${startDate}`;
+    return {
+      headline: `Enroll in ${programName} class today.`,
+      detail: `Classes start ${startDate}`,
+    };
   }
 
-  return `Enroll in ${programName} class today`;
+  return { headline: `Enroll in ${programName} class today`, detail: "" };
 }
 
 function buildHref(
@@ -149,10 +159,12 @@ export async function getBannerEnrollmentItems(): Promise<BannerEnrollmentItem[]
         courseNameByCode.get(courseCode) ?? null
       );
       const kind = getMessageKind(row, today);
+      const { headline, detail } = buildMessage(programName, kind, row, today);
       return {
         item: {
           id: row.id,
-          message: buildMessage(programName, kind, row, today),
+          headline,
+          detail,
           href: buildHref(kind, courseCode, row.class_id),
         },
         kind,
