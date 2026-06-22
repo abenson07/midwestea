@@ -1,3 +1,5 @@
+import { programLinks } from "@/lib/marketing/nav-data";
+
 /**
  * Maps URL slugs to course codes
  * This is hand-coded and can be expanded as needed
@@ -95,6 +97,20 @@ export function getCourseCodeFromSlug(slug: string): string | null {
  */
 export function getAllSlugs(): string[] {
   return Object.keys(SLUG_TO_COURSE_CODE);
+}
+
+const COURSE_CODE_TO_ROUTE: Record<string, string> = {};
+for (const link of programLinks) {
+  const slug = link.href.replace(/^\//, "");
+  const code = getCourseCodeFromSlug(slug);
+  if (code && !COURSE_CODE_TO_ROUTE[code]) {
+    COURSE_CODE_TO_ROUTE[code] = link.href;
+  }
+}
+
+/** Canonical marketing route for a program course code (e.g. PARA → /paramedic). */
+export function getPrimaryRouteForCourseCode(courseCode: string): string | null {
+  return COURSE_CODE_TO_ROUTE[courseCode.toUpperCase()] ?? null;
 }
 
 

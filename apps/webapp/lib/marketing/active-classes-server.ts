@@ -11,7 +11,7 @@ export type ActiveClass = {
   classStartDate: string | null;
 };
 
-function isActiveClass(classItem: {
+export function isActiveClass(classItem: {
   is_online: boolean | null;
   enrollment_start: string | null;
   enrollment_close: string | null;

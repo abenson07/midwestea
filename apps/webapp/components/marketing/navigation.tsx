@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { RxChevronDown } from "react-icons/rx";
 import { MidwestEALogo } from "@/components/marketing/midwestea-logo";
+import { RotatingEnrollmentBanner } from "@/components/marketing/rotating-enrollment-banner";
 import {
   courseLinkColumns,
   courseLinkColumnsNarrow,
@@ -13,6 +14,7 @@ import {
   programLinks,
 } from "@/lib/marketing/nav-data";
 import { useScrollHideNav } from "@/hooks/marketing/use-scroll-hide-nav";
+import type { BannerEnrollmentItem } from "@/lib/marketing/banner-enrollment";
 
 type DropdownId = "programs" | "courses" | null;
 
@@ -173,7 +175,7 @@ function MegaMenuPanel({
   );
 }
 
-export function Navigation() {
+export function Navigation({ bannerItems = [] }: { bannerItems?: BannerEnrollmentItem[] }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<DropdownId>(null);
   const [mobilePanelHeight, setMobilePanelHeight] = useState(0);
@@ -223,15 +225,7 @@ export function Navigation() {
       ref={navRef}
       className="fixed inset-x-0 top-0 z-[9999] transition-transform duration-300 ease-out will-change-transform"
     >
-      <div className="hidden h-12 w-full bg-neutral-lighter md:flex md:items-center md:justify-center">
-        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 text-center text-xs leading-[1.4] text-text">
-          <span className="font-bold">Paramedic class open</span>
-          <span>Seats are filling up quickly.</span>
-          <Link href="/paramedic" className="font-bold hover:underline">
-            Register now
-          </Link>
-        </div>
-      </div>
+      <RotatingEnrollmentBanner items={bannerItems} />
 
       <div
         className="relative mx-auto w-full max-w-[1920px] lg:mt-4 lg:w-[calc(100%-2rem)]"
