@@ -102,6 +102,13 @@ function MobileMenuPanel({ onClose }: { onClose: () => void }) {
       >
         FAQ
       </Link>
+      <Link
+        href="/contact"
+        className="mea-heading-h4 mt-4 block uppercase hover:text-mea-red-darker"
+        onClick={onClose}
+      >
+        Contact
+      </Link>
     </div>
   );
 }
@@ -304,6 +311,13 @@ export function Navigation({ bannerItems = [] }: { bannerItems?: BannerEnrollmen
                 onClick={closeMobile}
               >
                 FAQ
+              </Link>
+              <Link
+                href="/contact"
+                className="px-4 py-6 text-base font-semibold"
+                onClick={closeMobile}
+              >
+                Contact
               </Link>
             </nav>
           </div>
