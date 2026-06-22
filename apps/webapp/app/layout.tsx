@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import "./globals.css";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
       <body className="antialiased">
         <ErrorReporter />
         {children}
+        <Analytics />
       </body>
     </html>
   );
