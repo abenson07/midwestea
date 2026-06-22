@@ -1,4 +1,5 @@
 import { PolicyDetail } from "@/components/marketing/policy-detail";
+import { MARKETING_OG_IMAGES } from "@/lib/marketing/metadata";
 import { getAllPolicySlugs, getPolicyBySlug } from "@/lib/marketing/policies";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -24,6 +25,7 @@ export async function generateMetadata({
     openGraph: {
       title: `${policy.title} - Midwest Emergency Academy`,
       description: policy.metaDescription,
+      images: [MARKETING_OG_IMAGES.branded],
     },
   };
 }
