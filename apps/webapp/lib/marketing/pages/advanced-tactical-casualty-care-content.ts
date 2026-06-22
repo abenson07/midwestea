@@ -14,7 +14,7 @@ export const advancedTacticalCasualtyCareSections: PageSection[] = [
       classStartLabel: "Coming soon",
       classStartDate: "",
       priceNote:
-        "This intensive ATCC program combines classroom learning and scenario-based training to teach life-saving care in tactical settings — with multiple delivery options available. $1250",
+        "This intensive ATCC program combines classroom learning and scenario-based training to teach life-saving care in tactical settings — with multiple delivery options available. $0",
       variant: "waitlist",
       waitlistLabel: "Coming soon",
       registerHref,

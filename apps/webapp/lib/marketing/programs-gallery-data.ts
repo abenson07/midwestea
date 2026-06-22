@@ -17,7 +17,7 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
     classLabel: "Classes",
     classDate: "Coming soon",
     priceNote:
-      "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $750.",
+      "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $0.",
     href: "/emergency-medical-responder",
     image: "/images/emr-hero.avif",
   },
@@ -28,7 +28,7 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
     classLabel: "Next class starts",
     classDate: "January 17th",
     priceNote:
-      "This state-approved EMT program helps you earn your certification in just 12 weeks — all for $1,850.",
+      "This state-approved EMT program helps you earn your certification in just 12 weeks — all for $0.",
     href: "/emergency-medical-technician",
     image: "/images/emt-hero.avif",
   },
@@ -39,7 +39,7 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
     classLabel: "Orientation",
     classDate: "August 19–20, 2026 · Topeka, Kansas",
     priceNote:
-      "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $5,600.",
+      "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $0.",
     href: "/advanced-emergency-medical-technician",
     image: "/images/emt-hero.avif",
   },
@@ -50,7 +50,7 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
     classLabel: "Next class starts",
     classDate: "January 12/13",
     priceNote:
-      "This 12-month, state-approved Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $8,800.",
+      "This 12-month, state-approved Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $0.",
     href: "/paramedic",
     image: "/images/paramedic-hero-vid.avif",
   },

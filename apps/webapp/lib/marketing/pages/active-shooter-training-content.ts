@@ -10,7 +10,7 @@ export const activeShooterTrainingSections = [
       overlayNav: true,
       courseHeader: {
         registerUrl: "#",
-        registerPrice: "39.99",
+        registerPrice: "0",
         classDetails: [
           { label: "Online class" },
           { label: "Certifies for 2 years" },

@@ -15,7 +15,7 @@ export const emergencyUseOfMedicalOxygenSections = [
       overlayNav: true,
       courseHeader: {
         registerUrl: "#",
-        registerPrice: "19.99",
+        registerPrice: "0",
         classDetails: [
           { label: "Online class" },
           { label: "Certifies for 2 years" },

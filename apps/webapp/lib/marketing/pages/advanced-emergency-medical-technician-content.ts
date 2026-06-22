@@ -14,11 +14,11 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
       classStartLabel: "Next class starts",
       classStartDate: "August 19–20, 2026 (Orientation) · Topeka, Kansas",
       priceNote:
-        "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $5,600",
+        "This state-approved AEMT program helps you earn your certification in just 12 weeks — all for $0",
       variant: "register",
       registerLabel: "Register now for just",
       registerHref,
-      registerPrice: "100",
+      registerPrice: "0",
       video: {
         poster: "/videos/aemt_hero_poster.jpg",
         mp4: "/videos/aemt_hero.mp4",
@@ -34,7 +34,7 @@ export const advancedEmergencyMedicalTechnicianSections: PageSection[] = [
       classStartLabel: "Next class starts",
       classStartDate: "August 19–20, 2026 (Orientation) · Topeka, Kansas",
       priceNote: "Get certified today for just",
-      price: "100",
+      price: "0",
       registerLabel: "Register",
       registerHref,
     },

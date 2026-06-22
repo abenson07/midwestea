@@ -85,26 +85,34 @@ export function formatWholeDollarsFromCents(
   return formatted;
 }
 
+import {
+  getProgramPriceCents,
+  getRegisterPriceCents,
+  getTotalPriceCents,
+  type PriceFields,
+} from "@/lib/marketing/marketing-pricing";
+
+export { type PriceFields };
+
+function activeClassPriceFields(activeClass: ActiveClass): PriceFields {
+  return {
+    price: activeClass.price,
+    registrationFee: activeClass.registrationFee,
+  };
+}
+
 /** Display/register price: registration fee when set, otherwise full class price. */
 export function getActiveClassRegisterPriceCents(
   activeClass: ActiveClass
 ): number | null {
-  if (activeClass.registrationFee != null && activeClass.registrationFee > 0) {
-    return activeClass.registrationFee;
-  }
-  return activeClass.price;
+  return getRegisterPriceCents(activeClassPriceFields(activeClass));
 }
 
 /** Program total tuition when a separate registration fee exists. */
 export function getActiveClassTotalPriceCents(
   activeClass: ActiveClass
 ): number | null {
-  const hasRegistrationFee =
-    activeClass.registrationFee != null && activeClass.registrationFee > 0;
-  if (hasRegistrationFee && activeClass.price != null) {
-    return activeClass.price;
-  }
-  return null;
+  return getTotalPriceCents(activeClassPriceFields(activeClass));
 }
 
 export function formatActiveClassDisplayPrice(activeClass: ActiveClass): string {
@@ -115,7 +123,7 @@ export function formatActiveClassDisplayPrice(activeClass: ActiveClass): string 
 export function getActiveClassProgramPriceCents(
   activeClass: ActiveClass
 ): number | null {
-  return activeClass.price ?? activeClass.registrationFee;
+  return getProgramPriceCents(activeClassPriceFields(activeClass));
 }
 
 /** Formats a price for prose (e.g. priceNote): $2,150 or $49.99 */

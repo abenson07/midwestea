@@ -11,7 +11,7 @@ export const emergencyMedicalResponderSections = [
       classStartLabel: "Next class starts",
       classStartDate: "November",
       priceNote:
-        "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $750.",
+        "This state-approved EMR program helps you earn your certification in under 14 weeks — all for $0.",
       variant: "waitlist",
       waitlistLabel: "Coming soon",
       registerHref: "#",

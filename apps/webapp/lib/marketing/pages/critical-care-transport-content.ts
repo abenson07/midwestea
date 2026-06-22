@@ -14,7 +14,7 @@ export const criticalCareTransportSections: PageSection[] = [
       classStartLabel: "Coming soon",
       classStartDate: "",
       priceNote:
-        "This Critical Care Transport program delivers classroom, simulation, and clinical training, all designed for paramedics, nurses, and medical professionals advancing into critical care transport. $1650",
+        "This Critical Care Transport program delivers classroom, simulation, and clinical training, all designed for paramedics, nurses, and medical professionals advancing into critical care transport. $0",
       variant: "waitlist",
       waitlistLabel: "Coming soon",
       registerHref,

@@ -15,7 +15,7 @@ export const advancedCardiovascularLifeSupportSections = [
       overlayNav: true,
       courseHeader: {
         registerUrl: "#",
-        registerPrice: "149.99",
+        registerPrice: "0",
         classDetails: [
           { label: "Online class" },
           { label: "Certifies for 2 years" },

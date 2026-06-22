@@ -14,11 +14,11 @@ export const emergencyMedicalTechnicianSections: PageSection[] = [
       classStartLabel: "Next class starts",
       classStartDate: "lawrence, KS jun 6th / Raytownn , MO July 11th",
       priceNote:
-        "This state-approved EMT program helps you earn your certification in just 14 weeks — all for $2150",
+        "This state-approved EMT program helps you earn your certification in just 14 weeks — all for $0",
       variant: "register",
       registerLabel: "Register now for just",
       registerHref,
-      registerPrice: "2150",
+      registerPrice: "0",
       video: {
         poster: "/videos/emt-hero-vid_poster.0000000.jpg",
         mp4: "/videos/emt-hero-vid_mp4.mp4",
@@ -35,7 +35,7 @@ export const emergencyMedicalTechnicianSections: PageSection[] = [
       classStartLabel: "Next class starts",
       classStartDate: "lawrence, KS jun 6th / Raytownn , MO July 11th",
       priceNote: "Get certified today for just",
-      price: "2150",
+      price: "0",
       registerLabel: "Register",
       registerHref,
     },

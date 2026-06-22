@@ -60,11 +60,19 @@ export const EnrollmentBar = (props: EnrollmentBarProps) => {
 
           {variant === "waitlist" ? (
             <div>
-              <div className="flex gap-2 text-sm font-semibold">
-                <span>{statusPrimary}</span>
-                <span>{statusSecondary}</span>
-              </div>
-              <p className="text-sm text-neutral-dark">{statusNote}</p>
+              {price ? (
+                <p className="text-sm text-neutral-dark">
+                  {priceNote} ${price}
+                </p>
+              ) : (
+                <>
+                  <div className="flex gap-2 text-sm font-semibold">
+                    <span>{statusPrimary}</span>
+                    <span>{statusSecondary}</span>
+                  </div>
+                  <p className="text-sm text-neutral-dark">{statusNote}</p>
+                </>
+              )}
             </div>
           ) : (
             <div>

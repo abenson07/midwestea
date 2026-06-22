@@ -1,24 +1,11 @@
 import type { EnrollmentBarProps } from "@/components/marketing/enrollment-bar";
 import type { CourseHeaderContent } from "@/components/marketing/product-header-6";
 
-/** Fallback prices from the courses gallery when registerPrice is not set in page content. */
+/** Title line overrides for courses whose headings don't split cleanly. */
 const courseEnrollmentTitlesByRoute: Record<string, string[]> = {
   "/active-shooter-training": ["Active Violence", "Emergency Response"],
   "/emergency-use-of-medical-oxygen": ["Emergency Use", "of Medical Oxygen"],
   "/use-and-administration-of-epinephrine-auto-injectors": ["Epinephrine"],
-};
-
-const coursePricesByRoute: Record<string, string> = {
-  "/basic-life-support": "49.99",
-  "/advanced-cardiovascular-life-support": "149.99",
-  "/active-shooter-training": "39.99",
-  "/pediatric-first-aid-cpr-aed": "34.99",
-  "/pediatric-advanced-life-support": "34.99",
-  "/child-and-babysitting-safety": "34.99",
-  "/cpr-first-aid": "34.99",
-  "/bloodborne-pathogens": "19.99",
-  "/emergency-use-of-medical-oxygen": "19.99",
-  "/use-and-administration-of-epinephrine-auto-injectors": "35.00",
 };
 
 export function splitCourseTitleLines(heading: string): string[] {
@@ -36,10 +23,22 @@ export function buildCourseEnrollmentBarProps(
   courseHeader: CourseHeaderContent,
   route: string,
 ): EnrollmentBarProps {
-  const price = courseHeader.registerPrice || coursePricesByRoute[route] || "";
+  const price = courseHeader.registerPrice ?? "";
   const isOnline = courseHeader.classDetails.some((detail) =>
     detail.label.toLowerCase().includes("online"),
   );
+  const isWaitlist = courseHeader.variant === "waitlist";
+
+  if (isWaitlist) {
+    return {
+      titleLines: courseEnrollmentTitlesByRoute[route] ?? splitCourseTitleLines(heading),
+      variant: "waitlist",
+      priceNote: "Get certified today for just",
+      price,
+      waitlistLabel: courseHeader.waitlistLabel ?? "Join waitlist",
+      waitlistHref: courseHeader.waitlistHref ?? courseHeader.registerUrl,
+    };
+  }
 
   return {
     titleLines: courseEnrollmentTitlesByRoute[route] ?? splitCourseTitleLines(heading),

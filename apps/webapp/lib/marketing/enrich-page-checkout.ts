@@ -1,19 +1,22 @@
 import type { PageConfig, PageSection } from "@/lib/marketing/site-config";
-import type { ActiveClass } from "@/lib/marketing/active-classes-server";
-import { checkoutDetailsUrl, courseDetailUrlWithClass, waitlistUrl } from "@/lib/marketing/checkout-url";
+import { checkoutDetailsUrl, courseDetailUrlWithClass } from "@/lib/marketing/checkout-url";
 import {
-  formatActiveClassDisplayPrice,
   formatPriceForProse,
   formatPriceFromCents,
   formatWholeDollarsFromCents,
-  getActiveClassesForCourseCode,
-  getActiveClassProgramPriceCents,
-  getActiveClassRegisterPriceCents,
-  getActiveClassTotalPriceCents,
   getCourseCodeFromRoute,
-  getPrimaryActiveClassForRoute,
   replaceEmbeddedDollarAmount,
 } from "@/lib/marketing/active-classes-server";
+import {
+  getMarketingPricingByCourseCodes,
+  getMarketingPricingForRoute,
+  getProgramPriceCents,
+  getRegisterPriceCents,
+  getTotalPriceCents,
+  type MarketingPricing,
+} from "@/lib/marketing/marketing-pricing";
+import { homeCourseSlides } from "@/lib/marketing/home-page-data";
+import { ParamedicPricingDefaults } from "@/components/marketing/paramedic-pricing";
 
 /** Shallow-clone section props so React nodes in content are preserved. */
 function cloneSectionProps(section: PageSection): PageSection {
@@ -25,69 +28,112 @@ function isEnrollmentPriceNote(note: string): boolean {
   return /^Get certified/i.test(note.trim());
 }
 
-function applyActiveClassPricingToProps(
+function formatCurrencyForDisplay(cents: number | null | undefined): string {
+  return formatPriceFromCents(cents);
+}
+
+function applyPricingToProps(
   props: Record<string, unknown>,
-  activeClass: ActiveClass,
-  registerUrl: string
+  pricing: MarketingPricing
 ): void {
-  const registrationFee = formatPriceFromCents(
-    getActiveClassRegisterPriceCents(activeClass)
-  );
-  const programPriceCents = getActiveClassProgramPriceCents(activeClass);
+  const priceFields = {
+    price: pricing.price,
+    registrationFee: pricing.registrationFee,
+  };
+  const registrationFee = formatPriceFromCents(getRegisterPriceCents(priceFields));
+  const programPriceCents = getProgramPriceCents(priceFields);
   const programPrice = formatWholeDollarsFromCents(programPriceCents);
   const programPriceProse = formatPriceForProse(programPriceCents);
-  const hasSplitPricing = getActiveClassTotalPriceCents(activeClass) != null;
+  const hasSplitPricing = getTotalPriceCents(priceFields) != null;
+  const isWaitlist = pricing.mode === "waitlist";
 
   if (props.courseHeader && typeof props.courseHeader === "object") {
-    props.courseHeader = {
+    const headerUpdate: Record<string, unknown> = {
       ...(props.courseHeader as Record<string, unknown>),
-      registerUrl,
       ...(registrationFee ? { registerPrice: registrationFee } : {}),
+      variant: pricing.mode,
     };
+    if (isWaitlist) {
+      headerUpdate.waitlistHref = pricing.actionUrl;
+      headerUpdate.waitlistLabel = "Join waitlist";
+    } else {
+      headerUpdate.registerUrl = pricing.actionUrl;
+    }
+    props.courseHeader = headerUpdate;
   }
 
-  if (typeof props.registerHref === "string") {
-    props.registerHref = registerUrl;
+  if (isWaitlist) {
+    props.waitlistHref = pricing.actionUrl;
+    props.waitlistLabel = props.waitlistLabel ?? "Join waitlist";
+    props.variant = "waitlist";
+  } else {
+    if (typeof props.registerHref === "string") {
+      props.registerHref = pricing.actionUrl;
+    }
+    props.variant = "register";
   }
-
-  props.variant = "register";
 
   if (registrationFee && typeof props.registerPrice === "string") {
     props.registerPrice = registrationFee;
   }
 
-  // Enrollment bar deposit line uses registration_fee.
   if (registrationFee && typeof props.price === "string") {
     props.price = registrationFee;
   }
 
-  // Enrollment bar bold total uses full program price when split pricing exists.
   if (hasSplitPricing && programPrice) {
     props.totalPrice = programPrice;
   } else if (programPrice && typeof props.totalPrice === "string") {
     props.totalPrice = programPrice;
   }
 
-  // Hero / gallery prose (e.g. "all for $2,150") uses full program price.
   if (programPriceProse && typeof props.priceNote === "string") {
     const note = props.priceNote;
     if (/\$[\d,]+/.test(note) && !isEnrollmentPriceNote(note)) {
       props.priceNote = replaceEmbeddedDollarAmount(note, programPriceProse);
     }
   }
+
+  if (pricing.classStartDate && typeof props.classStartDate === "string") {
+    props.classStartDate = pricing.classStartDate;
+  }
 }
 
-async function fetchActiveClassesByCodes(codes: string[]) {
-  const courseCodes = new Map<
-    string,
-    Awaited<ReturnType<typeof getActiveClassesForCourseCode>>
-  >();
-  await Promise.all(
-    codes.map(async (code) => {
-      courseCodes.set(code, await getActiveClassesForCourseCode(code));
-    })
-  );
-  return courseCodes;
+function applyParamedicPricingToProps(
+  props: Record<string, unknown>,
+  pricing: MarketingPricing
+): void {
+  const priceFields = {
+    price: pricing.price,
+    registrationFee: pricing.registrationFee,
+  };
+  const regCents = getRegisterPriceCents(priceFields);
+  const totalCents = getProgramPriceCents(priceFields);
+
+  const defaults = ParamedicPricingDefaults;
+  const payments = [...defaults.payments];
+  if (regCents != null) {
+    const regFormatted = formatPriceForProse(regCents);
+    payments[0] = {
+      ...payments[0],
+      amount: `$${regFormatted} registration fee`,
+    };
+  }
+
+  const included = { ...defaults.included };
+  if (totalCents != null) {
+    const totalFormatted = (totalCents / 100).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    included.footerAmount = `$${totalFormatted}`;
+  }
+
+  props.heading = defaults.heading;
+  props.intro = defaults.intro;
+  props.payments = payments;
+  props.included = { ...included, items: defaults.included.items };
+  props.excluded = defaults.excluded;
 }
 
 async function enrichCourseGallerySections(
@@ -107,7 +153,7 @@ async function enrichCourseGallerySections(
     }
   }
 
-  const courseCodes = await fetchActiveClassesByCodes([...codesNeeded]);
+  const pricingByCode = await getMarketingPricingByCourseCodes([...codesNeeded]);
 
   for (const section of enriched) {
     if (section.type !== "component" || section.component !== "Product 1") continue;
@@ -122,18 +168,25 @@ async function enrichCourseGallerySections(
         const courseCode = getCourseCodeFromRoute(route);
         if (!courseCode) return product;
 
-        const activeClass = courseCodes.get(courseCode)?.[0];
-        if (!activeClass) return product;
+        const pricing = pricingByCode.get(courseCode.toUpperCase());
+        if (!pricing) return product;
 
-        const displayPrice = formatActiveClassDisplayPrice(activeClass);
+        const displayPrice = formatCurrencyForDisplay(
+          getRegisterPriceCents({
+            price: pricing.price,
+            registrationFee: pricing.registrationFee,
+          })
+        );
+
+        const url =
+          pricing.mode === "register" && pricing.classId
+            ? courseDetailUrlWithClass(route, pricing.classId, pricing.courseCode)
+            : route.split("?")[0];
+
         return {
           ...product,
           ...(displayPrice ? { price: `$${displayPrice}` } : {}),
-          url: courseDetailUrlWithClass(
-            route,
-            activeClass.classId,
-            activeClass.courseCode
-          ),
+          url,
         };
       }),
     };
@@ -159,7 +212,7 @@ async function enrichProgramGallerySections(
     }
   }
 
-  const courseCodes = await fetchActiveClassesByCodes([...codesNeeded]);
+  const pricingByCode = await getMarketingPricingByCourseCodes([...codesNeeded]);
 
   for (const section of enriched) {
     if (section.type !== "custom" || section.label !== "ProgramsScroller") continue;
@@ -174,11 +227,14 @@ async function enrichProgramGallerySections(
         const courseCode = getCourseCodeFromRoute(route);
         if (!courseCode) return program;
 
-        const activeClass = courseCodes.get(courseCode)?.[0];
-        if (!activeClass) return program;
+        const pricing = pricingByCode.get(courseCode.toUpperCase());
+        if (!pricing) return program;
 
         const programPriceProse = formatPriceForProse(
-          getActiveClassProgramPriceCents(activeClass)
+          getProgramPriceCents({
+            price: pricing.price,
+            registrationFee: pricing.registrationFee,
+          })
         );
         let priceNote = program.priceNote;
         if (
@@ -189,14 +245,15 @@ async function enrichProgramGallerySections(
           priceNote = replaceEmbeddedDollarAmount(priceNote, programPriceProse);
         }
 
+        const href =
+          pricing.mode === "register" && pricing.classId
+            ? courseDetailUrlWithClass(route, pricing.classId, pricing.courseCode)
+            : route.split("?")[0];
+
         return {
           ...program,
           ...(priceNote ? { priceNote } : {}),
-          href: courseDetailUrlWithClass(
-            route,
-            activeClass.classId,
-            activeClass.courseCode
-          ),
+          href,
         };
       }),
     };
@@ -205,29 +262,82 @@ async function enrichProgramGallerySections(
   return enriched;
 }
 
-function applyWaitlistModeToProps(
-  props: Record<string, unknown>,
-  url: string
-): void {
-  props.waitlistHref = url;
-  props.variant = "waitlist";
+async function enrichHomeCourseSlidesSections(
+  sections: PageSection[]
+): Promise<PageSection[]> {
+  const codesNeeded = homeCourseSlides
+    .map((slide) => getCourseCodeFromRoute(slide.href))
+    .filter((code): code is string => Boolean(code));
+
+  const pricingByCode = await getMarketingPricingByCourseCodes(codesNeeded);
+
+  const courses = homeCourseSlides.map((slide) => {
+    const courseCode = getCourseCodeFromRoute(slide.href);
+    if (!courseCode) return slide;
+
+    const pricing = pricingByCode.get(courseCode.toUpperCase());
+    if (!pricing) return slide;
+
+    const displayPrice = formatCurrencyForDisplay(
+      getRegisterPriceCents({
+        price: pricing.price,
+        registrationFee: pricing.registrationFee,
+      })
+    );
+
+    const href =
+      pricing.mode === "register" && pricing.classId
+        ? courseDetailUrlWithClass(slide.href, pricing.classId, pricing.courseCode)
+        : slide.href.split("?")[0];
+
+    return {
+      ...slide,
+      ...(displayPrice ? { price: `$${displayPrice}` } : {}),
+      href,
+    };
+  });
+
+  return sections.map((section) => {
+    if (section.type !== "custom" || section.label !== "CoursesHome") {
+      return section;
+    }
+    return {
+      ...section,
+      props: {
+        ...(section.props ?? {}),
+        courses,
+      },
+    };
+  });
 }
 
-function enrichSectionsWithWaitlistUrl(
+function enrichSectionsWithPricing(
   sections: PageSection[],
-  courseCode: string
+  pricing: MarketingPricing
 ): PageSection[] {
-  const url = waitlistUrl(courseCode);
   return sections.map((section) => {
     const cloned = cloneSectionProps(section);
     if (cloned.props) {
-      applyWaitlistModeToProps(cloned.props, url);
+      applyPricingToProps(cloned.props, pricing);
+      if (
+        cloned.type === "component" &&
+        cloned.component === "Paramedic Pricing"
+      ) {
+        applyParamedicPricingToProps(cloned.props, pricing);
+      }
     }
     return cloned;
   });
 }
 
 export async function enrichPageWithCheckoutUrls(page: PageConfig): Promise<PageConfig> {
+  if (page.route === "/") {
+    return {
+      ...page,
+      sections: await enrichHomeCourseSlidesSections(page.sections),
+    };
+  }
+
   if (page.route === "/courses") {
     return {
       ...page,
@@ -242,28 +352,13 @@ export async function enrichPageWithCheckoutUrls(page: PageConfig): Promise<Page
     };
   }
 
-  const activeClass = await getPrimaryActiveClassForRoute(page.route);
-  if (activeClass) {
-    const registerUrl = checkoutDetailsUrl(activeClass.classId, activeClass.courseCode);
-
-    const sections = page.sections.map((section) => {
-      const cloned = cloneSectionProps(section);
-      if (cloned.props) {
-        applyActiveClassPricingToProps(cloned.props, activeClass, registerUrl);
-      }
-      return cloned;
-    });
-
-    return { ...page, sections };
-  }
-
-  const courseCode = getCourseCodeFromRoute(page.route);
-  if (!courseCode) {
+  const pricing = await getMarketingPricingForRoute(page.route);
+  if (!pricing) {
     return page;
   }
 
   return {
     ...page,
-    sections: enrichSectionsWithWaitlistUrl(page.sections, courseCode),
+    sections: enrichSectionsWithPricing(page.sections, pricing),
   };
 }

@@ -75,6 +75,9 @@ export type CourseHeaderContent = {
   testimonial: { quote: string; attribution: string };
   credentials: string[];
   sections: { title: string; items: string[] }[];
+  variant?: "waitlist" | "register";
+  waitlistHref?: string;
+  waitlistLabel?: string;
 };
 
 type Props = {
@@ -277,13 +280,29 @@ function CourseHeaderPanel({
       <h1 className="mea-heading-h2">{heading}</h1>
       <p className="text-base leading-relaxed">{description}</p>
 
-      <a
-        href={courseHeader.registerUrl}
-        {...registerLinkAttributes(courseHeader.registerUrl)}
-        className="mb-2 mt-2 flex w-full items-center justify-center rounded-mea-sm bg-mea-yellow px-6 py-4 text-lg font-bold uppercase text-text transition-opacity hover:opacity-90"
-      >
-        Register for ${courseHeader.registerPrice}
-      </a>
+      {courseHeader.variant === "waitlist" ? (
+        courseHeader.waitlistHref && courseHeader.waitlistHref !== "#" ? (
+          <a
+            href={courseHeader.waitlistHref}
+            {...registerLinkAttributes(courseHeader.waitlistHref)}
+            className="mb-2 mt-2 flex w-full items-center justify-center rounded-mea-sm border border-mea-yellow bg-neutral-lightest px-6 py-4 text-lg font-bold uppercase text-text transition-opacity hover:opacity-90"
+          >
+            {courseHeader.waitlistLabel ?? "Join waitlist"}
+          </a>
+        ) : (
+          <span className="mb-2 mt-2 flex w-full items-center justify-center rounded-mea-sm border border-mea-yellow bg-neutral-lightest px-6 py-4 text-lg font-bold uppercase text-text">
+            {courseHeader.waitlistLabel ?? "Join waitlist"}
+          </span>
+        )
+      ) : (
+        <a
+          href={courseHeader.registerUrl}
+          {...registerLinkAttributes(courseHeader.registerUrl)}
+          className="mb-2 mt-2 flex w-full items-center justify-center rounded-mea-sm bg-mea-yellow px-6 py-4 text-lg font-bold uppercase text-text transition-opacity hover:opacity-90"
+        >
+          Register for ${courseHeader.registerPrice}
+        </a>
+      )}
 
       <div className="flex flex-col gap-4 border-y border-border-primary py-4">
         <p className="text-base font-semibold">Class details</p>

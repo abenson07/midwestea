@@ -11,10 +11,10 @@ export const paramedicSections = [
       classStartLabel: "Next class starts",
       classStartDate: "January 11, 2026",
       priceNote:
-        "This 12-month, state-approved Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $8,800.",
+        "This 12-month, state-approved Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $0.",
       variant: "register",
       registerLabel: "Register now for just",
-      registerPrice: "8800",
+      registerPrice: "0",
       registerHref: "#",
       scrollHeight: "300vh",
       video: {
@@ -33,8 +33,8 @@ export const paramedicSections = [
       classStartLabel: "Next class starts",
       classStartDate: "January 11, 2026",
       priceNote: "Get certified today for just",
-      price: "150",
-      totalPrice: "8800",
+      price: "0",
+      totalPrice: "0",
       registerLabel: "Register",
       registerHref: "#",
     },

@@ -15,7 +15,7 @@ export const cprFirstAidSections = [
       overlayNav: true,
       courseHeader: {
         registerUrl: "#",
-        registerPrice: "34.99",
+        registerPrice: "0",
         classDetails: [
           { label: "Online class" },
           { label: "Certifies for 1 year" },

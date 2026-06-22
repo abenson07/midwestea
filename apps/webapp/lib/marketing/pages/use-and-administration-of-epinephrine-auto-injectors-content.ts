@@ -15,7 +15,7 @@ export const useAndAdministrationOfEpinephrineAutoInjectorsSections = [
       overlayNav: true,
       courseHeader: {
         registerUrl: "#",
-        registerPrice: "35.00",
+        registerPrice: "0",
         classDetails: [
           { label: "Online only" },
           { label: "Certifies for 2 years" },

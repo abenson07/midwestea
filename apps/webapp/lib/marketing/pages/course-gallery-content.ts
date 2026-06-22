@@ -33,7 +33,7 @@ const certificationCourses = [
   {
     name: "Child & Babysitting Safety",
     tag: onlineCourseTag,
-    price: "$34.99",
+    price: "$0",
     url: "/child-and-babysitting-safety",
     image: {
       src: "/images/safe-supervision.avif",
@@ -43,14 +43,14 @@ const certificationCourses = [
   {
     name: "Basic Life Support",
     tag: onlineCourseTag,
-    price: "$49.99",
+    price: "$0",
     url: "/basic-life-support",
     image: { src: "/images/bls.avif", alt: "Basic Life Support" },
   },
   {
     name: "Active Violence Emergency Response Training",
     tag: onlineCourseTag,
-    price: "$39.99",
+    price: "$0",
     url: "/active-shooter-training",
     image: {
       src: "/images/avert.jpg",
@@ -60,7 +60,7 @@ const certificationCourses = [
   {
     name: "Advanced Cardiovascular Life Support (ACLS)",
     tag: onlineCourseTag,
-    price: "$149.99",
+    price: "$0",
     url: "/advanced-cardiovascular-life-support",
     image: {
       src: "/images/acls.webp",
@@ -70,7 +70,7 @@ const certificationCourses = [
   {
     name: "Pediatric CPR & First Aid",
     tag: onlineCourseTag,
-    price: "$34.99",
+    price: "$0",
     url: "/pediatric-first-aid-cpr-aed",
     image: {
       src: "/images/pediatric_advanced_life_support.avif",
@@ -80,7 +80,7 @@ const certificationCourses = [
   {
     name: "Bloodborne Pathogens",
     tag: onlineCourseTag,
-    price: "$19.99",
+    price: "$0",
     url: "/bloodborne-pathogens",
     image: {
       src: "/images/blood-borne2.jpg",
@@ -90,7 +90,7 @@ const certificationCourses = [
   {
     name: "Pediatric Advanced Life Support (PALS)",
     tag: onlineCourseTag,
-    price: "$34.99",
+    price: "$0",
     url: "/pediatric-advanced-life-support",
     image: {
       src: "/images/pals2.avif",
@@ -100,7 +100,7 @@ const certificationCourses = [
   {
     name: "Emergency Use of Medical Oxygen",
     tag: onlineCourseTag,
-    price: "$19.99",
+    price: "$0",
     url: "/emergency-use-of-medical-oxygen",
     image: {
       src: "/images/oxygen_1.avif",
@@ -110,7 +110,7 @@ const certificationCourses = [
   {
     name: "Use and Administration of Epinephrine Auto-Injectors",
     tag: onlineCourseTag,
-    price: "$35.00",
+    price: "$0",
     url: "/use-and-administration-of-epinephrine-auto-injectors",
     image: {
       src: "/images/epi.webp",
@@ -120,7 +120,7 @@ const certificationCourses = [
   {
     name: "CPR / First Aid",
     tag: onlineCourseTag,
-    price: "$34.99",
+    price: "$0",
     url: "/cpr-first-aid",
     image: { src: "/images/cpr.avif", alt: "CPR and First Aid" },
   },
