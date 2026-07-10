@@ -8,7 +8,7 @@ import type { ButtonProps } from "@relume_io/relume-ui";
 
 type QuestionsProps = {
   title: string;
-  answer: string;
+  answer: React.ReactNode;
 };
 
 type ContactItemProps = {

@@ -6,11 +6,11 @@ export const paramedicSections = [
     props: {
       titleLines: ["Paramedic"],
       description:
-        "Take the next step in your EMS career with a state-approved Paramedic program designed for working EMTs. Learn advanced assessment, cardiology, pharmacology, airway management, and hands-on ALS care in a supportive, structured environment.",
+        "Take the next step in your EMS career with a state-approved, CAAHEP-accredited Paramedic program designed for working EMTs. Learn advanced assessment, cardiology, pharmacology, airway management, and hands-on ALS care in a supportive, structured environment.",
       classStartLabel: "Next class starts",
       classStartDate: "January 11, 2026",
       priceNote:
-        "This 12-month, state-approved Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $0.",
+        "This 12-month, state-approved, CAAHEP-accredited Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $0.",
       variant: "register",
       registerLabel: "Register now for just",
       registerPrice: "0",
@@ -189,7 +189,8 @@ export const paramedicSections = [
         },
         {
           title: "Is this program state-approved?",
-          answer: "Yes.",
+          answer:
+            "Yes. The Paramedic program is state-approved and CAAHEP-accredited upon the recommendation of CoAEMSP. See the accreditation details below for full contact information.",
         },
         {
           title: "Will I earn college credit?",
@@ -212,8 +213,63 @@ export const paramedicSections = [
             "You'll need EMT certification, immunizations, a background check, a drug screen, and transcripts (HS/GED and college if applicable). You will also need to provide 2 references and a letter explaining why you want to be a paramedic.",
         },
         {
-          title: "Placeholder for CoAEMSP Update",
-          answer: "LOR-approved/ LSSR Pending",
+          title: "Is this program CAAHEP-accredited?",
+          answer: (
+            <div className="flex flex-col gap-4">
+              <p>
+                The Midwest Emergency Academy Paramedic program is accredited by the
+                Commission on Accreditation of Allied Health Education Programs (
+                <a
+                  href="https://www.caahep.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-mea-red-darker"
+                >
+                  www.caahep.org
+                </a>
+                ) upon the recommendation of the Committee on Accreditation of Educational
+                Programs for the Emergency Medical Services Professions (CoAEMSP).
+              </p>
+              <p>Commission on Accreditation of Allied Health Education Programs</p>
+              <div>
+                <p>To contact CAAHEP:</p>
+                <p>Commission on Accreditation of Allied Health Education Programs</p>
+                <p>
+                  <a href="tel:+17272102350" className="underline hover:text-mea-red-darker">
+                    727-210-2350
+                  </a>
+                </p>
+                <p>
+                  <a
+                    href="https://www.caahep.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-mea-red-darker"
+                  >
+                    www.caahep.org
+                  </a>
+                </p>
+              </div>
+              <div>
+                <p>To contact CoAEMSP:</p>
+                <p>
+                  <a href="tel:+12147038445" className="underline hover:text-mea-red-darker">
+                    214-703-8445
+                  </a>
+                </p>
+                <p>
+                  <a
+                    href="https://www.coaemsp.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline hover:text-mea-red-darker"
+                  >
+                    www.coaemsp.org
+                  </a>
+                </p>
+              </div>
+            </div>
+          ),
         },
       ],
     },
