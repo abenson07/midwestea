@@ -8,6 +8,13 @@ import { formatDate } from './email';
 /**
  * Find or create a student by email
  * Returns the student record, creating auth user and student record if needed
+ *
+ * Must keep email_confirm: true — registration auto-confirms accounts with no
+ * separate activation step. apps/webapp/app/api/checkout/ensure-user/route.ts
+ * duplicates this same creation logic; keep both in sync.
+ *
+ * Each email is treated as a fully separate account by design — do not add
+ * fuzzy-matching or auto-merge logic across different email addresses.
  */
 export async function findOrCreateStudent(
   email: string
