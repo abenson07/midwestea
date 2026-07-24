@@ -7,6 +7,7 @@ import { getStudentById, type StudentWithEmail } from "@/lib/students";
 
 export default function StudentPage() {
   const [student, setStudent] = useState<StudentWithEmail | null>(null);
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,6 +17,7 @@ export default function StudentPage() {
         setLoading(false);
         return;
       }
+      setEmail(session.user.email || "");
       const { student: fetchedStudent } = await getStudentById(session.user.id);
       setStudent(fetchedStudent);
       setLoading(false);
@@ -23,12 +25,12 @@ export default function StudentPage() {
     load();
   }, []);
 
-  const displayName = student?.full_name || student?.email || "there";
+  const displayName = student?.full_name || email || null;
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">
-        {loading ? "Welcome" : `Welcome, ${displayName}`}
+        {loading ? "Welcome" : displayName ? `Welcome, ${displayName}` : "Welcome"}
       </h1>
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
