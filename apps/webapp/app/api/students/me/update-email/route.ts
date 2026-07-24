@@ -47,25 +47,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, email: user.email, message: 'Email unchanged' });
     }
 
-    const { data: usersWithEmail } = await supabase.auth.admin.listUsers();
-    const emailInUse = usersWithEmail?.users.find(
-      (u) => u.email === trimmedEmail && u.id !== user.id
-    );
-    if (emailInUse) {
-      return NextResponse.json(
-        { success: false, error: 'This email address is already in use' },
-        { status: 400 }
-      );
-    }
-
     const { data: updatedUser, error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
       email: trimmedEmail,
       email_confirm: true,
     });
 
     if (updateError || !updatedUser?.user) {
+      // Deliberately generic: don't reveal whether the failure was a
+      // duplicate email or something else, to avoid letting an authenticated
+      // student use this as an account-enumeration oracle.
+      console.error('[update-email] Failed to update email:', updateError?.message);
       return NextResponse.json(
-        { success: false, error: updateError?.message || 'Failed to update email' },
+        { success: false, error: 'Unable to update email. Please try again or contact us.' },
         { status: 500 }
       );
     }
