@@ -10,6 +10,7 @@ import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
+import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 
@@ -574,6 +575,10 @@ function ClassDetailContent() {
                             ← Back to Classes
                         </Link>
                     )}
+                    <ViewMarketingPageLink
+                        courseCode={classData.course_code}
+                        classId={classData.class_id}
+                    />
                     <h1 className="text-2xl font-bold text-gray-900">{classData.class_id}</h1>
                     <p className="text-sm text-gray-500 mt-1">{classData.class_name}</p>
                 </div>
