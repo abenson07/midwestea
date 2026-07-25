@@ -133,3 +133,27 @@ export async function getSession() {
   }
 }
 
+/**
+ * Force a session refresh. Needed after a server-side auth change (e.g. an
+ * email update via the admin API) since the client's existing JWT keeps its
+ * stale claims until the token is reissued.
+ */
+export async function refreshSession() {
+  try {
+    const supabase = await createSupabaseClient();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.refreshSession();
+
+    if (error) {
+      return { session: null, error: error.message };
+    }
+
+    return { session, error: null };
+  } catch (err) {
+    const error = err as AuthError;
+    return { session: null, error: error.message || "Failed to refresh session" };
+  }
+}
+

@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { getSession } from "@/lib/auth";
+import { getSession, refreshSession } from "@/lib/auth";
 import { getStudentById, type StudentWithEmail } from "@/lib/students";
 import { formatPhone } from "@midwestea/utils";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
@@ -116,6 +116,10 @@ export default function StudentProfilePage() {
           setSaving(false);
           return;
         }
+        // The client's JWT still carries the old email claim until reissued;
+        // force a refresh so the session (and every page reading it) reflects
+        // the new email immediately.
+        await refreshSession();
       }
 
       setIsSidebarOpen(false);
