@@ -50,6 +50,22 @@ export default function StudentCertificatesPage() {
     load();
   }, []);
 
+  async function handleDownload(certificateId: string) {
+    const { session } = await getSession();
+    if (!session) return;
+    const response = await fetch(`/api/students/me/certificates/${certificateId}/download`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) return;
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `certificate-${certificateId}.pdf`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">Certificates</h1>
@@ -82,11 +98,22 @@ export default function StudentCertificatesPage() {
                       </p>
                     )}
                   </div>
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${STATUS_CLASSES[displayStatus]}`}
-                  >
-                    {STATUS_LABEL[displayStatus]}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span
+                      className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${STATUS_CLASSES[displayStatus]}`}
+                    >
+                      {STATUS_LABEL[displayStatus]}
+                    </span>
+                    {(displayStatus === "active" || displayStatus === "expired") &&
+                      certificate.file_url && (
+                        <button
+                          onClick={() => handleDownload(certificate.id)}
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 whitespace-nowrap"
+                        >
+                          Download PDF
+                        </button>
+                      )}
+                  </div>
                 </div>
               </div>
             );
