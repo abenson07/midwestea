@@ -4,9 +4,10 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
-import { 
-    getTransactions, 
-    updateTransactionStatus, 
+import {
+    getTransactions,
+    updateTransactionStatus,
+    updateTransactionDueDate,
     type TransactionWithDetails,
 } from "@/lib/payments";
 import { formatCurrency } from "@midwestea/utils";
@@ -24,6 +25,8 @@ function TransactionsPageContent() {
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithDetails | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [dueDateInput, setDueDateInput] = useState<string>("");
+    const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
 
     useEffect(() => {
         loadTransactions();
@@ -43,6 +46,14 @@ function TransactionsPageContent() {
             setSelectedTransaction(null);
         }
     }, [searchParams, transactions]);
+
+    useEffect(() => {
+        if (selectedTransaction?.due_date) {
+            setDueDateInput(new Date(selectedTransaction.due_date).toISOString().split('T')[0]);
+        } else {
+            setDueDateInput('');
+        }
+    }, [selectedTransaction]);
 
     const loadTransactions = async () => {
         setLoading(true);
@@ -132,6 +143,29 @@ function TransactionsPageContent() {
             setError(err.message || "Failed to cancel invoice");
         } finally {
             setIsUpdating(false);
+        }
+    };
+
+    const handleUpdateDueDate = async () => {
+        if (!selectedTransaction || !dueDateInput) return;
+
+        setIsUpdatingDueDate(true);
+        try {
+            const isoDueDate = new Date(dueDateInput).toISOString();
+            const { success, error } = await updateTransactionDueDate(selectedTransaction.id, isoDueDate);
+            if (error) {
+                setError(error);
+            } else if (success) {
+                await loadTransactions();
+                setSelectedTransaction({
+                    ...selectedTransaction,
+                    due_date: isoDueDate,
+                });
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to update due date");
+        } finally {
+            setIsUpdatingDueDate(false);
         }
     };
 
@@ -348,6 +382,33 @@ function TransactionsPageContent() {
                                 <p className="mt-1 text-sm text-gray-900">{selectedTransaction.class_id_display || "N/A"}</p>
                             </div>
                         </div>
+                        {selectedTransaction.transaction_status === 'pending' && (
+                            <div className="pt-4 border-t border-gray-200 space-y-2">
+                                <label htmlFor="due-date-input" className="block text-sm font-medium text-gray-500">
+                                    Edit Due Date
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        id="due-date-input"
+                                        type="date"
+                                        value={dueDateInput}
+                                        onChange={(e) => setDueDateInput(e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                    <button
+                                        onClick={handleUpdateDueDate}
+                                        disabled={isUpdatingDueDate || !dueDateInput}
+                                        className={`px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors ${
+                                            isUpdatingDueDate || !dueDateInput
+                                                ? "bg-gray-400 cursor-not-allowed"
+                                                : "bg-black hover:bg-gray-800"
+                                        }`}
+                                    >
+                                        {isUpdatingDueDate ? "Saving..." : "Save"}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                         {(selectedTransaction.transaction_status !== 'paid' && selectedTransaction.transaction_status !== 'cancelled') && (
                             <div className="pt-4 border-t border-gray-200 space-y-3">
                                 <button

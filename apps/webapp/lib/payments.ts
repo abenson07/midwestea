@@ -237,6 +237,35 @@ export async function updateTransactionStatus(
 }
 
 /**
+ * Update a transaction's due date
+ */
+export async function updateTransactionDueDate(
+  transactionId: string,
+  dueDate: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    console.log("[updateTransactionDueDate] Updating transaction:", { transactionId, dueDate });
+    const supabase = await createSupabaseClient();
+
+    const { error } = await supabase
+      .from("transactions")
+      .update({ due_date: dueDate })
+      .eq("id", transactionId);
+
+    if (error) {
+      console.error("[updateTransactionDueDate] Error updating transaction:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log("[updateTransactionDueDate] Transaction updated successfully");
+    return { success: true, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { success: false, error: error.message || "Failed to update due date" };
+  }
+}
+
+/**
  * Payout transaction with details for reconciliation
  */
 export interface PayoutTransaction {
