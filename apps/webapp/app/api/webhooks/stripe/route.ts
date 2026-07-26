@@ -16,7 +16,7 @@ import {
   updateStudentStripeCustomerId,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
-import { markTransactionPaidFromCheckout } from '@/lib/invoice-payments';
+import { markTransactionPaidFromCheckout, markTransactionsPaidFromCollapsedCheckout } from '@/lib/invoice-payments';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
 import {
   sendCourseEnrollmentEmail,
@@ -103,6 +103,25 @@ export async function POST(request: NextRequest) {
         const amountTotal = session.amount_total || 0;
         const result = await markTransactionPaidFromCheckout(transactionId, piId || '', amountTotal);
         return NextResponse.json({ success: true, transactionId, alreadyProcessed: result.alreadyProcessed });
+      }
+
+      if (session.metadata?.payment_purpose === 'pay_remaining') {
+        const transactionIdsRaw = session.metadata.transaction_ids;
+        if (!transactionIdsRaw) {
+          return NextResponse.json({ error: 'Missing transaction_ids in session metadata' }, { status: 400 });
+        }
+        const transactionIds = transactionIdsRaw.split(',').filter(Boolean);
+        let piId: string | null = null;
+        if (session.payment_intent) {
+          piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
+        }
+        const result = await markTransactionsPaidFromCollapsedCheckout(transactionIds, piId || '');
+        return NextResponse.json({
+          success: true,
+          enrollmentId: session.metadata.enrollment_id,
+          paidCount: result.paidCount,
+          alreadyProcessedCount: result.alreadyProcessedCount,
+        });
       }
 
       // Extract data from session

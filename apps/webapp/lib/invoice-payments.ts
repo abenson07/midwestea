@@ -39,3 +39,47 @@ export async function markTransactionPaidFromCheckout(
 
   return { success: true, alreadyProcessed: false };
 }
+
+export async function markTransactionsPaidFromCollapsedCheckout(
+  transactionIds: string[],
+  paymentIntentId: string
+): Promise<{ success: boolean; paidCount: number; alreadyProcessedCount: number }> {
+  const supabase = createSupabaseAdminClient();
+
+  const { data: transactions, error } = await supabase
+    .from('transactions')
+    .select('id, transaction_status, amount_due, quantity')
+    .in('id', transactionIds);
+
+  if (error) {
+    throw new Error(`Failed to look up transactions: ${error.message}`);
+  }
+
+  let paidCount = 0;
+  let alreadyProcessedCount = 0;
+
+  for (const transaction of transactions || []) {
+    if (transaction.transaction_status === 'paid') {
+      alreadyProcessedCount++;
+      continue;
+    }
+
+    const amountPaid = (transaction.amount_due || 0) * (transaction.quantity || 1);
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update({
+        transaction_status: 'paid',
+        payment_date: new Date().toISOString(),
+        amount_paid: amountPaid,
+        stripe_payment_intent_id: paymentIntentId,
+      })
+      .eq('id', transaction.id);
+
+    if (updateError) {
+      throw new Error(`Failed to mark transaction ${transaction.id} paid: ${updateError.message}`);
+    }
+    paidCount++;
+  }
+
+  return { success: true, paidCount, alreadyProcessedCount };
+}

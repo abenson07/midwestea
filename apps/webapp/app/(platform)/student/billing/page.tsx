@@ -8,6 +8,7 @@ import {
   getInvoiceDisplayStatus,
   groupInvoicesByClass,
   payInvoice,
+  payAllRemaining,
   type StudentInvoice,
 } from "@/lib/student-billing";
 import { formatCurrency } from "@midwestea/utils";
@@ -48,6 +49,7 @@ function StudentBillingPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [payingAllId, setPayingAllId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -78,6 +80,17 @@ function StudentBillingPageContent() {
     window.location.href = checkoutUrl;
   }
 
+  async function handlePayAllRemaining(enrollmentId: string) {
+    setPayingAllId(enrollmentId);
+    const { checkoutUrl, error: payError } = await payAllRemaining(enrollmentId);
+    if (payError || !checkoutUrl) {
+      alert(payError || "Failed to start payment");
+      setPayingAllId(null);
+      return;
+    }
+    window.location.href = checkoutUrl;
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-semibold text-gray-900 mb-6">Billing</h1>
@@ -96,7 +109,21 @@ function StudentBillingPageContent() {
         <div className="space-y-4 max-w-2xl">
           {groupInvoicesByClass(invoices).map((group) => (
             <div key={group.enrollmentId} className="bg-white border border-gray-200 rounded-lg p-6">
-              <h2 className="text-base font-medium text-gray-900 mb-3">{group.className}</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-medium text-gray-900">{group.className}</h2>
+                {group.invoices.some((inv) => {
+                  const s = getInvoiceDisplayStatus(inv);
+                  return s === 'pending' || s === 'past_due';
+                }) && (
+                  <button
+                    onClick={() => handlePayAllRemaining(group.enrollmentId)}
+                    disabled={payingAllId === group.enrollmentId}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    {payingAllId === group.enrollmentId ? "Redirecting..." : "Pay All Remaining"}
+                  </button>
+                )}
+              </div>
               <div className="space-y-3">
                 {group.invoices.map((invoice) => {
                   const status = getInvoiceDisplayStatus(invoice);
