@@ -2,7 +2,7 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
 import { formatCurrency } from '@midwestea/utils';
 import { getStripeClient } from './stripe';
 import Stripe from 'stripe';
-import type { Student, Class, Enrollment, Payment } from '@midwestea/types';
+import type { Student, Class, Enrollment, Payment, Transaction } from '@midwestea/types';
 import { formatDate } from './email';
 
 /**
@@ -481,7 +481,7 @@ export async function createTransaction(data: {
   amountDue: number | null;
   amountPaid: number | null;
   invoiceNumber?: number | null;
-}): Promise<any> {
+}): Promise<Transaction> {
   const supabase = createSupabaseAdminClient();
   let invoiceNumber = data.invoiceNumber ?? null;
 
@@ -509,7 +509,7 @@ export async function createTransaction(data: {
       .single();
 
     if (!insertError && transaction) {
-      return transaction;
+      return transaction as Transaction;
     }
 
     if (insertError) {
@@ -529,6 +529,83 @@ export async function createTransaction(data: {
   }
 
   throw new Error('Failed to create transaction: could not allocate unique invoice number');
+}
+
+/**
+ * Create the standard invoice schedule (registration fee + tuition rows) for an enrollment
+ */
+export async function createInvoiceSchedule(params: {
+  enrollmentId: string;
+  studentId: string;
+  classId: string;
+  courseType: 'course' | 'program' | null;
+  classStartDate: string | null;
+  registrationFee: number | null;
+  price: number | null;
+  stripePaymentIntentId: string;
+  amountTotal: number;
+}): Promise<Transaction[]> {
+  const { enrollmentId, studentId, classId, courseType, classStartDate, registrationFee, price, stripePaymentIntentId, amountTotal } = params;
+  const now = new Date().toISOString();
+  const baseInvoiceNumber = await getNextTransactionInvoiceNumber();
+  const transactions: Transaction[] = [];
+
+  if (courseType === 'program') {
+    const regFee = await createTransaction({
+      enrollmentId, studentId, classId,
+      classType: 'program', transactionType: 'registration_fee', quantity: 1,
+      stripePaymentIntentId, transactionStatus: 'paid',
+      paymentDate: now, dueDate: now,
+      amountDue: registrationFee, amountPaid: amountTotal,
+      invoiceNumber: baseInvoiceNumber,
+    });
+    transactions.push(regFee);
+
+    let tuitionADueDate: string | null = null;
+    if (classStartDate) {
+      const d = new Date(classStartDate);
+      d.setDate(d.getDate() - 21);
+      tuitionADueDate = d.toISOString();
+    }
+    const tuitionA = await createTransaction({
+      enrollmentId, studentId, classId,
+      classType: 'program', transactionType: 'tuition_a', quantity: 0.5,
+      stripePaymentIntentId: null, transactionStatus: 'pending',
+      paymentDate: null, dueDate: tuitionADueDate,
+      amountDue: price, amountPaid: null,
+      invoiceNumber: baseInvoiceNumber + 1,
+    });
+    transactions.push(tuitionA);
+
+    let tuitionBDueDate: string | null = null;
+    if (classStartDate) {
+      const d = new Date(classStartDate);
+      d.setDate(d.getDate() + 7);
+      tuitionBDueDate = d.toISOString();
+    }
+    const tuitionB = await createTransaction({
+      enrollmentId, studentId, classId,
+      classType: 'program', transactionType: 'tuition_b', quantity: 0.5,
+      stripePaymentIntentId: null, transactionStatus: 'pending',
+      paymentDate: null, dueDate: tuitionBDueDate,
+      amountDue: price, amountPaid: null,
+      invoiceNumber: baseInvoiceNumber + 2,
+    });
+    transactions.push(tuitionB);
+  } else {
+    // 'course' or unrecognized courseType — single registration_fee transaction
+    const transaction = await createTransaction({
+      enrollmentId, studentId, classId,
+      classType: 'course', transactionType: 'registration_fee', quantity: 1,
+      stripePaymentIntentId, transactionStatus: 'paid',
+      paymentDate: now, dueDate: now,
+      amountDue: registrationFee, amountPaid: amountTotal,
+      invoiceNumber: baseInvoiceNumber,
+    });
+    transactions.push(transaction);
+  }
+
+  return transactions;
 }
 
 /**

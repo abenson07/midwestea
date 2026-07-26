@@ -10,7 +10,7 @@ import {
   createPayment,
   findClassWithCourse,
   getClassType,
-  createTransaction,
+  createInvoiceSchedule,
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
   updateStudentStripeCustomerId,
@@ -210,121 +210,18 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Create transactions (invoice numbers deferred — see Plan 8.6 / invoice integration)
-      const now = new Date().toISOString();
-      const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
-
-      if (courseType === 'course') {
-        // For courses: Create 1 transaction (Registration Fee)
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-        console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
-      } else if (courseType === 'program') {
-        // For programs: Create 3 transactions in order:
-        // 1. Registration Fee (paid) - first invoice number
-        const regFeeTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(regFeeTransaction);
-        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
-
-        // 2. Tuition A (pending, due 3 weeks before class start)
-        let tuitionADueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() - 21); // 3 weeks before
-          tuitionADueDate = startDate.toISOString();
-        }
-
-        const tuitionATransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_a',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionADueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionATransaction);
-        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
-
-        // 3. Tuition B (pending, due 1 week after class start) - third invoice number
-        let tuitionBDueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() + 7); // 1 week after
-          tuitionBDueDate = startDate.toISOString();
-        }
-
-        const tuitionBTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_b',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionBDueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionBTransaction);
-        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
-      } else {
-        // Default to course if type cannot be determined
-        console.warn('[webhook] Could not determine class type, defaulting to course');
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-      }
+      const transactions = await createInvoiceSchedule({
+        enrollmentId: enrollment.id,
+        studentId: student.id,
+        classId: classRecord.id,
+        courseType,
+        classStartDate,
+        registrationFee,
+        price,
+        stripePaymentIntentId: paymentIntentId,
+        amountTotal,
+      });
+      console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
 
       // Step 6: Send enrollment confirmation email (async, non-blocking)
       // Check if email was already sent for this event (deduplication)
@@ -742,121 +639,18 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Create transactions (invoice numbers deferred — see Plan 8.6 / invoice integration)
-      const now = new Date().toISOString();
-      const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
-
-      if (courseType === 'course') {
-        // For courses: Create 1 transaction (Registration Fee)
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-        console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
-      } else if (courseType === 'program') {
-        // For programs: Create 3 transactions in order:
-        // 1. Registration Fee (paid) - first invoice number
-        const regFeeTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(regFeeTransaction);
-        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
-
-        // 2. Tuition A (pending, due 3 weeks before class start)
-        let tuitionADueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() - 21); // 3 weeks before
-          tuitionADueDate = startDate.toISOString();
-        }
-
-        const tuitionATransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_a',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionADueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionATransaction);
-        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
-
-        // 3. Tuition B (pending, due 1 week after class start) - third invoice number
-        let tuitionBDueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() + 7); // 1 week after
-          tuitionBDueDate = startDate.toISOString();
-        }
-
-        const tuitionBTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_b',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionBDueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionBTransaction);
-        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
-      } else {
-        // Default to course if type cannot be determined
-        console.warn('[webhook] Could not determine class type, defaulting to course');
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-      }
+      const transactions = await createInvoiceSchedule({
+        enrollmentId: enrollment.id,
+        studentId: student.id,
+        classId: classRecord.id,
+        courseType,
+        classStartDate,
+        registrationFee,
+        price,
+        stripePaymentIntentId: paymentIntentId,
+        amountTotal,
+      });
+      console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
 
       // Step 6: Send enrollment confirmation email (async, non-blocking)
       const eventId = event.id;
