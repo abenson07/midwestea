@@ -773,6 +773,10 @@ export interface InvoiceCalculation {
  * Simple in-memory cache for outstanding invoices queries
  * Cache key: enrollmentId
  * Cache value: { data: OutstandingInvoice[], timestamp: number }
+ *
+ * Do not use this cache (or this function) to back the tuition-reminder send
+ * endpoint (apps/webapp/app/api/admin/transactions/[id]/send-reminder) — that
+ * endpoint must always reflect the live due_date. See BEN-1186.
  */
 const outstandingInvoicesCache = new Map<
   string,
