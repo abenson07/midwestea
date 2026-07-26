@@ -43,6 +43,13 @@ function StudentDetailContent() {
     const [deleting, setDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+    // Void & Reissue modal state
+    const [isVoidReissueOpen, setIsVoidReissueOpen] = useState(false);
+    const [voidReissueGroup, setVoidReissueGroup] = useState<{ enrollmentId: string; className: string; payments: PaymentWithDetails[] } | null>(null);
+    const [replacementRows, setReplacementRows] = useState<{ key: string; amount: string; dueDate: string }[]>([]);
+    const [isSubmittingVoidReissue, setIsSubmittingVoidReissue] = useState(false);
+    const [voidReissueError, setVoidReissueError] = useState<string | null>(null);
+
     // Enrollment detail sidebar state
     const [isEnrollmentSidebarOpen, setIsEnrollmentSidebarOpen] = useState(false);
     const [selectedEnrollment, setSelectedEnrollment] = useState<Enrollment | null>(null);
@@ -370,6 +377,83 @@ function StudentDetailContent() {
         setEnrollmentTransactions([]);
     };
 
+    const openVoidReissue = (group: { enrollmentId: string; className: string; payments: PaymentWithDetails[] }) => {
+        setVoidReissueGroup(group);
+        setReplacementRows([{ key: crypto.randomUUID(), amount: "", dueDate: "" }]);
+        setVoidReissueError(null);
+        setIsVoidReissueOpen(true);
+    };
+
+    const closeVoidReissue = () => {
+        setIsVoidReissueOpen(false);
+        setVoidReissueGroup(null);
+        setReplacementRows([]);
+        setVoidReissueError(null);
+    };
+
+    const addReplacementRow = () => {
+        setReplacementRows((rows) => [...rows, { key: crypto.randomUUID(), amount: "", dueDate: "" }]);
+    };
+
+    const removeReplacementRow = (key: string) => {
+        setReplacementRows((rows) => rows.filter((r) => r.key !== key));
+    };
+
+    const updateReplacementRow = (key: string, field: "amount" | "dueDate", value: string) => {
+        setReplacementRows((rows) => rows.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
+    };
+
+    const handleConfirmVoidReissue = async () => {
+        if (!voidReissueGroup) return;
+        for (const row of replacementRows) {
+            const amount = parseFloat(row.amount);
+            if (Number.isNaN(amount) || amount <= 0 || !row.dueDate) {
+                setVoidReissueError("Every replacement invoice needs a positive amount and a due date.");
+                return;
+            }
+        }
+
+        setIsSubmittingVoidReissue(true);
+        setVoidReissueError(null);
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setVoidReissueError("Not authenticated");
+                return;
+            }
+            const response = await fetch(`/api/admin/enrollments/${voidReissueGroup.enrollmentId}/void-and-reissue`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    replacementInvoices: replacementRows.map((r) => ({
+                        amountCents: Math.round(parseFloat(r.amount) * 100),
+                        dueDate: new Date(r.dueDate).toISOString(),
+                    })),
+                }),
+            });
+            const result = await response.json();
+            if (!result.success) {
+                setVoidReissueError(result.error || "Failed to void and reissue");
+                return;
+            }
+            await loadPayments();
+            closeVoidReissue();
+        } catch (err: any) {
+            setVoidReissueError(err.message || "Failed to void and reissue");
+        } finally {
+            setIsSubmittingVoidReissue(false);
+        }
+    };
+
+    const originalTotal = (voidReissueGroup?.payments || [])
+        .filter((p) => p.payment_status === 'pending')
+        .reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+    const newTotal = replacementRows.reduce((sum, r) => sum + (Math.round((parseFloat(r.amount) || 0) * 100)), 0);
+
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!student || !originalStudent) return;
@@ -655,7 +739,20 @@ function StudentDetailContent() {
                                 onClick={() => handleInvoiceGroupClick(group.enrollmentId)}
                                 className="bg-white rounded-lg border border-gray-200 p-6 cursor-pointer hover:border-gray-300"
                             >
-                                <h3 className="text-base font-medium text-gray-900 mb-3">{group.className}</h3>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-base font-medium text-gray-900">{group.className}</h3>
+                                    {group.payments.some((p) => p.payment_status === 'pending') && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openVoidReissue(group);
+                                            }}
+                                            className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                                        >
+                                            Void &amp; Reissue
+                                        </button>
+                                    )}
+                                </div>
                                 <table className="w-full text-sm">
                                     <thead>
                                         <tr className="text-left text-gray-500">
@@ -813,6 +910,75 @@ function StudentDetailContent() {
                                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                             >
                                 {deleting ? "Deleting..." : "Delete Student"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Void & Reissue modal */}
+            {isVoidReissueOpen && voidReissueGroup && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-xl font-bold text-black mb-4">Void &amp; Reissue — {voidReissueGroup.className}</h2>
+                        <p className="text-sm text-gray-600 mb-4">
+                            This will void {voidReissueGroup.payments.filter((p) => p.payment_status === 'pending').length} open invoice(s)
+                            totaling {formatCurrency(originalTotal)}, and create the replacement invoices below.
+                        </p>
+                        <div className="space-y-3 mb-4">
+                            {replacementRows.map((row) => (
+                                <div key={row.key} className="flex gap-2 items-center">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="Amount ($)"
+                                        value={row.amount}
+                                        onChange={(e) => updateReplacementRow(row.key, "amount", e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={row.dueDate}
+                                        onChange={(e) => updateReplacementRow(row.key, "dueDate", e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                    <button
+                                        onClick={() => removeReplacementRow(row.key)}
+                                        className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            onClick={addReplacementRow}
+                            className="text-sm font-medium text-gray-700 hover:text-gray-900 mb-4"
+                        >
+                            + Add Invoice
+                        </button>
+                        <div className="flex justify-between text-sm font-medium text-gray-900 mb-4 pt-3 border-t border-gray-200">
+                            <span>Original Total: {formatCurrency(originalTotal)}</span>
+                            <span>New Total: {formatCurrency(newTotal)}</span>
+                        </div>
+                        {voidReissueError && (
+                            <p className="text-sm text-red-600 mb-4">{voidReissueError}</p>
+                        )}
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={closeVoidReissue}
+                                disabled={isSubmittingVoidReissue}
+                                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmVoidReissue}
+                                disabled={isSubmittingVoidReissue}
+                                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                            >
+                                {isSubmittingVoidReissue ? "Processing..." : "Confirm Void & Reissue"}
                             </button>
                         </div>
                     </div>
