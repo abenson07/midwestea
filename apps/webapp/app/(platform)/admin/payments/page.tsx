@@ -257,6 +257,7 @@ function TransactionsPageContent() {
         if (type === 'registration_fee') return 'Registration Fee';
         if (type === 'tuition_a') return 'First Invoice';
         if (type === 'tuition_b') return 'Second Invoice';
+        if (type === 'custom') return 'Custom Invoice';
         return type || 'N/A';
     };
 
