@@ -132,6 +132,49 @@ function StudentDetailContent() {
         return "Pending";
     };
 
+    const renderPaymentDateCell = (item: PaymentWithDetails & { due_date?: string | null }) => {
+        if (item.paid_at) {
+            return formatDate(item.paid_at);
+        }
+        if (item.due_date) {
+            const dueDate = new Date(item.due_date);
+            if (dueDate < new Date()) {
+                return (
+                    <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
+                        Past due
+                    </span>
+                );
+            }
+        }
+        return (
+            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                Pending
+            </span>
+        );
+    };
+
+    const groupPaymentsByClass = (
+        items: PaymentWithDetails[]
+    ): { enrollmentId: string; className: string; payments: PaymentWithDetails[] }[] => {
+        const groups: { enrollmentId: string; className: string; payments: PaymentWithDetails[] }[] = [];
+        const indexByEnrollment = new Map<string, number>();
+
+        for (const payment of items) {
+            const enrollmentId = payment.enrollment_id || "unknown";
+            const className = payment.class_name || "Unknown Class";
+
+            let index = indexByEnrollment.get(enrollmentId);
+            if (index === undefined) {
+                index = groups.length;
+                indexByEnrollment.set(enrollmentId, index);
+                groups.push({ enrollmentId, className, payments: [] });
+            }
+            groups[index].payments.push(payment);
+        }
+
+        return groups;
+    };
+
     const loadClasses = async () => {
         if (!studentId) return;
         setLoadingClasses(true);
@@ -483,59 +526,6 @@ function StudentDetailContent() {
         },
     ];
 
-    const paymentColumns = [
-        {
-            header: "Amount",
-            accessorKey: "amount_cents" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => formatCurrency(item.amount_cents)
-        },
-        {
-            header: "Class",
-            accessorKey: "class_name" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => item.class_name || "—"
-        },
-        {
-            header: "Status",
-            accessorKey: "payment_status" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => item.payment_status || "—"
-        },
-        {
-            header: "Paid At",
-            accessorKey: "paid_at" as keyof PaymentWithDetails & { due_date?: string | null },
-            cell: (item: PaymentWithDetails & { due_date?: string | null }) => {
-                if (item.paid_at) {
-                    return formatDate(item.paid_at);
-                }
-                
-                // Check if overdue
-                if (item.due_date) {
-                    const dueDate = new Date(item.due_date);
-                    const now = new Date();
-                    if (dueDate < now) {
-                        return (
-                            <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
-                                Past due
-                            </span>
-                        );
-                    }
-                }
-                
-                // Show pending chip
-                return (
-                    <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">
-                        Pending
-                    </span>
-                );
-            }
-        },
-        {
-            header: "Next Due Date",
-            accessorKey: "next_due_date" as keyof PaymentWithDetails & { next_due_date?: string | null },
-            cell: (item: PaymentWithDetails & { next_due_date?: string | null }) => 
-                formatDate(item.next_due_date)
-        },
-    ];
-
     if (loading) {
         return (
             <div className="space-y-6">
@@ -642,15 +632,44 @@ function StudentDetailContent() {
                 />
             </div>
 
-            {/* Payments Section */}
+            {/* Invoices by Class Section */}
             <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
-                <DataTable
-                    data={payments}
-                    columns={paymentColumns}
-                    isLoading={loadingPayments}
-                    emptyMessage="No payments found for this student."
-                />
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Invoices by Class</h2>
+                {loadingPayments ? (
+                    <p className="text-gray-500">Loading...</p>
+                ) : payments.length === 0 ? (
+                    <p className="text-gray-500">No payments found for this student.</p>
+                ) : (
+                    <div className="space-y-4">
+                        {groupPaymentsByClass(payments).map((group) => (
+                            <div key={group.enrollmentId} className="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 className="text-base font-medium text-gray-900 mb-3">{group.className}</h3>
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500">
+                                            <th className="pb-2 font-medium">Amount</th>
+                                            <th className="pb-2 font-medium">Status</th>
+                                            <th className="pb-2 font-medium">Paid At / Due Date</th>
+                                            <th className="pb-2 font-medium">Next Due Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {group.payments.map((payment) => (
+                                            <tr key={payment.id} className="border-t border-gray-100">
+                                                <td className="py-2">{formatCurrency(payment.amount_cents)}</td>
+                                                <td className="py-2">{payment.payment_status || "—"}</td>
+                                                <td className="py-2">{renderPaymentDateCell(payment)}</td>
+                                                <td className="py-2">
+                                                    {formatDate((payment as PaymentWithDetails & { next_due_date?: string | null }).next_due_date)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Activity Log Section */}
