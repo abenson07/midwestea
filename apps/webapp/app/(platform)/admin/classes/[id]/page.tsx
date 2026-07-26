@@ -3,13 +3,14 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getClassById, updateClass, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
+import { getClassById, updateClass, updateClassExternalLinks, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
 import { getStudentsByClassId, getStudents, getStudentEmailFromAuth } from "@/lib/students";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
+import { ExternalLearningLinksCard } from "@/components/ui/ExternalLearningLinksCard";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
@@ -86,8 +87,18 @@ function ClassDetailContent() {
     // Navigation context
     const [fromContext, setFromContext] = useState<'course' | 'program' | 'classes' | null>(null);
     const [parentEntity, setParentEntity] = useState<Course | null>(null);
+    const [parentCourseLinks, setParentCourseLinks] = useState<Course | null>(null);
     const [pendingUndoRemoval, setPendingUndoRemoval] = useState<PendingUndoRemoval | null>(null);
     const [undoingRemoval, setUndoingRemoval] = useState(false);
+
+    useEffect(() => {
+        const loadParentCourseLinks = async () => {
+            if (!classData?.course_uuid) return;
+            const { course } = await getCourseById(classData.course_uuid);
+            if (course) setParentCourseLinks(course);
+        };
+        loadParentCourseLinks();
+    }, [classData?.course_uuid]);
 
     useEffect(() => {
         if (classId) {
@@ -658,6 +669,38 @@ function ClassDetailContent() {
                     </div>
                 </div>
             </div>
+
+            <ExternalLearningLinksCard
+                values={{
+                    jbLearningLabel: classData.jb_learning_label,
+                    jbLearningUrl: classData.jb_learning_url,
+                    platinumEdLabel: classData.platinum_ed_label,
+                    platinumEdUrl: classData.platinum_ed_url,
+                }}
+                inherited={
+                    parentCourseLinks
+                        ? {
+                              jbLearningLabel: parentCourseLinks.jb_learning_label,
+                              jbLearningUrl: parentCourseLinks.jb_learning_url,
+                              platinumEdLabel: parentCourseLinks.platinum_ed_label,
+                              platinumEdUrl: parentCourseLinks.platinum_ed_url,
+                          }
+                        : null
+                }
+                onSave={async (values) => {
+                    const result = await updateClassExternalLinks(
+                        classData.id,
+                        values.jbLearningLabel,
+                        values.jbLearningUrl,
+                        values.platinumEdLabel,
+                        values.platinumEdUrl
+                    );
+                    if (result.success && result.class) {
+                        setClassData({ ...classData, ...result.class });
+                    }
+                    return result;
+                }}
+            />
 
             {/* Students Section */}
             <div>

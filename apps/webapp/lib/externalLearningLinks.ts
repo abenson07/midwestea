@@ -50,6 +50,10 @@ export async function getStudentExternalLearningLinks(
         classes (
           id,
           class_name,
+          jb_learning_label,
+          jb_learning_url,
+          platinum_ed_label,
+          platinum_ed_url,
           courses (
             jb_learning_label,
             jb_learning_url,
@@ -74,6 +78,7 @@ export async function getStudentExternalLearningLinks(
       const platforms = Object.keys(EXTERNAL_LEARNING_PLATFORM_DEFAULTS) as ExternalLearningPlatformKey[];
       const links = platforms.map((platform) =>
         resolvePlatformLink(platform, [
+          { label: classRecord[`${platform}_label`], url: classRecord[`${platform}_url`] },
           { label: course?.[`${platform}_label`], url: course?.[`${platform}_url`] },
         ])
       );

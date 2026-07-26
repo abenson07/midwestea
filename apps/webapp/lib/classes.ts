@@ -53,6 +53,10 @@ export interface Class {
   wf_class_link: string | null;
   location: string | null;
   location_id: string | null;
+  jb_learning_label: string | null;
+  jb_learning_url: string | null;
+  platinum_ed_label: string | null;
+  platinum_ed_url: string | null;
 }
 
 /**
@@ -393,6 +397,51 @@ export async function updateClass(
   } catch (err) {
     const error = err as Error;
     return { success: false, error: error.message || "Failed to update class" };
+  }
+}
+
+/**
+ * Update a class's external learning platform link overrides (via server-side API route)
+ */
+export async function updateClassExternalLinks(
+  id: string,
+  jbLearningLabel: string | null,
+  jbLearningUrl: string | null,
+  platinumEdLabel: string | null,
+  platinumEdUrl: string | null
+): Promise<ClassResponse> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return { success: false, error: 'Not authenticated. Please log in.' };
+    }
+
+    const response = await fetch(`/api/classes/${id}/external-links`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        jbLearningLabel,
+        jbLearningUrl,
+        platinumEdLabel,
+        platinumEdUrl,
+      }),
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      return { success: false, error: result.error || 'Failed to update external learning links' };
+    }
+
+    const result = await response.json();
+    return { success: true, class: result.class };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to update external learning links" };
   }
 }
 
