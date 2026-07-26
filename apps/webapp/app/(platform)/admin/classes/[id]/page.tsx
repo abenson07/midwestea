@@ -5,6 +5,8 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, updateClass, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
 import { getStudentsByClassId, getStudents, getStudentEmailFromAuth } from "@/lib/students";
+import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
+import { getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
@@ -35,11 +37,27 @@ const formatClassDate = (dateString: string): { rendered: string; strategy: "dat
     };
 };
 
+const calculateStudentPaymentStatus = (transactions: TransactionWithDetails[]): string => {
+    if (!transactions || transactions.length === 0) return "No invoices yet";
+    const now = new Date();
+    const isPastDue = (t: TransactionWithDetails) =>
+        t.transaction_status !== 'paid' && !!t.due_date && new Date(t.due_date) < now;
+    if (transactions.some(isPastDue)) return "Past due";
+    if (transactions.every((t) => t.transaction_status === 'paid')) return "All paid";
+    if (transactions.some((t) => t.transaction_status === 'paid')) return "Partially paid";
+    return "Pending";
+};
+
 // Student type for UI display
 type Student = {
     id: string;
     name: string;
     email: string;
+};
+
+type StudentWithBilling = Student & {
+    paymentStatus: string;
+    transactions: TransactionWithDetails[];
 };
 
 type PendingUndoRemoval = {
@@ -56,6 +74,9 @@ function ClassDetailContent() {
     const [classData, setClassData] = useState<Class | null>(null);
     const [originalClassData, setOriginalClassData] = useState<Class | null>(null);
     const [students, setStudents] = useState<Student[]>([]);
+    const [studentsWithBilling, setStudentsWithBilling] = useState<StudentWithBilling[]>([]);
+    const [isInvoiceSidebarOpen, setIsInvoiceSidebarOpen] = useState(false);
+    const [selectedStudentBilling, setSelectedStudentBilling] = useState<StudentWithBilling | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingStudents, setLoadingStudents] = useState(true);
     const [error, setError] = useState("");
@@ -190,6 +211,7 @@ function ClassDetailContent() {
                 }));
                 console.log("[ClassDetailContent] Transformed students for class:", transformedStudents);
                 setStudents(transformedStudents);
+                loadStudentsWithBilling(transformedStudents);
             } else {
                 console.log("[ClassDetailContent] No students returned for class");
                 setStudents([]);
@@ -200,6 +222,33 @@ function ClassDetailContent() {
         } finally {
             setLoadingStudents(false);
         }
+    };
+
+    const loadStudentsWithBilling = async (roster: Student[]) => {
+        const withBilling = await Promise.all(
+            roster.map(async (student) => {
+                const { enrollment } = await getEnrollmentByStudentAndClass(student.id, classId);
+                if (!enrollment) {
+                    return { ...student, paymentStatus: "No invoices yet", transactions: [] };
+                }
+                const { transactions } = await getTransactionsByEnrollment(enrollment.id);
+                return {
+                    ...student,
+                    paymentStatus: calculateStudentPaymentStatus(transactions || []),
+                    transactions: transactions || [],
+                };
+            })
+        );
+        setStudentsWithBilling(withBilling);
+    };
+
+    const handleViewInvoices = (student: StudentWithBilling) => {
+        setSelectedStudentBilling(student);
+        setIsInvoiceSidebarOpen(true);
+    };
+    const handleCloseInvoiceSidebar = () => {
+        setIsInvoiceSidebarOpen(false);
+        setSelectedStudentBilling(null);
     };
 
     const loadAllStudents = async () => {
@@ -506,6 +555,30 @@ function ClassDetailContent() {
     const studentColumns = [
         { header: "Name", accessorKey: "name" as keyof Student, className: "font-medium" },
         { header: "Email", accessorKey: "email" as keyof Student },
+        {
+            header: "Invoice Status",
+            accessorKey: "id" as keyof Student,
+            cell: (item: Student) => {
+                const withBilling = studentsWithBilling.find((s) => s.id === item.id);
+                const status = withBilling?.paymentStatus || "Loading...";
+                return (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (withBilling) handleViewInvoices(withBilling);
+                        }}
+                        className={`text-sm font-medium hover:underline ${
+                            status === "Past due" ? "text-red-600" :
+                            status === "All paid" ? "text-green-600" :
+                            status === "Partially paid" ? "text-blue-600" :
+                            "text-gray-600"
+                        }`}
+                    >
+                        {status}
+                    </button>
+                );
+            },
+        },
         {
             header: "Actions",
             accessorKey: "id" as keyof Student,
@@ -828,6 +901,42 @@ function ClassDetailContent() {
                         </form>
                     </div>
                 </div>
+            </DetailSidebar>
+
+            {/* Invoice Detail Sidebar */}
+            <DetailSidebar
+                isOpen={isInvoiceSidebarOpen}
+                onClose={handleCloseInvoiceSidebar}
+                title={selectedStudentBilling ? `${selectedStudentBilling.name} — Invoices` : "Invoices"}
+            >
+                {selectedStudentBilling && selectedStudentBilling.transactions.length > 0 ? (
+                    <div className="space-y-4">
+                        {selectedStudentBilling.transactions.map((transaction) => {
+                            const typeLabel =
+                                transaction.transaction_type === 'registration_fee' ? 'Registration Fee' :
+                                transaction.transaction_type === 'tuition_a' ? 'Tuition A' :
+                                transaction.transaction_type === 'tuition_b' ? 'Tuition B' :
+                                transaction.transaction_type || 'Unknown';
+                            const isPaid = transaction.transaction_status === 'paid';
+                            return (
+                                <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h4 className="text-sm font-medium text-gray-900">{typeLabel}</h4>
+                                        <span className={`px-2 py-1 text-xs rounded-full ${isPaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
+                                            {isPaid ? "Paid" : "Pending"}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-900">{formatCurrency(transaction.amount_due || 0)}</p>
+                                    <p className="text-xs text-gray-500">
+                                        {isPaid ? `Paid ${formatDate(transaction.payment_date ?? null)}` : `Due ${formatDate(transaction.due_date ?? null)}`}
+                                    </p>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <p className="text-sm text-gray-500">No invoices found for this student.</p>
+                )}
             </DetailSidebar>
 
             {/* Edit Class Modal */}
