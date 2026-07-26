@@ -17,6 +17,10 @@ export interface Course {
   price: number | null;
   registration_fee: number | null;
   stripe_product_id: string | null;
+  jb_learning_label: string | null;
+  jb_learning_url: string | null;
+  platinum_ed_label: string | null;
+  platinum_ed_url: string | null;
 }
 
 export interface ClassResponse {
@@ -461,6 +465,51 @@ export async function updateCourse(
   } catch (err) {
     const error = err as PostgrestError;
     return { success: false, error: error.message || "Failed to update course" };
+  }
+}
+
+/**
+ * Update a course's external learning platform link settings (via server-side API route)
+ */
+export async function updateCourseExternalLinks(
+  id: string,
+  jbLearningLabel: string | null,
+  jbLearningUrl: string | null,
+  platinumEdLabel: string | null,
+  platinumEdUrl: string | null
+): Promise<{ success: boolean; course?: Course; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return { success: false, error: 'Not authenticated. Please log in.' };
+    }
+
+    const response = await fetch(`/api/courses/${id}/external-links`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        jbLearningLabel,
+        jbLearningUrl,
+        platinumEdLabel,
+        platinumEdUrl,
+      }),
+    });
+
+    if (!response.ok) {
+      const result = await response.json();
+      return { success: false, error: result.error || 'Failed to update external learning links' };
+    }
+
+    const result = await response.json();
+    return { success: true, course: result.course };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to update external learning links" };
   }
 }
 
