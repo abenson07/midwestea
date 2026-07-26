@@ -258,6 +258,7 @@ function TransactionsPageContent() {
         if (type === 'tuition_a') return 'First Invoice';
         if (type === 'tuition_b') return 'Second Invoice';
         if (type === 'custom') return 'Custom Invoice';
+        if (type === 'pay_in_full') return 'Pay in Full';
         return type || 'N/A';
     };
 

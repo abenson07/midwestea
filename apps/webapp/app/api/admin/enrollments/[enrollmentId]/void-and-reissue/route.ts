@@ -31,6 +31,7 @@ export async function POST(
     const replacementInvoices: { amountCents: number; dueDate: string }[] = Array.isArray(body.replacementInvoices)
       ? body.replacementInvoices
       : [];
+    const payInFull: boolean = body.payInFull === true;
 
     for (const item of replacementInvoices) {
       if (typeof item.amountCents !== 'number' || item.amountCents <= 0 || !Number.isInteger(item.amountCents)) {
@@ -39,6 +40,10 @@ export async function POST(
       if (!item.dueDate || Number.isNaN(new Date(item.dueDate).getTime())) {
         return NextResponse.json({ success: false, error: 'Each replacement invoice needs a valid dueDate' }, { status: 400 });
       }
+    }
+
+    if (payInFull && replacementInvoices.length !== 1) {
+      return NextResponse.json({ success: false, error: 'Pay in full requires exactly one replacement invoice' }, { status: 400 });
     }
 
     const { data: enrollment, error: enrollmentError } = await supabase
@@ -101,7 +106,7 @@ export async function POST(
         studentId: enrollment.student_id,
         classId: enrollment.class_id,
         classType,
-        transactionType: 'custom',
+        transactionType: payInFull ? 'pay_in_full' : 'custom',
         quantity: 1,
         stripePaymentIntentId: null,
         transactionStatus: 'pending',

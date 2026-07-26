@@ -183,7 +183,7 @@ export interface TransactionWithDetails {
   invoice_number: string | null;
   student_id: string | null;
   class_id: string | null;
-  transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | null;
+  transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | 'pay_in_full' | null;
   quantity: number | null;
   amount_due: number | null;
   transaction_status: string | null;

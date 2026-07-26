@@ -49,6 +49,7 @@ function StudentDetailContent() {
     const [replacementRows, setReplacementRows] = useState<{ key: string; amount: string; dueDate: string }[]>([]);
     const [isSubmittingVoidReissue, setIsSubmittingVoidReissue] = useState(false);
     const [voidReissueError, setVoidReissueError] = useState<string | null>(null);
+    const [isPayInFull, setIsPayInFull] = useState(false);
 
     // Enrollment detail sidebar state
     const [isEnrollmentSidebarOpen, setIsEnrollmentSidebarOpen] = useState(false);
@@ -381,6 +382,7 @@ function StudentDetailContent() {
         setVoidReissueGroup(group);
         setReplacementRows([{ key: crypto.randomUUID(), amount: "", dueDate: "" }]);
         setVoidReissueError(null);
+        setIsPayInFull(false);
         setIsVoidReissueOpen(true);
     };
 
@@ -389,14 +391,17 @@ function StudentDetailContent() {
         setVoidReissueGroup(null);
         setReplacementRows([]);
         setVoidReissueError(null);
+        setIsPayInFull(false);
     };
 
     const addReplacementRow = () => {
         setReplacementRows((rows) => [...rows, { key: crypto.randomUUID(), amount: "", dueDate: "" }]);
+        setIsPayInFull(false);
     };
 
     const removeReplacementRow = (key: string) => {
         setReplacementRows((rows) => rows.filter((r) => r.key !== key));
+        setIsPayInFull(false);
     };
 
     const updateReplacementRow = (key: string, field: "amount" | "dueDate", value: string) => {
@@ -433,6 +438,7 @@ function StudentDetailContent() {
                         amountCents: Math.round(parseFloat(r.amount) * 100),
                         dueDate: new Date(r.dueDate).toISOString(),
                     })),
+                    payInFull: isPayInFull,
                 }),
             });
             const result = await response.json();
@@ -952,12 +958,27 @@ function StudentDetailContent() {
                                 </div>
                             ))}
                         </div>
-                        <button
-                            onClick={addReplacementRow}
-                            className="text-sm font-medium text-gray-700 hover:text-gray-900 mb-4"
-                        >
-                            + Add Invoice
-                        </button>
+                        <div className="flex items-center justify-between mb-4">
+                            <button
+                                onClick={addReplacementRow}
+                                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                            >
+                                + Add Invoice
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setReplacementRows([{
+                                        key: crypto.randomUUID(),
+                                        amount: (originalTotal / 100).toFixed(2),
+                                        dueDate: new Date().toISOString().split('T')[0],
+                                    }]);
+                                    setIsPayInFull(true);
+                                }}
+                                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                            >
+                                Pay in Full
+                            </button>
+                        </div>
                         <div className="flex justify-between text-sm font-medium text-gray-900 mb-4 pt-3 border-t border-gray-200">
                             <span>Original Total: {formatCurrency(originalTotal)}</span>
                             <span>New Total: {formatCurrency(newTotal)}</span>

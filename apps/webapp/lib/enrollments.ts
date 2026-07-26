@@ -473,7 +473,7 @@ export async function createTransaction(data: {
   studentId: string;
   classId: string;
   classType: 'course' | 'program';
-  transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom';
+  transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | 'pay_in_full';
   quantity: number;
   stripePaymentIntentId: string | null;
   stripeInvoiceId?: string | null;
