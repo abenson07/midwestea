@@ -111,6 +111,16 @@ function ClassDetailContent() {
     const [pendingUndoRemoval, setPendingUndoRemoval] = useState<PendingUndoRemoval | null>(null);
     const [undoingRemoval, setUndoingRemoval] = useState(false);
 
+    // Remove-student refund modal state
+    const [removeStudentModal, setRemoveStudentModal] = useState<{
+        studentId: string;
+        studentName: string;
+        hasPaidTransactions: boolean;
+        paidTotal: number;
+    } | null>(null);
+    const [refundPercentageInput, setRefundPercentageInput] = useState<string>("");
+    const [isRemovingStudent, setIsRemovingStudent] = useState(false);
+
     useEffect(() => {
         if (classId) {
             loadClass();
@@ -379,12 +389,43 @@ function ClassDetailContent() {
         );
     }, [availableStudents, searchLower]);
 
-    const handleRemoveStudent = async (studentId: string) => {
-        if (!confirm("Are you sure you want to remove this student from the class?")) return;
-
+    const openRemoveStudentModal = async (studentId: string) => {
         const student = students.find((s) => s.id === studentId);
         const studentName = student?.name ?? "Student";
 
+        const { enrollment } = await getEnrollmentByStudentAndClass(studentId, classId);
+        let paidTotal = 0;
+        if (enrollment) {
+            const { transactions } = await getTransactionsByEnrollment(enrollment.id);
+            paidTotal = (transactions || [])
+                .filter((t) => t.transaction_status === 'paid')
+                .reduce((sum, t) => sum + (t.amount_due || 0) * (t.quantity || 1), 0);
+        }
+
+        setRefundPercentageInput("");
+        setRemoveStudentModal({
+            studentId,
+            studentName,
+            hasPaidTransactions: paidTotal > 0,
+            paidTotal,
+        });
+    };
+
+    const handleConfirmRemoveStudent = async () => {
+        if (!removeStudentModal) return;
+        const { studentId, studentName, hasPaidTransactions } = removeStudentModal;
+
+        let refundPercentage: number | null = null;
+        if (hasPaidTransactions) {
+            const pct = parseFloat(refundPercentageInput);
+            if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+                alert("Enter a refund percentage between 0 and 100.");
+                return;
+            }
+            refundPercentage = pct;
+        }
+
+        setIsRemovingStudent(true);
         try {
             const supabase = await createSupabaseClient();
             const { data: { session } } = await supabase.auth.getSession();
@@ -404,6 +445,7 @@ function ClassDetailContent() {
                 body: JSON.stringify({
                     student_id: studentId,
                     class_id: classId,
+                    refund_percentage: refundPercentage,
                 }),
             });
 
@@ -416,8 +458,11 @@ function ClassDetailContent() {
 
             await loadStudents();
             setPendingUndoRemoval({ studentId, studentName });
+            setRemoveStudentModal(null);
         } catch (err: any) {
             alert(`Failed to remove student: ${err.message}`);
+        } finally {
+            setIsRemovingStudent(false);
         }
     };
 
@@ -587,7 +632,7 @@ function ClassDetailContent() {
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveStudent(item.id);
+                        openRemoveStudentModal(item.id);
                     }}
                     className="text-red-600 hover:text-red-800 text-sm font-medium"
                 >
@@ -933,6 +978,70 @@ function ClassDetailContent() {
                     onUndo={handleUndoRemoveStudent}
                     onExpire={() => setPendingUndoRemoval(null)}
                 />
+            )}
+
+            {/* Remove Student modal */}
+            {removeStudentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h2 className="text-xl font-bold text-black mb-4">Remove {removeStudentModal.studentName}</h2>
+                        <p className="text-gray-700 mb-4">
+                            Remove this student from the class? This can be undone immediately after.
+                        </p>
+                        {removeStudentModal.hasPaidTransactions && (
+                            <div className="mb-4 space-y-3">
+                                <p className="text-sm text-gray-700">
+                                    This student has paid {formatCurrency(removeStudentModal.paidTotal)} for this class.
+                                </p>
+                                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md p-3">
+                                    Refunds are handled case-by-case. As a general guide: a full refund is typical if the
+                                    student withdraws well before the class starts; a partial or no refund is typical
+                                    closer to or after the start date. Confirm with your manager if you're unsure.
+                                </p>
+                                <div className="flex gap-2">
+                                    {[100, 50, 0].map((preset) => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => setRefundPercentageInput(String(preset))}
+                                            className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                                        >
+                                            {preset}%
+                                        </button>
+                                    ))}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 mb-1">Refund Percentage</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={refundPercentageInput}
+                                        onChange={(e) => setRefundPercentageInput(e.target.value)}
+                                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={() => setRemoveStudentModal(null)}
+                                disabled={isRemovingStudent}
+                                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmRemoveStudent}
+                                disabled={isRemovingStudent || (removeStudentModal.hasPaidTransactions && !refundPercentageInput)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {isRemovingStudent ? "Removing..." : "Remove Student"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

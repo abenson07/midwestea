@@ -23,6 +23,8 @@ export type Transaction = {
   payout_date: string | null; // timestamp with time zone
   reconciled: boolean | null; // default: false
   reconciliation_date: string | null; // timestamp with time zone
+  refund_percentage: number | null; // e.g. 50.00 for 50%
+  refund_amount: number | null; // cents
   created_at: string | null;
   updated_at: string | null;
 };
