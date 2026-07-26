@@ -175,6 +175,12 @@ function StudentDetailContent() {
         return groups;
     };
 
+    const getEnrollmentCardStatus = (transaction: TransactionWithDetails): 'paid' | 'past_due' | 'pending' => {
+        if (transaction.transaction_status === 'paid') return 'paid';
+        if (transaction.due_date && new Date(transaction.due_date) < new Date()) return 'past_due';
+        return 'pending';
+    };
+
     const loadClasses = async () => {
         if (!studentId) return;
         setLoadingClasses(true);
@@ -863,17 +869,18 @@ function StudentDetailContent() {
                                         const isPaid = transaction.transaction_status === 'paid';
                                         const dateLabel = isPaid ? 'Paid Date' : 'Due Date';
                                         const dateValue = isPaid ? transaction.payment_date : transaction.due_date;
-                                        
+                                        const cardStatus = getEnrollmentCardStatus(transaction);
+
                                         return (
                                             <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <h4 className="text-sm font-medium text-gray-900">{transactionTypeLabel}</h4>
                                                     <span className={`px-2 py-1 text-xs rounded-full ${
-                                                        isPaid 
-                                                            ? "bg-green-100 text-green-800" 
-                                                            : "bg-yellow-100 text-yellow-800"
+                                                        cardStatus === 'paid' ? "bg-green-100 text-green-800" :
+                                                        cardStatus === 'past_due' ? "bg-red-100 text-red-800" :
+                                                        "bg-yellow-100 text-yellow-800"
                                                     }`}>
-                                                        {isPaid ? "Paid" : "Pending"}
+                                                        {cardStatus === 'paid' ? "Paid" : cardStatus === 'past_due' ? "Past due" : "Pending"}
                                                     </span>
                                                 </div>
                                                 <div className="space-y-2">
