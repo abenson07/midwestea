@@ -9,6 +9,7 @@ import { getPaymentsByStudentId, type PaymentWithDetails, getTransactionsByEnrol
 import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
@@ -173,12 +174,6 @@ function StudentDetailContent() {
         }
 
         return groups;
-    };
-
-    const getEnrollmentCardStatus = (transaction: TransactionWithDetails): 'paid' | 'past_due' | 'pending' => {
-        if (transaction.transaction_status === 'paid') return 'paid';
-        if (transaction.due_date && new Date(transaction.due_date) < new Date()) return 'past_due';
-        return 'pending';
     };
 
     const loadClasses = async () => {
@@ -360,7 +355,14 @@ function StudentDetailContent() {
         
         setLoadingEnrollment(false);
     };
-    
+
+    const handleInvoiceGroupClick = (enrollmentId: string) => {
+        const matchingClass = classes.find((c) => c.enrollment_id === enrollmentId);
+        if (matchingClass) {
+            handleClassClick(matchingClass);
+        }
+    };
+
     const handleCloseEnrollmentSidebar = () => {
         setIsEnrollmentSidebarOpen(false);
         setSelectedEnrollment(null);
@@ -648,7 +650,11 @@ function StudentDetailContent() {
                 ) : (
                     <div className="space-y-4">
                         {groupPaymentsByClass(payments).map((group) => (
-                            <div key={group.enrollmentId} className="bg-white rounded-lg border border-gray-200 p-6">
+                            <div
+                                key={group.enrollmentId}
+                                onClick={() => handleInvoiceGroupClick(group.enrollmentId)}
+                                className="bg-white rounded-lg border border-gray-200 p-6 cursor-pointer hover:border-gray-300"
+                            >
                                 <h3 className="text-base font-medium text-gray-900 mb-3">{group.className}</h3>
                                 <table className="w-full text-sm">
                                     <thead>
@@ -855,51 +861,7 @@ function StudentDetailContent() {
                         {/* Payments Section */}
                         <div className="pt-4 border-t border-gray-200">
                             <h3 className="text-sm font-semibold text-gray-900 mb-3">Payments</h3>
-                            {enrollmentTransactions.length === 0 ? (
-                                <p className="text-sm text-gray-500">No transactions found for this enrollment.</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {enrollmentTransactions.map((transaction) => {
-                                        const transactionTypeLabel = 
-                                            transaction.transaction_type === 'registration_fee' ? 'Registration Fee' :
-                                            transaction.transaction_type === 'tuition_a' ? 'Tuition A' :
-                                            transaction.transaction_type === 'tuition_b' ? 'Tuition B' :
-                                            transaction.transaction_type || 'Unknown';
-                                        
-                                        const isPaid = transaction.transaction_status === 'paid';
-                                        const dateLabel = isPaid ? 'Paid Date' : 'Due Date';
-                                        const dateValue = isPaid ? transaction.payment_date : transaction.due_date;
-                                        const cardStatus = getEnrollmentCardStatus(transaction);
-
-                                        return (
-                                            <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h4 className="text-sm font-medium text-gray-900">{transactionTypeLabel}</h4>
-                                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                                        cardStatus === 'paid' ? "bg-green-100 text-green-800" :
-                                                        cardStatus === 'past_due' ? "bg-red-100 text-red-800" :
-                                                        "bg-yellow-100 text-yellow-800"
-                                                    }`}>
-                                                        {cardStatus === 'paid' ? "Paid" : cardStatus === 'past_due' ? "Past due" : "Pending"}
-                                                    </span>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-gray-500">Amount Due</label>
-                                                        <p className="mt-1 text-sm text-gray-900">
-                                                            {transaction.amount_due ? formatCurrency(transaction.amount_due) : "—"}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-gray-500">{dateLabel}</label>
-                                                        <p className="mt-1 text-sm text-gray-900">{formatDate(dateValue)}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            <EnrollmentPaymentDetail transactions={enrollmentTransactions} />
                         </div>
                     </div>
                 ) : selectedClass ? (
