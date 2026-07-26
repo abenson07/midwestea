@@ -8,6 +8,7 @@ import {
     getTransactions,
     updateTransactionStatus,
     updateTransactionDueDate,
+    updateTransactionAmount,
     sendTransactionReminder,
     type TransactionWithDetails,
 } from "@/lib/payments";
@@ -29,6 +30,9 @@ function TransactionsPageContent() {
     const [dueDateInput, setDueDateInput] = useState<string>("");
     const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
     const [isSendingReminder, setIsSendingReminder] = useState(false);
+    const [discountPercentInput, setDiscountPercentInput] = useState<string>("");
+    const [directAmountInput, setDirectAmountInput] = useState<string>("");
+    const [isAdjustingAmount, setIsAdjustingAmount] = useState(false);
 
     useEffect(() => {
         loadTransactions();
@@ -54,6 +58,15 @@ function TransactionsPageContent() {
             setDueDateInput(new Date(selectedTransaction.due_date).toISOString().split('T')[0]);
         } else {
             setDueDateInput('');
+        }
+    }, [selectedTransaction]);
+
+    useEffect(() => {
+        setDiscountPercentInput("");
+        if (selectedTransaction?.amount_due != null) {
+            setDirectAmountInput((selectedTransaction.amount_due / 100).toFixed(2));
+        } else {
+            setDirectAmountInput("");
         }
     }, [selectedTransaction]);
 
@@ -185,6 +198,51 @@ function TransactionsPageContent() {
             setError(err.message || 'Failed to send reminder');
         } finally {
             setIsSendingReminder(false);
+        }
+    };
+
+    const handleApplyDiscount = async () => {
+        if (!selectedTransaction || selectedTransaction.amount_due == null) return;
+        const pct = parseFloat(discountPercentInput);
+        if (Number.isNaN(pct) || pct <= 0 || pct > 100) return;
+
+        setIsAdjustingAmount(true);
+        try {
+            const newAmount = Math.round(selectedTransaction.amount_due * (1 - pct / 100));
+            const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount);
+            if (error) {
+                setError(error);
+            } else if (success) {
+                await loadTransactions();
+                setSelectedTransaction({ ...selectedTransaction, amount_due: newAmount });
+                setDiscountPercentInput("");
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to apply discount");
+        } finally {
+            setIsAdjustingAmount(false);
+        }
+    };
+
+    const handleSetAmountDirectly = async () => {
+        if (!selectedTransaction) return;
+        const dollars = parseFloat(directAmountInput);
+        if (Number.isNaN(dollars) || dollars < 0) return;
+
+        setIsAdjustingAmount(true);
+        try {
+            const newAmount = Math.round(dollars * 100);
+            const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount);
+            if (error) {
+                setError(error);
+            } else if (success) {
+                await loadTransactions();
+                setSelectedTransaction({ ...selectedTransaction, amount_due: newAmount });
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to set amount");
+        } finally {
+            setIsAdjustingAmount(false);
         }
     };
 
@@ -437,6 +495,57 @@ function TransactionsPageContent() {
                                 >
                                     {isSendingReminder ? "Sending..." : "Send Reminder"}
                                 </button>
+                                <div className="pt-4 border-t border-gray-200 space-y-3">
+                                    <label className="block text-sm font-medium text-gray-500">Adjust Amount</label>
+                                    <p className="text-sm text-gray-900">
+                                        Current: {formatCurrency(selectedTransaction.amount_due || 0)}
+                                    </p>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="1"
+                                            placeholder="Discount %"
+                                            value={discountPercentInput}
+                                            onChange={(e) => setDiscountPercentInput(e.target.value)}
+                                            className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                        />
+                                        <button
+                                            onClick={handleApplyDiscount}
+                                            disabled={isAdjustingAmount || !discountPercentInput}
+                                            className={`px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors whitespace-nowrap ${
+                                                isAdjustingAmount || !discountPercentInput
+                                                    ? "bg-gray-400 cursor-not-allowed"
+                                                    : "bg-black hover:bg-gray-800"
+                                            }`}
+                                        >
+                                            Apply Discount
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Amount ($)"
+                                            value={directAmountInput}
+                                            onChange={(e) => setDirectAmountInput(e.target.value)}
+                                            className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                        />
+                                        <button
+                                            onClick={handleSetAmountDirectly}
+                                            disabled={isAdjustingAmount || !directAmountInput}
+                                            className={`px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors whitespace-nowrap ${
+                                                isAdjustingAmount || !directAmountInput
+                                                    ? "bg-gray-400 cursor-not-allowed"
+                                                    : "bg-black hover:bg-gray-800"
+                                            }`}
+                                        >
+                                            Set Amount
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                         {(selectedTransaction.transaction_status !== 'paid' && selectedTransaction.transaction_status !== 'cancelled') && (
