@@ -17,6 +17,7 @@ function TransactionsPageContent() {
     const [transactions, setTransactions] = useState<TransactionWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'paid' | 'past_due' | 'pending' | 'cancelled' | 'refunded'>('all');
 
 
     // Sidebar state
@@ -154,6 +155,34 @@ function TransactionsPageContent() {
         return quantity * amountDue;
     };
 
+    type InvoiceDisplayStatus = 'paid' | 'past_due' | 'pending' | 'cancelled' | 'refunded';
+
+    const getInvoiceDisplayStatus = (transaction: TransactionWithDetails): InvoiceDisplayStatus => {
+        if (transaction.transaction_status === 'paid') return 'paid';
+        if (transaction.transaction_status === 'cancelled') return 'cancelled';
+        if (transaction.transaction_status === 'refunded') return 'refunded';
+        if (transaction.due_date && new Date(transaction.due_date) < new Date()) {
+            return 'past_due';
+        }
+        return 'pending';
+    };
+
+    const INVOICE_STATUS_LABEL: Record<InvoiceDisplayStatus, string> = {
+        paid: 'Paid',
+        past_due: 'Past due',
+        pending: 'Pending',
+        cancelled: 'Cancelled',
+        refunded: 'Refunded',
+    };
+
+    const INVOICE_STATUS_CLASSES: Record<InvoiceDisplayStatus, string> = {
+        paid: 'bg-green-100 text-green-800',
+        past_due: 'bg-red-100 text-red-800',
+        pending: 'bg-yellow-100 text-yellow-800',
+        cancelled: 'bg-gray-100 text-gray-800',
+        refunded: 'bg-blue-100 text-blue-800',
+    };
+
     const columns = [
         { 
             header: "Invoice Number", 
@@ -187,27 +216,31 @@ function TransactionsPageContent() {
             cell: (item: TransactionWithDetails) => formatCurrency(calculateAmountDue(item)),
             className: "font-medium"
         },
-        { 
-            header: "Status", 
+        {
+            header: "Status",
             accessorKey: "transaction_status" as keyof TransactionWithDetails,
-            cell: (item: TransactionWithDetails) => (
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                    item.transaction_status === "paid" ? "bg-green-100 text-green-800" :
-                    item.transaction_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                    item.transaction_status === "cancelled" ? "bg-gray-100 text-gray-800" :
-                    item.transaction_status === "refunded" ? "bg-blue-100 text-blue-800" :
-                    "bg-red-100 text-red-800"
-                }`}>
-                    {item.transaction_status || "N/A"}
-                </span>
-            )
+            cell: (item: TransactionWithDetails) => {
+                const status = getInvoiceDisplayStatus(item);
+                return (
+                    <span className={`px-2 py-1 text-xs rounded-full ${INVOICE_STATUS_CLASSES[status]}`}>
+                        {INVOICE_STATUS_LABEL[status]}
+                    </span>
+                );
+            }
         },
-        { 
-            header: "Due Date", 
+        {
+            header: "Due Date",
             accessorKey: "due_date" as keyof TransactionWithDetails,
             cell: (item: TransactionWithDetails) => formatDate(item.due_date)
         },
     ];
+
+    const filteredTransactions = transactions.filter((t) => {
+        if (statusFilter === 'all') return true;
+        const status = getInvoiceDisplayStatus(t);
+        if (statusFilter === 'open') return status === 'pending' || status === 'past_due';
+        return status === statusFilter;
+    });
 
     return (
         <div className="space-y-6">
@@ -226,7 +259,25 @@ function TransactionsPageContent() {
 
             {/* All Transactions Section */}
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">All Transactions</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">All Transactions</h2>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">Status</label>
+                        <select
+                            id="status-filter"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                            className="text-sm border border-gray-300 rounded-md px-2 py-1"
+                        >
+                            <option value="all">All</option>
+                            <option value="open">Open (unpaid)</option>
+                            <option value="past_due">Past due</option>
+                            <option value="paid">Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="refunded">Refunded</option>
+                        </select>
+                    </div>
+                </div>
                 {transactions.length === 0 && !loading ? (
                     <div className="border border-dashed border-gray-300 rounded-lg p-12 text-center bg-white">
                         <h3 className="mt-2 text-sm font-semibold text-gray-900">No transactions</h3>
@@ -234,7 +285,7 @@ function TransactionsPageContent() {
                     </div>
                 ) : (
                     <DataTable
-                        data={transactions}
+                        data={filteredTransactions}
                         columns={columns}
                         isLoading={loading}
                         onRowClick={handleRowClick}
@@ -261,14 +312,8 @@ function TransactionsPageContent() {
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Status</label>
                             <p className="mt-1 text-sm text-gray-900">
-                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                    selectedTransaction.transaction_status === "paid" ? "bg-green-100 text-green-800" :
-                                    selectedTransaction.transaction_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                                    selectedTransaction.transaction_status === "cancelled" ? "bg-gray-100 text-gray-800" :
-                                    selectedTransaction.transaction_status === "refunded" ? "bg-blue-100 text-blue-800" :
-                                    "bg-red-100 text-red-800"
-                                }`}>
-                                    {selectedTransaction.transaction_status || "N/A"}
+                                <span className={`px-2 py-1 text-xs rounded-full ${INVOICE_STATUS_CLASSES[getInvoiceDisplayStatus(selectedTransaction)]}`}>
+                                    {INVOICE_STATUS_LABEL[getInvoiceDisplayStatus(selectedTransaction)]}
                                 </span>
                             </p>
                         </div>

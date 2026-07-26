@@ -37,6 +37,12 @@ const formatClassDate = (dateString: string): { rendered: string; strategy: "dat
     };
 };
 
+const getEnrollmentCardStatus = (transaction: TransactionWithDetails): 'paid' | 'past_due' | 'pending' => {
+    if (transaction.transaction_status === 'paid') return 'paid';
+    if (transaction.due_date && new Date(transaction.due_date) < new Date()) return 'past_due';
+    return 'pending';
+};
+
 const calculateStudentPaymentStatus = (transactions: TransactionWithDetails[]): string => {
     if (!transactions || transactions.length === 0) return "No invoices yet";
     const now = new Date();
@@ -918,12 +924,17 @@ function ClassDetailContent() {
                                 transaction.transaction_type === 'tuition_b' ? 'Tuition B' :
                                 transaction.transaction_type || 'Unknown';
                             const isPaid = transaction.transaction_status === 'paid';
+                            const cardStatus = getEnrollmentCardStatus(transaction);
                             return (
                                 <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
                                     <div className="flex justify-between items-start mb-2">
                                         <h4 className="text-sm font-medium text-gray-900">{typeLabel}</h4>
-                                        <span className={`px-2 py-1 text-xs rounded-full ${isPaid ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}`}>
-                                            {isPaid ? "Paid" : "Pending"}
+                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                            cardStatus === 'paid' ? "bg-green-100 text-green-800" :
+                                            cardStatus === 'past_due' ? "bg-red-100 text-red-800" :
+                                            "bg-yellow-100 text-yellow-800"
+                                        }`}>
+                                            {cardStatus === 'paid' ? "Paid" : cardStatus === 'past_due' ? "Past due" : "Pending"}
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-900">{formatCurrency(transaction.amount_due || 0)}</p>
