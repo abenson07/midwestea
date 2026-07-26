@@ -81,6 +81,28 @@ export async function payInvoice(transactionId: string): Promise<{ checkoutUrl: 
   }
 }
 
+export async function payAllRemaining(enrollmentId: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { checkoutUrl: null, error: "Not authenticated" };
+    }
+    const response = await fetch(`/api/student/enrollments/${enrollmentId}/pay-remaining`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { checkoutUrl: null, error: result.error || "Failed to start payment" };
+    }
+    return { checkoutUrl: result.checkoutUrl, error: null };
+  } catch (err: any) {
+    return { checkoutUrl: null, error: err.message || "Failed to start payment" };
+  }
+}
+
 export function groupInvoicesByClass(
   invoices: StudentInvoice[]
 ): { enrollmentId: string; className: string; invoices: StudentInvoice[] }[] {
