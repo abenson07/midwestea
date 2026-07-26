@@ -6,7 +6,7 @@ export type Transaction = {
   student_id: string; // UUID, references students.id
   class_id: string; // UUID, references classes.id
   class_type: 'course' | 'program' | null;
-  transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | null;
+  transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | 'pay_in_full' | null;
   quantity: number | null;
   stripe_payment_intent_id: string | null;
   quickbooks_invoice_link: string | null;
