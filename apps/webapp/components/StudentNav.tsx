@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Home, Award, LogOut } from "lucide-react";
+import { Home, Award, CreditCard, LogOut } from "lucide-react";
 import { signOut } from "@/lib/auth";
 import { Logo } from "@midwestea/ui";
 
-// Launch scope is intentionally limited to Home, Profile, and Certificates.
+// Launch scope is intentionally limited to Home, Profile, Certificates, and Billing.
 // Class access, quizzes, and other LMS modules are deferred — don't add
 // nav destinations for them without a deliberate scope decision.
 const navigation = [
   { name: "Home", href: "/student", icon: Home },
   { name: "Certificates", href: "/student/certificates", icon: Award },
+  { name: "Billing", href: "/student/billing", icon: CreditCard },
 ];
 
 export function StudentNav() {
