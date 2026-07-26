@@ -9,6 +9,7 @@ import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
@@ -35,12 +36,6 @@ const formatClassDate = (dateString: string): { rendered: string; strategy: "dat
         strategy: "timestamp",
         parsedIso: Number.isNaN(date.getTime()) ? "invalid" : date.toISOString(),
     };
-};
-
-const getEnrollmentCardStatus = (transaction: TransactionWithDetails): 'paid' | 'past_due' | 'pending' => {
-    if (transaction.transaction_status === 'paid') return 'paid';
-    if (transaction.due_date && new Date(transaction.due_date) < new Date()) return 'past_due';
-    return 'pending';
 };
 
 const calculateStudentPaymentStatus = (transactions: TransactionWithDetails[]): string => {
@@ -915,39 +910,7 @@ function ClassDetailContent() {
                 onClose={handleCloseInvoiceSidebar}
                 title={selectedStudentBilling ? `${selectedStudentBilling.name} — Invoices` : "Invoices"}
             >
-                {selectedStudentBilling && selectedStudentBilling.transactions.length > 0 ? (
-                    <div className="space-y-4">
-                        {selectedStudentBilling.transactions.map((transaction) => {
-                            const typeLabel =
-                                transaction.transaction_type === 'registration_fee' ? 'Registration Fee' :
-                                transaction.transaction_type === 'tuition_a' ? 'Tuition A' :
-                                transaction.transaction_type === 'tuition_b' ? 'Tuition B' :
-                                transaction.transaction_type || 'Unknown';
-                            const isPaid = transaction.transaction_status === 'paid';
-                            const cardStatus = getEnrollmentCardStatus(transaction);
-                            return (
-                                <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
-                                    <div className="flex justify-between items-start mb-2">
-                                        <h4 className="text-sm font-medium text-gray-900">{typeLabel}</h4>
-                                        <span className={`px-2 py-1 text-xs rounded-full ${
-                                            cardStatus === 'paid' ? "bg-green-100 text-green-800" :
-                                            cardStatus === 'past_due' ? "bg-red-100 text-red-800" :
-                                            "bg-yellow-100 text-yellow-800"
-                                        }`}>
-                                            {cardStatus === 'paid' ? "Paid" : cardStatus === 'past_due' ? "Past due" : "Pending"}
-                                        </span>
-                                    </div>
-                                    <p className="text-sm text-gray-900">{formatCurrency(transaction.amount_due || 0)}</p>
-                                    <p className="text-xs text-gray-500">
-                                        {isPaid ? `Paid ${formatDate(transaction.payment_date ?? null)}` : `Due ${formatDate(transaction.due_date ?? null)}`}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <p className="text-sm text-gray-500">No invoices found for this student.</p>
-                )}
+                <EnrollmentPaymentDetail transactions={selectedStudentBilling?.transactions || []} />
             </DetailSidebar>
 
             {/* Edit Class Modal */}
