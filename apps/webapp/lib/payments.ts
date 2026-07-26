@@ -265,6 +265,30 @@ export async function updateTransactionDueDate(
   }
 }
 
+export async function sendTransactionReminder(
+  transactionId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+    const response = await fetch(`/api/admin/transactions/${transactionId}/send-reminder`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Failed to send reminder' };
+    }
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to send reminder' };
+  }
+}
+
 /**
  * Payout transaction with details for reconciliation
  */
