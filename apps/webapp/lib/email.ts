@@ -1133,6 +1133,123 @@ export async function sendCourseEnrollmentEmail(
 }
 
 // ============================================================================
+// Tuition Reminder Email Function
+// ============================================================================
+
+export async function sendTuitionReminderEmail(
+  student: { id: string; first_name: string | null; last_name: string | null },
+  transaction: {
+    id: string;
+    enrollment_id: string | null;
+    student_id: string | null;
+    class_id: string | null;
+    transaction_type: string | null;
+    amount_due: number | null;
+    invoice_number: number | null;
+    due_date: string | null;
+  },
+  classRecord: { class_name: string | null }
+): Promise<EmailSendResult> {
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { renderTuitionReminderTemplate, getTuitionReminderSubject } = await import('./email-templates');
+
+  const supabase = createSupabaseAdminClient();
+  let studentEmail: string | null = null;
+
+  try {
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(student.id);
+    if (getUserError || !authUser?.user?.email) {
+      return {
+        success: false,
+        error: getUserError?.message || 'Student email not found',
+        retries: 0,
+      };
+    }
+    studentEmail = authUser.user.email;
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Failed to fetch student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Invalid student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  const studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
+  const programName = classRecord.class_name || 'Program';
+  const invoiceDescription =
+    transaction.transaction_type === 'tuition_a' ? 'First Tuition Payment' :
+    transaction.transaction_type === 'tuition_b' ? 'Second Tuition Payment' :
+    'Registration Fee';
+
+  let html: string;
+  try {
+    html = renderTuitionReminderTemplate({
+      studentName,
+      programName,
+      invoiceDescription,
+      amountDue: transaction.amount_due || 0,
+      invoiceNumber: transaction.invoice_number || 0,
+      dueDate: transaction.due_date || new Date(),
+    });
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Failed to render email template: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  const subject = getTuitionReminderSubject(programName);
+
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'tuition_reminder' },
+      { name: 'transaction_id', value: transaction.id },
+      { name: 'student_id', value: student.id },
+    ],
+    metadata: {
+      transaction_id: transaction.id,
+      enrollment_id: transaction.enrollment_id || '',
+      student_id: student.id,
+      class_id: transaction.class_id || '',
+    },
+  });
+
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: 'tuition_reminder',
+      enrollment_id: transaction.enrollment_id || undefined,
+      student_id: student.id,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      console.error('[sendTuitionReminderEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
 // Program Enrollment Email Function
 // ============================================================================
 
