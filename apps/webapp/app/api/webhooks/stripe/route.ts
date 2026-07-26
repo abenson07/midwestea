@@ -157,24 +157,8 @@ export async function POST(request: NextRequest) {
 
       console.log('[webhook] Extracted data:', { email, fullName, classId, paymentIntentId, productId });
 
-      // Safety check: Has this checkout session already been processed?
-      // Check by payment intent ID for idempotency (Stripe retries failed webhooks)
+      // Duplicate-delivery protection is now per-transaction-type inside createInvoiceSchedule() and per-email via the email_logs check below — see BEN-1158.
       const supabase = createSupabaseAdminClient();
-      const { data: existingTransaction } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('stripe_payment_intent_id', paymentIntentId)
-        .limit(1);
-      
-      if (existingTransaction && existingTransaction.length > 0) {
-        console.log('[webhook] Payment intent already processed, exiting safely:', paymentIntentId);
-        return NextResponse.json({
-          success: true,
-          message: 'Payment intent already processed (idempotency check)',
-          session_id: session.id,
-          payment_intent_id: paymentIntentId,
-        });
-      }
 
       // Extract customer ID and amount from session
       const customerId = typeof session.customer === 'string' 
@@ -587,22 +571,8 @@ export async function POST(request: NextRequest) {
 
       console.log('[webhook] Extracted data:', { email, fullName, classId, paymentIntentId, productId });
 
-      // Safety check: Has this payment intent already been processed?
+      // Duplicate-delivery protection is now per-transaction-type inside createInvoiceSchedule() and per-email via the email_logs check below — see BEN-1158.
       const supabase = createSupabaseAdminClient();
-      const { data: existingTransaction } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('stripe_payment_intent_id', paymentIntentId)
-        .limit(1);
-      
-      if (existingTransaction && existingTransaction.length > 0) {
-        console.log('[webhook] Payment intent already processed, exiting safely:', paymentIntentId);
-        return NextResponse.json({
-          success: true,
-          message: 'Payment intent already processed (idempotency check)',
-          payment_intent_id: paymentIntentId,
-        });
-      }
 
       // Extract customer ID
       const customerId = typeof paymentIntent.customer === 'string' 

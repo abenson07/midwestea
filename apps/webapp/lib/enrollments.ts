@@ -547,20 +547,52 @@ export async function createInvoiceSchedule(params: {
 }): Promise<Transaction[]> {
   const { enrollmentId, studentId, classId, courseType, classStartDate, registrationFee, price, stripePaymentIntentId, amountTotal } = params;
   const now = new Date().toISOString();
-  const baseInvoiceNumber = await getNextTransactionInvoiceNumber();
-  const transactions: Transaction[] = [];
 
-  if (courseType === 'program') {
+  const supabase = createSupabaseAdminClient();
+  const { data: existingRows, error: existingError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('enrollment_id', enrollmentId);
+
+  if (existingError) {
+    throw new Error(`Failed to check existing invoice schedule: ${existingError.message}`);
+  }
+
+  const existing = (existingRows || []) as Transaction[];
+  const existingTypes = new Set(existing.map((t) => t.transaction_type));
+  const expectedTypes: Array<'registration_fee' | 'tuition_a' | 'tuition_b'> =
+    courseType === 'program'
+      ? ['registration_fee', 'tuition_a', 'tuition_b']
+      : ['registration_fee'];
+
+  const missingTypes = expectedTypes.filter((t) => !existingTypes.has(t));
+
+  if (missingTypes.length === 0) {
+    // Schedule already complete for this enrollment (retry of an already-processed event,
+    // or a repeat payment for an already-scheduled enrollment) — return as-is, create nothing.
+    return expectedTypes
+      .map((type) => existing.find((t) => t.transaction_type === type))
+      .filter((t): t is Transaction => t !== undefined);
+  }
+
+  let nextInvoiceNumber = await getNextTransactionInvoiceNumber();
+  const created: Transaction[] = [];
+
+  if (missingTypes.includes('registration_fee')) {
     const regFee = await createTransaction({
       enrollmentId, studentId, classId,
-      classType: 'program', transactionType: 'registration_fee', quantity: 1,
+      classType: courseType === 'program' ? 'program' : 'course',
+      transactionType: 'registration_fee', quantity: 1,
       stripePaymentIntentId, transactionStatus: 'paid',
       paymentDate: now, dueDate: now,
       amountDue: registrationFee, amountPaid: amountTotal,
-      invoiceNumber: baseInvoiceNumber,
+      invoiceNumber: nextInvoiceNumber,
     });
-    transactions.push(regFee);
+    created.push(regFee);
+    nextInvoiceNumber++;
+  }
 
+  if (missingTypes.includes('tuition_a')) {
     let tuitionADueDate: string | null = null;
     if (classStartDate) {
       const d = new Date(classStartDate);
@@ -573,10 +605,13 @@ export async function createInvoiceSchedule(params: {
       stripePaymentIntentId: null, transactionStatus: 'pending',
       paymentDate: null, dueDate: tuitionADueDate,
       amountDue: price, amountPaid: null,
-      invoiceNumber: baseInvoiceNumber + 1,
+      invoiceNumber: nextInvoiceNumber,
     });
-    transactions.push(tuitionA);
+    created.push(tuitionA);
+    nextInvoiceNumber++;
+  }
 
+  if (missingTypes.includes('tuition_b')) {
     let tuitionBDueDate: string | null = null;
     if (classStartDate) {
       const d = new Date(classStartDate);
@@ -589,23 +624,15 @@ export async function createInvoiceSchedule(params: {
       stripePaymentIntentId: null, transactionStatus: 'pending',
       paymentDate: null, dueDate: tuitionBDueDate,
       amountDue: price, amountPaid: null,
-      invoiceNumber: baseInvoiceNumber + 2,
+      invoiceNumber: nextInvoiceNumber,
     });
-    transactions.push(tuitionB);
-  } else {
-    // 'course' or unrecognized courseType — single registration_fee transaction
-    const transaction = await createTransaction({
-      enrollmentId, studentId, classId,
-      classType: 'course', transactionType: 'registration_fee', quantity: 1,
-      stripePaymentIntentId, transactionStatus: 'paid',
-      paymentDate: now, dueDate: now,
-      amountDue: registrationFee, amountPaid: amountTotal,
-      invoiceNumber: baseInvoiceNumber,
-    });
-    transactions.push(transaction);
+    created.push(tuitionB);
+    nextInvoiceNumber++;
   }
 
-  return transactions;
+  return expectedTypes
+    .map((type) => [...existing, ...created].find((t) => t.transaction_type === type))
+    .filter((t): t is Transaction => t !== undefined);
 }
 
 /**
