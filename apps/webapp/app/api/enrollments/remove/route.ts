@@ -38,7 +38,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { student_id: studentId, class_id: classId } = body;
+    const { student_id: studentId, class_id: classId, refund_percentage: refundPercentage } = body;
 
     if (!studentId || !classId) {
       return NextResponse.json(
@@ -74,6 +74,45 @@ export async function DELETE(request: NextRequest) {
         removedCount: 0,
         alreadyRemoved: true,
       });
+    }
+
+    if (
+      enrollment.enrollment_status !== 'removed' &&
+      typeof refundPercentage === 'number' &&
+      refundPercentage >= 0 &&
+      refundPercentage <= 100
+    ) {
+      const { data: paidTransactions, error: paidError } = await supabase
+        .from('transactions')
+        .select('id, amount_paid')
+        .eq('enrollment_id', enrollment.id)
+        .eq('transaction_status', 'paid');
+
+      if (paidError) {
+        return NextResponse.json(
+          { success: false, error: `Failed to look up paid transactions: ${paidError.message}` },
+          { status: 500 }
+        );
+      }
+
+      for (const transaction of paidTransactions || []) {
+        const refundAmount = Math.round(((transaction.amount_paid as number) || 0) * refundPercentage / 100);
+        const { error: refundError } = await supabase
+          .from('transactions')
+          .update({
+            transaction_status: 'refunded',
+            refund_percentage: refundPercentage,
+            refund_amount: refundAmount,
+          })
+          .eq('id', transaction.id);
+
+        if (refundError) {
+          return NextResponse.json(
+            { success: false, error: `Failed to record refund: ${refundError.message}` },
+            { status: 500 }
+          );
+        }
+      }
     }
 
     const { data: updatedRows, error: updateError } = await supabase
