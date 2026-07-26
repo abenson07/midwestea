@@ -16,6 +16,7 @@ import {
   updateStudentStripeCustomerId,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
+import { markTransactionPaidFromCheckout } from '@/lib/invoice-payments';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
 import { markTransactionPaidByInvoiceId } from '@/lib/stripe-invoices';
 import {
@@ -88,8 +89,22 @@ export async function POST(request: NextRequest) {
   if (event.type === 'checkout.session.completed') {
     try {
       const session = event.data.object as Stripe.Checkout.Session;
-      
+
       console.log('[webhook] Processing checkout.session.completed:', session.id);
+
+      if (session.metadata?.payment_purpose === 'existing_invoice') {
+        const transactionId = session.metadata.transaction_id;
+        if (!transactionId) {
+          return NextResponse.json({ error: 'Missing transaction_id in session metadata' }, { status: 400 });
+        }
+        let piId: string | null = null;
+        if (session.payment_intent) {
+          piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
+        }
+        const amountTotal = session.amount_total || 0;
+        const result = await markTransactionPaidFromCheckout(transactionId, piId || '', amountTotal);
+        return NextResponse.json({ success: true, transactionId, alreadyProcessed: result.alreadyProcessed });
+      }
 
       // Extract data from session
       const email = session.customer_email || session.customer_details?.email;
