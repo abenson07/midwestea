@@ -3,13 +3,14 @@
 import { createSupabaseClient } from "@midwestea/utils";
 import type { PostgrestError } from "@supabase/supabase-js";
 
-export type ExternalLearningPlatformKey = "jb_learning";
+export type ExternalLearningPlatformKey = "jb_learning" | "platinum_ed";
 
 export const EXTERNAL_LEARNING_PLATFORM_DEFAULTS: Record<
   ExternalLearningPlatformKey,
   { label: string; url: string }
 > = {
   jb_learning: { label: "JB Learning", url: "https://www.jblearning.com" },
+  platinum_ed: { label: "Platinum ED", url: "https://www.platinumed.com" },
 };
 
 export type ExternalLearningLink = {
