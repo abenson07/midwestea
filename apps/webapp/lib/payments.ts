@@ -265,6 +265,35 @@ export async function updateTransactionDueDate(
   }
 }
 
+/**
+ * Update a transaction's amount due (cents)
+ */
+export async function updateTransactionAmount(
+  transactionId: string,
+  amountDueCents: number
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    console.log("[updateTransactionAmount] Updating transaction:", { transactionId, amountDueCents });
+    const supabase = await createSupabaseClient();
+
+    const { error } = await supabase
+      .from("transactions")
+      .update({ amount_due: amountDueCents })
+      .eq("id", transactionId);
+
+    if (error) {
+      console.error("[updateTransactionAmount] Error updating transaction:", error);
+      return { success: false, error: error.message };
+    }
+
+    console.log("[updateTransactionAmount] Transaction updated successfully");
+    return { success: true, error: null };
+  } catch (err) {
+    const error = err as PostgrestError;
+    return { success: false, error: error.message || "Failed to update amount" };
+  }
+}
+
 export async function sendTransactionReminder(
   transactionId: string
 ): Promise<{ success: boolean; error: string | null }> {
