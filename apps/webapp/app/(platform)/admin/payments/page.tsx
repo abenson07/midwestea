@@ -8,6 +8,7 @@ import {
     getTransactions,
     updateTransactionStatus,
     updateTransactionDueDate,
+    sendTransactionReminder,
     type TransactionWithDetails,
 } from "@/lib/payments";
 import { formatCurrency } from "@midwestea/utils";
@@ -27,6 +28,7 @@ function TransactionsPageContent() {
     const [isUpdating, setIsUpdating] = useState(false);
     const [dueDateInput, setDueDateInput] = useState<string>("");
     const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
+    const [isSendingReminder, setIsSendingReminder] = useState(false);
 
     useEffect(() => {
         loadTransactions();
@@ -166,6 +168,23 @@ function TransactionsPageContent() {
             setError(err.message || "Failed to update due date");
         } finally {
             setIsUpdatingDueDate(false);
+        }
+    };
+
+    const handleSendReminder = async () => {
+        if (!selectedTransaction) return;
+        if (!confirm('Send a payment reminder email to this student now?')) return;
+
+        setIsSendingReminder(true);
+        try {
+            const { success, error } = await sendTransactionReminder(selectedTransaction.id);
+            if (!success) {
+                setError(error || 'Failed to send reminder');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to send reminder');
+        } finally {
+            setIsSendingReminder(false);
         }
     };
 
@@ -407,6 +426,17 @@ function TransactionsPageContent() {
                                         {isUpdatingDueDate ? "Saving..." : "Save"}
                                     </button>
                                 </div>
+                                <button
+                                    onClick={handleSendReminder}
+                                    disabled={isSendingReminder}
+                                    className={`w-full px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+                                        isSendingReminder
+                                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                                            : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                                    }`}
+                                >
+                                    {isSendingReminder ? "Sending..." : "Send Reminder"}
+                                </button>
                             </div>
                         )}
                         {(selectedTransaction.transaction_status !== 'paid' && selectedTransaction.transaction_status !== 'cancelled') && (
