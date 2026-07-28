@@ -103,3 +103,18 @@ export async function payStripeInvoiceOutOfBand(stripeInvoiceId: string): Promis
   const stripe = getStripeClient();
   await stripe.invoices.pay(stripeInvoiceId, { paid_out_of_band: true });
 }
+
+/**
+ * Update the due date on an already-finalized (open) Stripe Invoice.
+ *
+ * Stripe's docs list monetary values and collection_method as immutable
+ * after finalization but don't say the same about due_date — this is the
+ * direct-update attempt; callers should fall back to voiding and reissuing
+ * a replacement invoice if this throws.
+ */
+export async function updateStripeInvoiceDueDate(stripeInvoiceId: string, dueDate: string): Promise<void> {
+  const stripe = getStripeClient();
+  await stripe.invoices.update(stripeInvoiceId, {
+    due_date: Math.floor(new Date(dueDate).getTime() / 1000),
+  });
+}
