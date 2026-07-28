@@ -35,28 +35,27 @@ export const stationChiefContent: StationChiefContent = {
     },
   },
   layout1A: {
-    tagline: "Built for shift work",
-    heading: "Training that works around 24/48 schedules",
+    heading: "State-approved & nationally recognized",
     description:
-      "Cohorts are scheduled around common fire/EMS shift rotations, so your crew doesn't have to choose between work and certification.",
-    buttons: [{ title: "See the schedule", variant: "secondary" }],
-    image: { src: "/images/placeholder.svg", alt: "Firefighter reviewing a class schedule" },
+      "Train with confidence in a program approved by the state and accepted by the NREMT — a paramedic certification your department can stand behind, wherever your crew goes next.",
+    image: { src: "/images/paramedic.png", alt: "Certified paramedic on duty" },
+    imagePosition: "right",
   },
   layout1B: {
-    tagline: "Accreditation",
-    heading: "CAAHEP-accredited paramedic training",
+    heading: "Flexible schedule options",
     description:
-      "Your department can be confident every graduate meets the same accreditation standard, department-wide.",
-    buttons: [{ title: "See accreditation details", variant: "secondary" }],
-    image: { src: "/images/placeholder.svg", alt: "Paramedic certification ceremony" },
+      "Life is busy, we get it. That's why we offer evening/weekend classes and hybrid online learning. Train for a new career without upending your current routine or responsibilities.",
+    checklist: ["Flexible scheduling", "Online learning", "Personalized support"],
+    button: { title: "Explore online courses" },
+    image: { src: "/images/online.avif", alt: "Firefighter reviewing a class schedule online" },
+    imagePosition: "left",
   },
   layout1C: {
-    tagline: "Career ladder",
-    heading: "A clear step up from EMT to paramedic",
+    heading: "Hands-on training, real skills",
     description:
-      "Give firefighters and EMTs on your roster a defined path to advance, without leaving your department to do it.",
-    buttons: [{ title: "See career paths", variant: "secondary" }],
-    image: { src: "/images/placeholder.svg", alt: "Paramedic on duty" },
+      "From day one, you'll train with real equipment and scenarios. No endless prereqs or unrelated courses; every lesson is focused on emergency care and preparing you for the field.",
+    image: { src: "/images/group-care.avif", alt: "Crew training together on real equipment" },
+    imagePosition: "right",
   },
   layout141: {
     tagline: "Department partnerships",
@@ -67,28 +66,27 @@ export const stationChiefContent: StationChiefContent = {
     image: { src: "/images/placeholder.svg", alt: "Training officer meeting with academy staff" },
   },
   layout241: {
-    tagline: "The result",
-    heading: "What departments get",
+    tagline: "Fire, EMS, and More",
+    heading: "Proven by Departments",
     description:
-      "A dependable pipeline of certified paramedics, trained to one consistent standard.",
+      "From small volunteer squads to big city firehouses, we've helped teams stay current and rescue-ready. Join a growing community of leaders who make Midwest EMS Academy an integral part of their training program.",
     sections: [
       {
-        icon: { src: "/images/placeholder.svg", alt: "Accredited icon" },
-        heading: "Accredited",
-        description: "CAAHEP-accredited paramedic certification for every graduate.",
+        icon: { src: "/images/landing-pages/book_ribbon.svg", alt: "Book ribbon icon" },
+        heading: "One-on-one tutoring",
+        description: "Need help with a skill or prepping for the NREMT exam? Our team has your back.",
       },
       {
-        icon: { src: "/images/placeholder.svg", alt: "Flexible icon" },
-        heading: "Flexible",
-        description: "Cohorts scheduled around shift rotations, not the other way around.",
+        icon: { src: "/images/landing-pages/ink_pen.svg", alt: "Ink pen icon" },
+        heading: "In-depth study guides",
+        description: "Stuck on a tough topic? Our detailed study guides make test prep a breeze.",
       },
       {
-        icon: { src: "/images/placeholder.svg", alt: "Supported icon" },
-        heading: "Supported",
-        description: "A dedicated admissions contact for department-wide enrollment.",
+        icon: { src: "/images/landing-pages/handshake.svg", alt: "Handshake icon" },
+        heading: "Community of peers",
+        description: "Connect with fellow students in study groups for advice and support.",
       },
     ],
-    buttons: [{ title: "Start a conversation" }],
   },
   content12: {
     body: "We work directly with training officers and station chiefs to schedule cohorts, coordinate tuition assistance conversations, and track certification progress for the whole crew — not just one recruit at a time.",
@@ -98,17 +96,35 @@ export const stationChiefContent: StationChiefContent = {
     ],
   },
   testimonial19: {
-    heading: "Hear from a training officer",
-    description: "Real feedback from a department that partnered with the academy.",
+    heading: "Customer stories",
+    description: "Our dedication to exceeding expectations is apparent with each customer interaction.",
     testimonials: [
       {
         numberOfStars: 5,
         quote:
-          "We needed a program that respected our crew's 24/48 schedule and still met accreditation standards. Midwest EMS Academy delivered both.",
-        avatar: { src: "/images/placeholder.svg", alt: "Training officer" },
-        name: "Station Training Officer",
-        position: "Training Officer",
-        companyName: "Regional Fire & EMS Department",
+          "Midwest EMS Academy's training gave me the skills and confidence I needed. I passed the NREMT exam on the first try and felt prepared for real emergencies from day one on the job.",
+        avatar: { src: "/images/instructors/Brower.jpg", alt: "Emily S." },
+        name: "Emily S.",
+        position: "Certified EMT",
+        companyName: "Program Graduate",
+      },
+      {
+        numberOfStars: 5,
+        quote:
+          "As a working mom, I appreciated Midwest EMS Academy's flexible schedule. I studied online after work and joined hands-on sessions on weekends. I never felt overwhelmed, and now I'm a certified paramedic.",
+        avatar: { src: "/images/instructors/Crawford.jpg", alt: "Sarah L." },
+        name: "Sarah L.",
+        position: "Paramedic",
+        companyName: "Program Graduate",
+      },
+      {
+        numberOfStars: 5,
+        quote:
+          "Our entire fire department uses Midwest EMS Academy for continuing education. The online courses make recertification simple, and we trust the quality. It keeps our team sharp.",
+        avatar: { src: "/images/instructors/Hajmohammad.jpg", alt: "Mark D." },
+        name: "Mark D.",
+        position: "Fire Chief",
+        companyName: "Department Partner",
       },
     ],
   },
@@ -145,13 +161,7 @@ export const stationChiefContent: StationChiefContent = {
   },
   header108: {
     title: "Ready to build your department's paramedic pipeline?",
-    description:
-      "Give your crew a clear, accredited path to paramedic certification.",
-    buttons: [{ title: "Talk to admissions" }],
-    images: [
-      { src: "/images/placeholder.svg", alt: "Paramedic students training" },
-      { src: "/images/placeholder.svg", alt: "Paramedic on an emergency call" },
-      { src: "/images/placeholder.svg", alt: "Paramedic academy graduation" },
-    ],
+    description: "Give your crew a clear, accredited path to paramedic certification.",
+    button: { title: "Talk to admissions" },
   },
 };

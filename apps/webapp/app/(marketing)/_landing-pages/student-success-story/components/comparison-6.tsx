@@ -1,38 +1,36 @@
-import { Button } from "@relume_io/relume-ui";
-import type { ButtonProps } from "@relume_io/relume-ui";
 import clsx from "clsx";
-import { BiCheck } from "react-icons/bi";
+import type { ButtonProps } from "@relume_io/relume-ui";
 
-type Feature = {
-  text: string;
-  items: React.ReactNode[];
-};
-
-type FeatureCategory = {
-  title?: string;
-  features: Feature[];
-};
-
-type PricingPlan = {
-  planName: string;
-  monthlyPrice: string;
-  description: string;
-  button: ButtonProps;
+type CostRow = {
+  label: string;
+  midwestEa: string;
+  competitor: string;
 };
 
 type Props = {
   tagline: string;
   heading: string;
   description: string;
-  pricingPlans: PricingPlan[];
-  featureCategories: FeatureCategory[];
-  buttons: ButtonProps[];
+  competitorName: string;
+  baseTuition: { midwestEa: string; competitor: string };
+  costRows: CostRow[];
+  totalCost: { midwestEa: string; competitor: string };
+  button: ButtonProps;
 };
 
 export type Comparison6Props = React.ComponentPropsWithoutRef<"section"> & Partial<Props>;
 
 export const Comparison6 = (props: Comparison6Props) => {
-  const { tagline, heading, description, pricingPlans, featureCategories, buttons } = {
+  const {
+    tagline,
+    heading,
+    description,
+    competitorName,
+    baseTuition,
+    costRows,
+    totalCost,
+    button,
+  } = {
     ...Comparison6Defaults,
     ...props,
   };
@@ -40,236 +38,75 @@ export const Comparison6 = (props: Comparison6Props) => {
     <section id="relume" className="px-[5%] py-16 md:py-24 lg:py-28">
       <div className="container">
         <div className="mx-auto mb-12 max-w-lg text-center md:mb-18 lg:mb-20">
-          <p className="mb-3 font-semibold md:mb-4">{tagline}</p>
-          <h1 className="mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">{heading}</h1>
-          <p className="md:text-md">{description}</p>
+          <p className="mea-tagline mb-3">{tagline}</p>
+          <h2 className="mea-heading-h3 mb-5 md:mb-6">{heading}</h2>
+          <p className="mea-body-md">{description}</p>
         </div>
-        <div className="w-full">
-          <div className="grid grid-cols-3 gap-x-4 bg-white md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-x-8">
-            <div className="hidden md:block" />
-            {pricingPlans.map((plan, index) => (
-              <PricingPlan key={index} {...plan} />
-            ))}
+        <div className="mx-auto w-full max-w-3xl">
+          <div className="grid grid-cols-[1.5fr_1fr_1fr] items-end gap-x-6 pb-6">
+            <p className="mea-text-medium-semibold">Base tuition</p>
+            <div className="text-center">
+              <p className="mea-text-medium-semibold text-xs uppercase text-neutral-darker">
+                Midwest EA
+              </p>
+              <p className="mea-text-medium-semibold text-xl">{baseTuition.midwestEa}</p>
+            </div>
+            <div className="text-center">
+              <p className="mea-text-medium-semibold text-xs uppercase text-neutral-darker">
+                {competitorName}
+              </p>
+              <p className="mea-text-medium-semibold text-xl">{baseTuition.competitor}</p>
+            </div>
           </div>
-          <FeaturesSection featureCategories={featureCategories} />
-          <div className="rt-8 mt-8 grid grid-cols-3 gap-x-4 bg-white md:grid-cols-[1.5fr_1fr_1fr_1fr] md:gap-x-8">
-            <div className="hidden md:block" />
-            {buttons.map((button, index) => (
-              <Button
-                key={index}
-                {...button}
-                className="w-full whitespace-normal px-3 py-1 sm:px-4 sm:py-3"
-              >
-                {button.title}
-              </Button>
-            ))}
+          {costRows.map((row, index) => (
+            <div
+              key={row.label}
+              className={clsx(
+                "grid grid-cols-[1.5fr_1fr_1fr] items-center gap-x-6 rounded-mea-xs px-4 py-3",
+                { "bg-neutral-lightest": index % 2 === 0 },
+              )}
+            >
+              <p className="mea-body-md">{row.label}</p>
+              <p className="mea-body-md text-center">{row.midwestEa}</p>
+              <p className="mea-body-md text-center">{row.competitor}</p>
+            </div>
+          ))}
+          <div className="mt-4 grid grid-cols-[1.5fr_1fr_1fr] items-center gap-x-6 pt-4">
+            <p className="mea-text-medium-semibold">Total cost</p>
+            <p className="mea-heading-h4 text-center">{totalCost.midwestEa}</p>
+            <p className="mea-heading-h4 text-center">{totalCost.competitor}</p>
           </div>
+        </div>
+        <div className="mt-8 flex justify-center md:mt-10">
+          {"url" in button && button.url ? (
+            <a href={button.url as string} className="mea-button-primary" title={button.title}>
+              {button.title}
+            </a>
+          ) : (
+            <button type="button" className="mea-button-primary">
+              {button.title}
+            </button>
+          )}
         </div>
       </div>
     </section>
   );
 };
 
-const PricingPlan = ({ planName, monthlyPrice, description, button }: PricingPlan) => {
-  return (
-    <div className="flex h-full flex-col justify-between text-center">
-      <div>
-        <h2 className="text-md font-bold leading-[1.4] md:text-xl">{planName}</h2>
-        <div className="my-3 md:my-4">
-          <p className="text-2xl font-bold leading-[1.2] sm:text-6xl md:text-9xl lg:text-10xl">
-            {monthlyPrice}
-            <span className="text-sm leading-[1.4] sm:text-xl md:text-2xl">/mo</span>
-          </p>
-        </div>
-        <p>{description}</p>
-      </div>
-      <div className="mt-6 md:mt-8">
-        <Button {...button} className="w-full whitespace-normal px-3 py-1 sm:px-4 sm:py-3">
-          {button.title}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const FeaturesSection = ({ featureCategories }: { featureCategories: FeatureCategory[] }) => {
-  return (
-    <div>
-      {featureCategories.map((featureCategory, index) => (
-        <div key={index}>
-          {featureCategory.title && (
-            <h3 className="mt-8 py-5 text-md font-bold leading-[1.4] md:text-xl">
-              {featureCategory.title}
-            </h3>
-          )}
-          {featureCategory.features.map((feature, index) => (
-            <div
-              key={index}
-              className={clsx("grid grid-cols-3 md:grid-cols-[1.5fr_1fr_1fr_1fr]", {
-                "bg-background-secondary": index % 2 === 0,
-              })}
-            >
-              <p className="col-span-3 row-span-1 p-4 md:col-span-1 md:px-6 md:py-4">
-                {feature.text}
-              </p>
-              {feature.items.map((item, index) => (
-                <p
-                  key={index}
-                  className="flex items-center justify-center px-4 py-4 text-center font-semibold md:px-6"
-                >
-                  {item}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-};
-
 export const Comparison6Defaults: Props = {
-  tagline: "Tagline",
-  heading: "Pricing plan",
-  description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-  pricingPlans: [
-    {
-      planName: "Basic",
-      monthlyPrice: "$19",
-      description: "Lorem ipsum dolor sit amet",
-      button: {
-        title: "Get started",
-      },
-    },
-    {
-      planName: "Business",
-      monthlyPrice: "$29",
-      description: "Lorem ipsum dolor sit amet",
-      button: {
-        title: "Get started",
-      },
-    },
-    {
-      planName: "Enterprise",
-      monthlyPrice: "$49",
-      description: "Lorem ipsum dolor sit amet",
-      button: {
-        title: "Get started",
-      },
-    },
+  tagline: "See how we compare",
+  heading: "Affordable hands-on training",
+  description:
+    "Quality EMS training at a fraction of the cost of a college degree. Our programs won't bury you in debt. Plus, we offer flexible payment plans so you can invest in your future without financial strain.",
+  competitorName: "Local college program",
+  baseTuition: { midwestEa: "$1,800", competitor: "$3,600" },
+  costRows: [
+    { label: "Books", midwestEa: "$50", competitor: "$300" },
+    { label: "Supplies", midwestEa: "Included", competitor: "$500" },
+    { label: "Certification fee", midwestEa: "N/A", competitor: "$25" },
+    { label: "Materials", midwestEa: "Included", competitor: "$125" },
+    { label: "Insurance", midwestEa: "N/A", competitor: "$60" },
   ],
-  featureCategories: [
-    {
-      title: "Feature Category",
-      features: [
-        {
-          text: "Feature text goes here",
-          items: ["10", "25", "Unlimited"],
-        },
-        {
-          text: "Feature text goes here",
-          items: [
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-          ],
-        },
-        {
-          text: "Feature text goes here",
-          items: [
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-          ],
-        },
-        {
-          text: "Feature text goes here",
-          items: ["", <BiCheck className="size-6" />, <BiCheck className="size-6" />],
-        },
-        {
-          text: "Feature text goes here",
-          items: ["", "", <BiCheck className="size-6" />],
-        },
-      ],
-    },
-
-    {
-      title: "Feature Category",
-      features: [
-        {
-          text: "Feature text goes here",
-          items: ["10", "25", "Unlimited"],
-        },
-        {
-          text: "Feature text goes here",
-          items: [
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-          ],
-        },
-        {
-          text: "Feature text goes here",
-          items: [
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-          ],
-        },
-        {
-          text: "Feature text goes here",
-          items: ["", <BiCheck className="size-6" />, <BiCheck className="size-6" />],
-        },
-        {
-          text: "Feature text goes here",
-          items: ["", "", <BiCheck className="size-6" />],
-        },
-      ],
-    },
-
-    {
-      title: "Feature Category",
-      features: [
-        {
-          text: "Feature text goes here",
-          items: ["10", "25", "Unlimited"],
-        },
-        {
-          text: "Feature text goes here",
-          items: [
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-          ],
-        },
-        {
-          text: "Feature text goes here",
-          items: [
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-            <BiCheck className="size-6" />,
-          ],
-        },
-        {
-          text: "Feature text goes here",
-          items: ["", <BiCheck className="size-6" />, <BiCheck className="size-6" />],
-        },
-        {
-          text: "Feature text goes here",
-          items: ["", "", <BiCheck className="size-6" />],
-        },
-      ],
-    },
-  ],
-  buttons: [
-    {
-      title: "Get started",
-    },
-    {
-      title: "Get started",
-    },
-    {
-      title: "Get started",
-    },
-  ],
+  totalCost: { midwestEa: "$1,850", competitor: "$4,610" },
+  button: { title: "Register today to lock in your price" },
 };

@@ -1,6 +1,6 @@
-import { Button } from "@relume_io/relume-ui";
+import clsx from "clsx";
 import type { ButtonProps } from "@relume_io/relume-ui";
-import { RxChevronRight } from "react-icons/rx";
+import { BiCheck } from "react-icons/bi";
 
 type ImageProps = {
   src: string;
@@ -8,17 +8,19 @@ type ImageProps = {
 };
 
 type Props = {
-  tagline: string;
+  tagline?: string;
   heading: string;
   description: string;
-  buttons: ButtonProps[];
+  button?: ButtonProps;
+  checklist?: string[];
   image: ImageProps;
+  imagePosition?: "left" | "right";
 };
 
 export type Layout1BProps = React.ComponentPropsWithoutRef<"section"> & Partial<Props>;
 
 export const Layout1B = (props: Layout1BProps) => {
-  const { tagline, heading, description, buttons, image } = {
+  const { tagline, heading, description, button, checklist, image, imagePosition } = {
     ...Layout1BDefaults,
     ...props,
   };
@@ -26,22 +28,45 @@ export const Layout1B = (props: Layout1BProps) => {
     <section id="relume" className="px-[5%] py-16 md:py-24 lg:py-28">
       <div className="container">
         <div className="grid grid-cols-1 gap-y-12 md:grid-cols-2 md:items-center md:gap-x-12 lg:gap-x-20">
-          <div>
-            <p className="mb-3 font-semibold md:mb-4">{tagline}</p>
-            <h1 className="rb-5 mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">
-              {heading}
-            </h1>
-            <p className="md:text-md">{description}</p>
-            <div className="mt-6 flex flex-wrap items-center gap-4 md:mt-8">
-              {buttons.map((button, index) => (
-                <Button key={index} {...button}>
-                  {button.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <div>
+          <div
+            className={clsx(
+              "rounded-mea-lg overflow-hidden",
+              imagePosition === "left" ? "md:order-1" : "md:order-2",
+            )}
+          >
             <img src={image.src} className="w-full object-cover" alt={image.alt} />
+          </div>
+          <div className={imagePosition === "left" ? "md:order-2" : "md:order-1"}>
+            {tagline ? <p className="mea-tagline mb-3">{tagline}</p> : null}
+            <h2 className="mea-heading-h3 mb-5 md:mb-6">{heading}</h2>
+            <p className="mea-body-md">{description}</p>
+            {checklist && checklist.length > 0 ? (
+              <ul className="mt-6 flex flex-col gap-4 md:mt-8">
+                {checklist.map((item) => (
+                  <li key={item} className="mea-body-md flex items-center gap-4">
+                    <BiCheck className="size-4 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {button ? (
+              <div className="mt-6 flex flex-wrap items-center gap-4 md:mt-8">
+                {"url" in button && button.url ? (
+                  <a
+                    href={button.url as string}
+                    className="mea-button-secondary"
+                    title={button.title}
+                  >
+                    {button.title}
+                  </a>
+                ) : (
+                  <button type="button" className="mea-button-secondary">
+                    {button.title}
+                  </button>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
@@ -50,21 +75,12 @@ export const Layout1B = (props: Layout1BProps) => {
 };
 
 export const Layout1BDefaults: Props = {
-  tagline: "Tagline",
   heading: "Medium length section heading goes here",
   description:
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero vitae erat.",
-  buttons: [
-    { title: "Button", variant: "secondary" },
-    {
-      title: "Button",
-      variant: "link",
-      size: "link",
-      iconRight: <RxChevronRight />,
-    },
-  ],
   image: {
     src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
     alt: "Relume placeholder image",
   },
+  imagePosition: "right",
 };

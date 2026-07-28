@@ -1,4 +1,3 @@
-import { Button } from "@relume_io/relume-ui";
 import type { ButtonProps } from "@relume_io/relume-ui";
 
 type ImageProps = {
@@ -7,49 +6,56 @@ type ImageProps = {
 };
 
 type Props = {
+  kicker: string;
   heading: string;
   description: string;
-  buttons: ButtonProps[];
-  firstImage: ImageProps;
-  secondImage: ImageProps;
+  button: ButtonProps;
+  backgroundImage: ImageProps;
+  foregroundImage: ImageProps;
 };
 
 export type Header137Props = React.ComponentPropsWithoutRef<"section"> & Partial<Props>;
 
 export const Header137 = (props: Header137Props) => {
-  const { heading, description, buttons, firstImage, secondImage } = {
+  const { kicker, heading, description, button, backgroundImage, foregroundImage } = {
     ...Header137Defaults,
     ...props,
   };
   return (
     <section
       id="relume"
+      data-program-hero
       className="grid grid-cols-1 items-center gap-y-16 pt-16 md:pt-24 lg:grid-cols-2 lg:pt-0"
     >
       <div className="mx-[5%] sm:max-w-md md:justify-self-start lg:ml-[5vw] lg:mr-20 lg:justify-self-end">
-        <h1 className="mb-5 text-6xl font-bold md:mb-6 md:text-9xl lg:text-10xl">{heading}</h1>
-        <p className="md:text-md">{description}</p>
+        <p className="mea-heading-h3 mb-3">{kicker}</p>
+        <h1 className="mea-heading-h2 mb-5 md:mb-6">{heading}</h1>
+        <p className="mea-body-md">{description}</p>
         <div className="mt-6 flex flex-wrap gap-4 md:mt-8">
-          {buttons.map((button, index) => (
-            <Button key={index} {...button}>
+          {"url" in button && button.url ? (
+            <a href={button.url as string} className="mea-button-primary" title={button.title}>
               {button.title}
-            </Button>
-          ))}
+            </a>
+          ) : (
+            <button type="button" className="mea-button-primary">
+              {button.title}
+            </button>
+          )}
         </div>
       </div>
       <div className="relative flex items-center">
         <div className="absolute w-[45%] pl-[5%] lg:pl-0">
           <img
-            src={firstImage.src}
-            alt={firstImage.alt}
-            className="aspect-[2/3] w-full object-cover lg:h-full"
+            src={foregroundImage.src}
+            alt={foregroundImage.alt}
+            className="aspect-[2/3] w-full rounded-mea-lg object-cover lg:h-full"
           />
         </div>
         <div className="ml-[10%]">
           <img
-            src={secondImage.src}
-            alt={secondImage.alt}
-            className="w-full object-cover lg:h-screen lg:max-h-[60rem]"
+            src={backgroundImage.src}
+            alt={backgroundImage.alt}
+            className="w-full rounded-mea-lg object-cover lg:h-screen lg:max-h-[60rem]"
           />
         </div>
       </div>
@@ -58,16 +64,17 @@ export const Header137 = (props: Header137Props) => {
 };
 
 export const Header137Defaults: Props = {
-  heading: "Medium length hero heading goes here",
+  kicker: "Continuing Education",
+  heading: "Stay Certified, Stay Sharp.",
   description:
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero vitae erat.",
-  buttons: [{ title: "Button" }, { title: "Button", variant: "secondary" }],
-  firstImage: {
-    src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image-portrait-dim.png",
-    alt: "Relume placeholder image 1",
+    "Don't let a busy schedule put your EMT or Paramedic license at risk. Midwest EMS Academy offers a wide range of state-approved, on-demand continuing education courses. Complete your required refresher hours anytime, anywhere — and stay ready for the next call with the latest skills and knowledge.",
+  button: { title: "Register now" },
+  backgroundImage: {
+    src: "/images/de80bb7dcfc1d675590d6c698e87dbeb_acls-p-1600.webp",
+    alt: "Paramedic completing continuing education",
   },
-  secondImage: {
-    src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-    alt: "Relume placeholder image 2",
+  foregroundImage: {
+    src: "/images/emt-compressions.avif",
+    alt: "EMT reviewing recertification requirements",
   },
 };

@@ -21,13 +21,11 @@ export const Content2 = (props: Content2Props) => {
       <div className="container">
         <div className="grid grid-cols-1 items-start gap-y-12 md:grid-cols-2 md:gap-x-12 lg:gap-x-20">
           <div>
-            <img src={image.src} className="w-full object-cover" alt={image.alt} />
+            <h2 className="mea-heading-h3 mb-5 md:mb-6">{heading}</h2>
+            <div className="flex flex-col gap-4">{children}</div>
           </div>
-          <div>
-            <h2 className="rb-5 mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">
-              {heading}
-            </h2>
-            <div className="prose">{children}</div>
+          <div className="rounded-mea-lg overflow-hidden">
+            <img src={image.src} className="w-full object-cover" alt={image.alt} />
           </div>
         </div>
       </div>
@@ -36,26 +34,38 @@ export const Content2 = (props: Content2Props) => {
 };
 
 export const Content2Defaults: Props = {
-  heading: "Short heading goes here",
+  heading: "Mike's story",
   children: (
-    <div>
-      <p>
-        Morbi sed imperdiet in ipsum, adipiscing elit dui lectus. Tellus id scelerisque est
-        ultricies ultricies. Duis est sit sed leo nisl, blandit elit sagittis. Quisque tristique
-        consequat quam sed. Nisl at scelerisque amet nulla purus habitasse.
+    <>
+      <p className="mea-body-md">
+        Mike has been a paramedic for eleven years. Between his shifts and being a father of
+        three, keeping up with continuing education always felt like one more thing on an
+        already-full plate.
       </p>
-      <p>
-        Nunc sed faucibus bibendum feugiat sed interdum. Ipsum egestas condimentum mi massa. In
-        tincidunt pharetra consectetur sed duis facilisis metus. Etiam egestas in nec sed et. Quis
-        lobortis at sit dictum eget nibh tortor commodo cursus.
+      <p className="mea-body-md">
+        When his recertification deadline started creeping up, Mike didn&apos;t want to sit
+        through another in-person weekend course away from his kids. He signed up for Midwest EMS
+        Academy&apos;s online Paramedic refresher bundle instead.
       </p>
-      <p>
-        Odio felis sagittis, morbi feugiat tortor vitae feugiat fusce aliquet. Nam elementum urna
-        nisi aliquet erat dolor enim. Ornare id morbi eget ipsum. Aliquam senectus neque ut id eget
-        consectetur dictum. Donec posuere pharetra odio consequat scelerisque et, nunc tortor. Nulla
-        adipiscing erat a erat. Condimentum lorem posuere gravida enim posuere cursus diam.
+      <p className="mea-body-md">
+        He worked through the modules in short blocks — during lunch breaks at the station, after
+        the kids were in bed, whenever he had twenty minutes to spare. Nothing about his schedule
+        had to change.
       </p>
-    </div>
+      <p className="mea-body-md">
+        The material itself wasn&apos;t just a formality, either. The refresher covered updated
+        protocols Mike hadn&apos;t seen since his last recert, and a few skills he&apos;d gotten
+        rusty on without realizing it.
+      </p>
+      <p className="mea-body-md">
+        He finished his required hours two weeks before his deadline, with his certification
+        renewed and no missed shifts or missed family dinners along the way.
+      </p>
+      <p className="mea-body-md">
+        &ldquo;I went in just trying to check a box,&rdquo; Mike says, &ldquo;but I came out
+        sharper — so when the next emergency hits, you&apos;re ready.&rdquo;
+      </p>
+    </>
   ),
   image: {
     src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",

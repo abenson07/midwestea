@@ -1,7 +1,3 @@
-import { Button } from "@relume_io/relume-ui";
-import type { ButtonProps } from "@relume_io/relume-ui";
-import { RxChevronRight } from "react-icons/rx";
-
 type ImageProps = {
   src: string;
   alt?: string;
@@ -18,13 +14,12 @@ type Props = {
   heading: string;
   description: string;
   sections: SectionProps[];
-  buttons: ButtonProps[];
 };
 
 export type Layout241Props = React.ComponentPropsWithoutRef<"section"> & Partial<Props>;
 
 export const Layout241 = (props: Layout241Props) => {
-  const { tagline, heading, description, sections, buttons } = {
+  const { tagline, heading, description, sections } = {
     ...Layout241Defaults,
     ...props,
   };
@@ -34,9 +29,9 @@ export const Layout241 = (props: Layout241Props) => {
         <div className="flex flex-col">
           <div className="rb-12 mb-12 md:mb-18 lg:mb-20">
             <div className="w-full max-w-lg">
-              <p className="mb-3 font-semibold md:mb-4">{tagline}</p>
-              <h2 className="mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">{heading}</h2>
-              <p className="md:text-md">{description}</p>
+              <p className="mea-tagline mb-3">{tagline}</p>
+              <h2 className="mea-heading-h3 mb-5 md:mb-6">{heading}</h2>
+              <p className="mea-body-md">{description}</p>
             </div>
           </div>
           <div className="grid grid-cols-1 items-start justify-center gap-y-12 md:grid-cols-3 md:gap-x-8 md:gap-y-16 lg:gap-x-12">
@@ -45,18 +40,9 @@ export const Layout241 = (props: Layout241Props) => {
                 <div className="mb-5 md:mb-6">
                   <img src={section.icon.src} className="size-12" alt={section.icon.alt} />
                 </div>
-                <h3 className="mb-5 text-2xl font-bold md:mb-6 md:text-3xl md:leading-[1.3] lg:text-4xl">
-                  {section.heading}
-                </h3>
-                <p>{section.description}</p>
+                <h3 className="mea-heading-h4 mb-5 md:mb-6">{section.heading}</h3>
+                <p className="mea-body-md">{section.description}</p>
               </div>
-            ))}
-          </div>
-          <div className="mt-12 flex items-center gap-4 md:mt-18 lg:mt-20">
-            {buttons.map((button, index) => (
-              <Button key={index} {...button}>
-                {button.title}
-              </Button>
             ))}
           </div>
         </div>
@@ -66,46 +52,34 @@ export const Layout241 = (props: Layout241Props) => {
 };
 
 export const Layout241Defaults: Props = {
-  tagline: "Tagline",
-  heading: "Medium length section heading goes here",
+  tagline: "Fire, EMS, and More",
+  heading: "Proven by Departments",
   description:
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero vitae erat.",
+    "From small volunteer squads to big city firehouses, we've helped teams stay current and rescue-ready. Join a growing community of leaders who make Midwest EMS Academy an integral part of their training program.",
   sections: [
     {
       icon: {
-        src: "https://d22po4pjz3o32e.cloudfront.net/relume-icon.svg",
-        alt: "Relume logo 1",
+        src: "/images/landing-pages/book_ribbon.svg",
+        alt: "Book ribbon icon",
       },
-      heading: "Medium length section heading goes here",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla.",
+      heading: "One-on-one tutoring",
+      description: "Need help with a skill or prepping for the NREMT exam? Our team has your back.",
     },
     {
       icon: {
-        src: "https://d22po4pjz3o32e.cloudfront.net/relume-icon.svg",
-        alt: "Relume logo 2",
+        src: "/images/landing-pages/ink_pen.svg",
+        alt: "Ink pen icon",
       },
-      heading: "Medium length section heading goes here",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla.",
+      heading: "In-depth study guides",
+      description: "Stuck on a tough topic? Our detailed study guides make test prep a breeze.",
     },
     {
       icon: {
-        src: "https://d22po4pjz3o32e.cloudfront.net/relume-icon.svg",
-        alt: "Relume logo 3",
+        src: "/images/landing-pages/handshake.svg",
+        alt: "Handshake icon",
       },
-      heading: "Medium length section heading goes here",
-      description:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla.",
-    },
-  ],
-  buttons: [
-    { title: "Button", variant: "secondary" },
-    {
-      title: "Button",
-      variant: "link",
-      size: "link",
-      iconRight: <RxChevronRight />,
+      heading: "Community of peers",
+      description: "Connect with fellow students in study groups for advice and support.",
     },
   ],
 };

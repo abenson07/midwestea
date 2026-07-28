@@ -1,29 +1,33 @@
-import { Button, ButtonProps } from "@relume_io/relume-ui";
+import type { ButtonProps } from "@relume_io/relume-ui";
 
 type Props = {
   heading: string;
   description: string;
-  buttons: ButtonProps[];
+  button: ButtonProps;
 };
 
 export type Cta25Props = React.ComponentPropsWithoutRef<"section"> & Partial<Props>;
 
 export const Cta25 = (props: Cta25Props) => {
-  const { heading, description, buttons } = {
+  const { heading, description, button } = {
     ...Cta25Defaults,
     ...props,
   };
   return (
     <section id="relume" className="px-[5%] py-16 md:py-24 lg:py-28">
       <div className="container max-w-lg text-center">
-        <h2 className="rb-5 mb-5 text-5xl font-bold md:mb-6 md:text-7xl lg:text-8xl">{heading}</h2>
-        <p className="md:text-md">{description}</p>
+        <h2 className="mea-heading-h3 mb-5 md:mb-6">{heading}</h2>
+        <p className="mea-body-md">{description}</p>
         <div className="mt-6 flex items-center justify-center gap-4 md:mt-8">
-          {buttons.map((button, index) => (
-            <Button key={index} {...button}>
+          {"url" in button && button.url ? (
+            <a href={button.url as string} className="mea-button-primary" title={button.title}>
               {button.title}
-            </Button>
-          ))}
+            </a>
+          ) : (
+            <button type="button" className="mea-button-primary">
+              {button.title}
+            </button>
+          )}
         </div>
       </div>
     </section>
@@ -31,8 +35,8 @@ export const Cta25 = (props: Cta25Props) => {
 };
 
 export const Cta25Defaults: Props = {
-  heading: "Medium length heading goes here",
+  heading: "Ready to take the leap?",
   description:
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique.",
-  buttons: [{ title: "Button" }, { title: "Button", variant: "secondary" }],
+    "You don't have to choose between your current life and your dream career. Midwest EMS Academy provides a bridge from where you are to where you want to be. If you're ready for a change, we're ready to help you every step of the way. Your new EMS career can start today.",
+  button: { title: "Enroll today" },
 };

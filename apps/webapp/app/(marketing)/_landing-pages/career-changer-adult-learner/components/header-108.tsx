@@ -1,7 +1,7 @@
 "use client";
 
-import { Button, useMediaQuery } from "@relume_io/relume-ui";
 import type { ButtonProps } from "@relume_io/relume-ui";
+import { useMediaQuery } from "@relume_io/relume-ui";
 import { motion, useScroll, useTransform } from "framer-motion";
 
 type ImageProps = {
@@ -12,14 +12,14 @@ type ImageProps = {
 type Props = {
   title: string;
   description: string;
-  buttons: ButtonProps[];
+  button: ButtonProps;
   images: ImageProps[];
 };
 
 export type Header108Props = React.ComponentPropsWithoutRef<"section"> & Partial<Props>;
 
 export const Header108 = (props: Header108Props) => {
-  const { title, description, buttons, images } = {
+  const { title, description, button, images } = {
     ...Header108Defaults,
     ...props,
   };
@@ -45,18 +45,22 @@ export const Header108 = (props: Header108Props) => {
   };
 
   return (
-    <section id="relume" className="relative h-[250vh]">
+    <section id="relume" data-program-hero className="relative h-[250vh]">
       <div className="px-[5%] pt-16 md:pt-24 lg:pt-28">
         <div className="container">
           <div className="mx-auto w-full max-w-lg text-center">
-            <h1 className="mb-5 text-6xl font-bold md:mb-6 md:text-9xl lg:text-10xl">{title}</h1>
-            <p className="md:text-md">{description}</p>
+            <h1 className="mea-heading-h2 mb-5 md:mb-6">{title}</h1>
+            <p className="mea-body-md">{description}</p>
             <div className="mt-6 flex items-center justify-center gap-x-4 md:mt-8">
-              {buttons.map((button, index) => (
-                <Button key={index} {...button}>
+              {"url" in button && button.url ? (
+                <a href={button.url as string} className="mea-button-primary" title={button.title}>
                   {button.title}
-                </Button>
-              ))}
+                </a>
+              ) : (
+                <button type="button" className="mea-button-primary">
+                  {button.title}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -111,50 +115,17 @@ export const Header108 = (props: Header108Props) => {
 };
 
 export const Header108Defaults: Props = {
-  title: "Medium length hero heading goes here",
+  title: "Start a New EMS Career Without Quitting Your Day Job",
   description:
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. Duis cursus, mi quis viverra ornare, eros dolor interdum nulla, ut commodo diam libero vitae erat.",
-  buttons: [
-    {
-      title: "Button",
-    },
-    {
-      title: "Button",
-      variant: "secondary",
-    },
-  ],
+    "It's never too late to follow your passion. Midwest EMS Academy offers flexible EMT and Paramedic training programs built for working adults. Keep your job, keep your family commitments, and still get the training you need to launch a rewarding career in emergency services.",
+  button: { title: "Get started" },
   images: [
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 1",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 2",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 3",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 4",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 5",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 6",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 7",
-    },
-    {
-      src: "https://d22po4pjz3o32e.cloudfront.net/placeholder-image.svg",
-      alt: "Relume placeholder image 8",
-    },
+    { src: "/images/emt-hero.avif", alt: "EMT student training" },
+    { src: "/images/emt.avif", alt: "EMT in the field" },
+    { src: "/images/emt-compressions.avif", alt: "EMT performing chest compressions" },
+    { src: "/images/paramedic-1.avif", alt: "Paramedic on duty" },
+    { src: "/images/paramedic.avif", alt: "Paramedic training" },
+    { src: "/images/ems.avif", alt: "EMS professionals" },
+    { src: "/images/student-studying.png", alt: "Adult learner studying at home" },
   ],
 };
