@@ -9,6 +9,8 @@ export type Transaction = {
   transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | null;
   quantity: number | null;
   stripe_payment_intent_id: string | null;
+  stripe_invoice_id: string | null;
+  stripe_hosted_invoice_url: string | null;
   quickbooks_invoice_link: string | null;
   quickbooks_receipt_link: string | null;
   transaction_status: 'pending' | 'paid' | 'cancelled' | 'refunded' | null;

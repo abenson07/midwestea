@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { formatCurrency } from '@midwestea/utils';
 import { getStripeClient } from './stripe';
+import { createAndFinalizeStripeInvoice, voidStripeInvoice } from './stripe-invoices';
 import Stripe from 'stripe';
 import type { Student, Class, Enrollment, Payment, Transaction } from '@midwestea/types';
 import { formatDate } from './email';
@@ -475,6 +476,8 @@ export async function createTransaction(data: {
   transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b';
   quantity: number;
   stripePaymentIntentId: string | null;
+  stripeInvoiceId?: string | null;
+  stripeHostedInvoiceUrl?: string | null;
   transactionStatus: 'pending' | 'paid' | 'cancelled' | 'refunded';
   paymentDate: string | null;
   dueDate: string | null;
@@ -496,6 +499,8 @@ export async function createTransaction(data: {
         transaction_type: data.transactionType,
         quantity: data.quantity,
         stripe_payment_intent_id: data.stripePaymentIntentId,
+        stripe_invoice_id: data.stripeInvoiceId ?? null,
+        stripe_hosted_invoice_url: data.stripeHostedInvoiceUrl ?? null,
         quickbooks_invoice_link: null,
         quickbooks_receipt_link: null,
         transaction_status: data.transactionStatus,
@@ -543,9 +548,10 @@ export async function createInvoiceSchedule(params: {
   registrationFee: number | null;
   price: number | null;
   stripePaymentIntentId: string;
+  stripeCustomerId?: string | null;
   amountTotal: number;
 }): Promise<Transaction[]> {
-  const { enrollmentId, studentId, classId, courseType, classStartDate, registrationFee, price, stripePaymentIntentId, amountTotal } = params;
+  const { enrollmentId, studentId, classId, courseType, classStartDate, registrationFee, price, stripePaymentIntentId, stripeCustomerId, amountTotal } = params;
   const now = new Date().toISOString();
 
   const supabase = createSupabaseAdminClient();
@@ -599,14 +605,43 @@ export async function createInvoiceSchedule(params: {
       d.setDate(d.getDate() - 21);
       tuitionADueDate = d.toISOString();
     }
-    const tuitionA = await createTransaction({
-      enrollmentId, studentId, classId,
-      classType: 'program', transactionType: 'tuition_a', quantity: 0.5,
-      stripePaymentIntentId: null, transactionStatus: 'pending',
-      paymentDate: null, dueDate: tuitionADueDate,
-      amountDue: price, amountPaid: null,
-      invoiceNumber: nextInvoiceNumber,
-    });
+
+    let tuitionAStripeInvoiceId: string | null = null;
+    let tuitionAHostedInvoiceUrl: string | null = null;
+    if (stripeCustomerId && tuitionADueDate && price) {
+      const invoice = await createAndFinalizeStripeInvoice({
+        customerId: stripeCustomerId,
+        amountCents: Math.round(price * 0.5),
+        dueDate: tuitionADueDate,
+        description: 'First Tuition Payment',
+        metadata: { enrollment_id: enrollmentId, transaction_type: 'tuition_a' },
+      });
+      tuitionAStripeInvoiceId = invoice.stripeInvoiceId;
+      tuitionAHostedInvoiceUrl = invoice.hostedInvoiceUrl;
+    } else {
+      console.error('[createInvoiceSchedule] Creating tuition_a without a Stripe Invoice — missing customer/dueDate/price', { enrollmentId, stripeCustomerId, tuitionADueDate, price });
+    }
+
+    let tuitionA: Transaction;
+    try {
+      tuitionA = await createTransaction({
+        enrollmentId, studentId, classId,
+        classType: 'program', transactionType: 'tuition_a', quantity: 0.5,
+        stripePaymentIntentId: null,
+        stripeInvoiceId: tuitionAStripeInvoiceId, stripeHostedInvoiceUrl: tuitionAHostedInvoiceUrl,
+        transactionStatus: 'pending',
+        paymentDate: null, dueDate: tuitionADueDate,
+        amountDue: price, amountPaid: null,
+        invoiceNumber: nextInvoiceNumber,
+      });
+    } catch (err) {
+      if (tuitionAStripeInvoiceId) {
+        await voidStripeInvoice(tuitionAStripeInvoiceId).catch((voidErr) =>
+          console.error('[createInvoiceSchedule] Failed to compensate-void orphaned tuition_a Stripe invoice', tuitionAStripeInvoiceId, voidErr)
+        );
+      }
+      throw err;
+    }
     created.push(tuitionA);
     nextInvoiceNumber++;
   }
@@ -618,14 +653,43 @@ export async function createInvoiceSchedule(params: {
       d.setDate(d.getDate() + 7);
       tuitionBDueDate = d.toISOString();
     }
-    const tuitionB = await createTransaction({
-      enrollmentId, studentId, classId,
-      classType: 'program', transactionType: 'tuition_b', quantity: 0.5,
-      stripePaymentIntentId: null, transactionStatus: 'pending',
-      paymentDate: null, dueDate: tuitionBDueDate,
-      amountDue: price, amountPaid: null,
-      invoiceNumber: nextInvoiceNumber,
-    });
+
+    let tuitionBStripeInvoiceId: string | null = null;
+    let tuitionBHostedInvoiceUrl: string | null = null;
+    if (stripeCustomerId && tuitionBDueDate && price) {
+      const invoice = await createAndFinalizeStripeInvoice({
+        customerId: stripeCustomerId,
+        amountCents: Math.round(price * 0.5),
+        dueDate: tuitionBDueDate,
+        description: 'Second Tuition Payment',
+        metadata: { enrollment_id: enrollmentId, transaction_type: 'tuition_b' },
+      });
+      tuitionBStripeInvoiceId = invoice.stripeInvoiceId;
+      tuitionBHostedInvoiceUrl = invoice.hostedInvoiceUrl;
+    } else {
+      console.error('[createInvoiceSchedule] Creating tuition_b without a Stripe Invoice — missing customer/dueDate/price', { enrollmentId, stripeCustomerId, tuitionBDueDate, price });
+    }
+
+    let tuitionB: Transaction;
+    try {
+      tuitionB = await createTransaction({
+        enrollmentId, studentId, classId,
+        classType: 'program', transactionType: 'tuition_b', quantity: 0.5,
+        stripePaymentIntentId: null,
+        stripeInvoiceId: tuitionBStripeInvoiceId, stripeHostedInvoiceUrl: tuitionBHostedInvoiceUrl,
+        transactionStatus: 'pending',
+        paymentDate: null, dueDate: tuitionBDueDate,
+        amountDue: price, amountPaid: null,
+        invoiceNumber: nextInvoiceNumber,
+      });
+    } catch (err) {
+      if (tuitionBStripeInvoiceId) {
+        await voidStripeInvoice(tuitionBStripeInvoiceId).catch((voidErr) =>
+          console.error('[createInvoiceSchedule] Failed to compensate-void orphaned tuition_b Stripe invoice', tuitionBStripeInvoiceId, voidErr)
+        );
+      }
+      throw err;
+    }
     created.push(tuitionB);
     nextInvoiceNumber++;
   }

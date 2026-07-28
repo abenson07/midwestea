@@ -17,6 +17,7 @@ import {
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
+import { markTransactionPaidByInvoiceId } from '@/lib/stripe-invoices';
 import {
   sendCourseEnrollmentEmail,
   sendProgramEnrollmentEmail,
@@ -203,6 +204,7 @@ export async function POST(request: NextRequest) {
         registrationFee,
         price,
         stripePaymentIntentId: paymentIntentId,
+        stripeCustomerId: customerId,
         amountTotal,
       });
       console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
@@ -618,6 +620,7 @@ export async function POST(request: NextRequest) {
         registrationFee,
         price,
         stripePaymentIntentId: paymentIntentId,
+        stripeCustomerId: customerId,
         amountTotal,
       });
       console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
@@ -776,10 +779,46 @@ export async function POST(request: NextRequest) {
   // Handle payment_intent.created event - IGNORED (only process succeeded)
   if (event.type === 'payment_intent.created') {
     console.log('[webhook] Ignoring payment_intent.created event (will process on payment_intent.succeeded)');
-    return NextResponse.json({ 
-      received: true, 
-      message: 'Event ignored - will process on payment_intent.succeeded' 
+    return NextResponse.json({
+      received: true,
+      message: 'Event ignored - will process on payment_intent.succeeded'
     });
+  }
+
+  // Handle invoice.paid event - fires when a tuition Stripe Invoice (tuition_a/tuition_b,
+  // or a void-and-reissue replacement) is paid via its hosted invoice page, or is marked
+  // paid out-of-band (e.g. by the pay-remaining collapsed-checkout reconciliation).
+  if (event.type === 'invoice.paid') {
+    try {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeInvoiceId = invoice.id;
+      const amountPaidCents = invoice.amount_paid;
+      const paymentIntentId = typeof invoice.payment_intent === 'string'
+        ? invoice.payment_intent
+        : invoice.payment_intent?.id ?? null;
+
+      console.log('[webhook] Processing invoice.paid:', stripeInvoiceId);
+
+      const result = await markTransactionPaidByInvoiceId(stripeInvoiceId, {
+        paymentIntentId,
+        amountPaidCents,
+      });
+
+      if (!result.matched) {
+        console.warn('[webhook] invoice.paid for unknown stripe_invoice_id — no matching transaction:', stripeInvoiceId);
+      }
+
+      return NextResponse.json({ received: true, matched: result.matched, alreadyProcessed: result.alreadyProcessed });
+    } catch (error: any) {
+      console.error('[webhook] Error processing invoice.paid:', {
+        error: error.message,
+        invoice_id: (event.data.object as Stripe.Invoice).id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to process invoice.paid', details: error.message },
+        { status: 500 }
+      );
+    }
   }
 
   // Return success for other event types (we only handle payment_intent.succeeded)  console.log('[webhook] Received unhandled event type:', event.type);
