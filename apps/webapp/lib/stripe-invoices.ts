@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getStripeClient } from './stripe';
+import { applyPaidUpdate } from './invoice-payments';
 
 /**
  * Create a Stripe Invoice for a fixed amount with a specific due date, and
@@ -55,9 +56,10 @@ export async function voidStripeInvoice(stripeInvoiceId: string): Promise<void> 
 
 /**
  * Mark the transaction linked to a Stripe Invoice as paid, in response to an
- * invoice.paid webhook event. Self-contained on this branch (lib/invoice-payments.ts's
- * shared applyPaidUpdate guard doesn't exist yet at this point in the stack) —
- * gets refactored to call that shared guard once it lands on 1176-invoicing-work.
+ * invoice.paid webhook event. Shares its "already paid -> no-op" guard with
+ * every other paid-marking path via applyPaidUpdate — this is what makes it
+ * safe for payStripeInvoiceOutOfBand's self-triggering invoice.paid event
+ * (see below) to hit this same function a second time for the same row.
  *
  * Not found -> matched:false rather than an error. An unmatched stripe_invoice_id
  * will never resolve on retry, so the webhook route treats this as a 200 + log,
@@ -83,23 +85,21 @@ export async function markTransactionPaidByInvoiceId(
     return { matched: false, alreadyProcessed: false };
   }
 
-  if (transaction.transaction_status === 'paid') {
-    return { matched: true, alreadyProcessed: true };
-  }
+  const result = await applyPaidUpdate(transaction, update);
+  return { matched: true, alreadyProcessed: result.alreadyProcessed };
+}
 
-  const { error: updateError } = await supabase
-    .from('transactions')
-    .update({
-      transaction_status: 'paid',
-      payment_date: new Date().toISOString(),
-      amount_paid: update.amountPaidCents,
-      stripe_payment_intent_id: update.paymentIntentId,
-    })
-    .eq('id', transaction.id);
-
-  if (updateError) {
-    throw new Error(`Failed to mark transaction ${transaction.id} paid: ${updateError.message}`);
-  }
-
-  return { matched: true, alreadyProcessed: false };
+/**
+ * Mark an open Stripe Invoice paid without an actual Stripe-collected charge —
+ * used to reconcile a tuition invoice that was actually settled via the
+ * combined pay-remaining Checkout Session instead of its own hosted page.
+ *
+ * This itself fires a fresh invoice.paid webhook event for the same invoice.
+ * That's expected, not a bug: by the time that event arrives the DB row is
+ * already 'paid' (set synchronously by the caller before/after this call),
+ * so markTransactionPaidByInvoiceId's applyPaidUpdate guard makes it a no-op.
+ */
+export async function payStripeInvoiceOutOfBand(stripeInvoiceId: string): Promise<void> {
+  const stripe = getStripeClient();
+  await stripe.invoices.pay(stripeInvoiceId, { paid_out_of_band: true });
 }

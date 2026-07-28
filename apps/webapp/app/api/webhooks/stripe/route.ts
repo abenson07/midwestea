@@ -18,7 +18,7 @@ import {
 import { insertLog } from '@/lib/logging';
 import { markTransactionPaidFromCheckout, markTransactionsPaidFromCollapsedCheckout } from '@/lib/invoice-payments';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
-import { markTransactionPaidByInvoiceId } from '@/lib/stripe-invoices';
+import { markTransactionPaidByInvoiceId, payStripeInvoiceOutOfBand } from '@/lib/stripe-invoices';
 import {
   sendCourseEnrollmentEmail,
   sendProgramEnrollmentEmail,
@@ -117,6 +117,28 @@ export async function POST(request: NextRequest) {
           piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
         }
         const result = await markTransactionsPaidFromCollapsedCheckout(transactionIds, piId || '');
+
+        // Reconcile each underlying Stripe Invoice as paid out-of-band, since the
+        // actual charge went through this combined Checkout Session, not through
+        // any individual invoice's own hosted page. Log-and-continue on failure —
+        // the DB is already the source of truth and already marked paid; a failed
+        // Stripe reconciliation call is a bookkeeping mismatch to notice later,
+        // not a reason to fail this webhook response (which would just make
+        // Stripe retry an already-completed, already-idempotent operation).
+        const reconcileSupabase = createSupabaseAdminClient();
+        const { data: paidRows } = await reconcileSupabase
+          .from('transactions')
+          .select('stripe_invoice_id')
+          .in('id', transactionIds)
+          .not('stripe_invoice_id', 'is', null);
+
+        for (const row of paidRows ?? []) {
+          if (!row.stripe_invoice_id) continue;
+          await payStripeInvoiceOutOfBand(row.stripe_invoice_id).catch((err) =>
+            console.error('[webhook] Failed to reconcile Stripe invoice out-of-band:', row.stripe_invoice_id, err)
+          );
+        }
+
         return NextResponse.json({
           success: true,
           enrollmentId: session.metadata.enrollment_id,
