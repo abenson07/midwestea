@@ -25,6 +25,8 @@ export type Transaction = {
   reconciliation_date: string | null; // timestamp with time zone
   refund_percentage: number | null; // e.g. 50.00 for 50%
   refund_amount: number | null; // cents
+  discount_percent: number | null; // e.g. 50 for 50%, set only by the percentage discount action
+  original_amount_due: number | null; // cents, amount_due as of just before the most recent admin discount/set-amount edit
   created_at: string | null;
   updated_at: string | null;
 };

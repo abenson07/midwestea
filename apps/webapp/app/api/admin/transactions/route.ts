@@ -23,6 +23,8 @@ export type AdminTransaction = {
   payment_date?: string | null;
   created_at?: string | null;
   stripe_payment_intent_id?: string | null;
+  discount_percent?: number | null;
+  original_amount_due?: number | null;
 };
 
 export const runtime = 'nodejs';
@@ -173,6 +175,8 @@ export async function GET(request: NextRequest) {
         payment_date: transaction.payment_date || null,
         created_at: transaction.created_at || null,
         stripe_payment_intent_id: transaction.stripe_payment_intent_id || null,
+        discount_percent: transaction.discount_percent ?? null,
+        original_amount_due: transaction.original_amount_due ?? null,
       };
     });
 

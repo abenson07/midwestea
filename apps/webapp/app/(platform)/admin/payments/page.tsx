@@ -223,12 +223,17 @@ function TransactionsPageContent() {
             // (0.5 on legacy rows, 1 on rows created after the amount_due/quantity
             // refactor) keeps producing the intended payable amount either way.
             const newAmount = Math.round(newPayable / quantity);
-            const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount);
+            const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount, pct);
             if (error) {
                 setError(error);
             } else if (success) {
                 await loadTransactions();
-                setSelectedTransaction({ ...selectedTransaction, amount_due: newAmount });
+                setSelectedTransaction({
+                    ...selectedTransaction,
+                    amount_due: newAmount,
+                    original_amount_due: selectedTransaction.amount_due,
+                    discount_percent: pct,
+                });
                 setDiscountPercentInput("");
             }
         } catch (err: any) {
@@ -254,7 +259,12 @@ function TransactionsPageContent() {
                 setError(error);
             } else if (success) {
                 await loadTransactions();
-                setSelectedTransaction({ ...selectedTransaction, amount_due: newAmount });
+                setSelectedTransaction({
+                    ...selectedTransaction,
+                    amount_due: newAmount,
+                    original_amount_due: selectedTransaction.amount_due,
+                    discount_percent: null,
+                });
             }
         } catch (err: any) {
             setError(err.message || "Failed to set amount");
@@ -283,6 +293,36 @@ function TransactionsPageContent() {
         const quantity = transaction.quantity || 1;
         const amountDue = transaction.amount_due || 0;
         return quantity * amountDue;
+    };
+
+    // Discount tooltip text, or null if this row's amount was never adjusted
+    // via Apply Discount / Set Amount, or the "adjustment" wasn't actually a
+    // reduction (e.g. amount was raised, not discounted).
+    const getDiscountTooltip = (transaction: TransactionWithDetails): string | null => {
+        if (transaction.original_amount_due == null) return null;
+        const quantity = transaction.quantity || 1;
+        const originalPayable = transaction.original_amount_due * quantity;
+        const currentPayable = calculateAmountDue(transaction);
+        if (currentPayable >= originalPayable) return null;
+
+        const discountLabel =
+            transaction.discount_percent != null
+                ? `${transaction.discount_percent}%`
+                : formatCurrency(originalPayable - currentPayable);
+        return `${discountLabel} discount applied to original ${formatCurrency(originalPayable)}`;
+    };
+
+    const DiscountInfoIcon = ({ transaction }: { transaction: TransactionWithDetails }) => {
+        const tooltip = getDiscountTooltip(transaction);
+        if (!tooltip) return null;
+        return (
+            <span
+                title={tooltip}
+                className="ml-1 inline-flex items-center justify-center w-4 h-4 text-[10px] leading-none rounded-full border border-gray-400 text-gray-500 cursor-help align-middle"
+            >
+                i
+            </span>
+        );
     };
 
     type InvoiceDisplayStatus = 'paid' | 'past_due' | 'pending' | 'cancelled' | 'refunded';
@@ -343,7 +383,12 @@ function TransactionsPageContent() {
         { 
             header: "Amount Due", 
             accessorKey: "amount_due" as keyof TransactionWithDetails,
-            cell: (item: TransactionWithDetails) => formatCurrency(calculateAmountDue(item)),
+            cell: (item: TransactionWithDetails) => (
+                <span>
+                    {formatCurrency(calculateAmountDue(item))}
+                    <DiscountInfoIcon transaction={item} />
+                </span>
+            ),
             className: "font-medium"
         },
         {
@@ -437,7 +482,10 @@ function TransactionsPageContent() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Amount Due</label>
-                            <p className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(calculateAmountDue(selectedTransaction))}</p>
+                            <p className="mt-1 text-lg font-semibold text-gray-900">
+                                {formatCurrency(calculateAmountDue(selectedTransaction))}
+                                <DiscountInfoIcon transaction={selectedTransaction} />
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Status</label>
@@ -518,6 +566,7 @@ function TransactionsPageContent() {
                                     <label className="block text-sm font-medium text-gray-500">Adjust Amount</label>
                                     <p className="text-sm text-gray-900">
                                         Current: {formatCurrency((selectedTransaction.amount_due || 0) * (selectedTransaction.quantity || 1))}
+                                        <DiscountInfoIcon transaction={selectedTransaction} />
                                     </p>
                                     <div className="flex gap-2 items-center">
                                         <input

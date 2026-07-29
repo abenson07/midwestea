@@ -198,6 +198,8 @@ export interface TransactionWithDetails {
   payment_date?: string | null;
   created_at?: string | null;
   stripe_payment_intent_id?: string | null;
+  discount_percent?: number | null;
+  original_amount_due?: number | null;
 }
 
 /**
@@ -276,7 +278,8 @@ export async function updateTransactionDueDate(
  */
 export async function updateTransactionAmount(
   transactionId: string,
-  amountDueCents: number
+  amountDueCents: number,
+  discountPercent?: number
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     const supabase = await createSupabaseClient();
@@ -288,7 +291,7 @@ export async function updateTransactionAmount(
     const response = await fetch(`/api/admin/transactions/${transactionId}/amount`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ amountDueCents }),
+      body: JSON.stringify({ amountDueCents, discountPercent }),
     });
     const result = await response.json();
     if (!response.ok || !result.success) {

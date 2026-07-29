@@ -45,10 +45,13 @@ export async function POST(
     if (typeof amountDueCents !== 'number' || !Number.isInteger(amountDueCents) || amountDueCents < 0) {
       return NextResponse.json({ success: false, error: 'amountDueCents must be a non-negative integer' }, { status: 400 });
     }
+    // Only set by the percentage-based "Apply Discount" action — "Set Amount"
+    // (a direct dollar figure) omits this, leaving discount_percent NULL.
+    const discountPercent = typeof body?.discountPercent === 'number' ? body.discountPercent : null;
 
     const { data: transaction, error: txError } = await supabase
       .from('transactions')
-      .select('id, stripe_invoice_id, due_date, quantity, student_id, transaction_type')
+      .select('id, stripe_invoice_id, due_date, quantity, student_id, transaction_type, amount_due')
       .eq('id', id)
       .maybeSingle();
 
@@ -108,7 +111,11 @@ export async function POST(
 
     const { error: updateError } = await supabase
       .from('transactions')
-      .update({ amount_due: amountDueCents })
+      .update({
+        amount_due: amountDueCents,
+        original_amount_due: transaction.amount_due,
+        discount_percent: discountPercent,
+      })
       .eq('id', id);
 
     if (updateError) {
