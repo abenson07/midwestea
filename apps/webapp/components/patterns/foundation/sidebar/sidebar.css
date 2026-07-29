@@ -1,0 +1,13 @@
+.sidebar-menu-item-action,
+.sidebar-section-header-action {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-menu-item:hover .sidebar-menu-item-action,
+.sidebar-menu-item:focus-within .sidebar-menu-item-action,
+.sidebar-section-header:hover .sidebar-section-header-action,
+.sidebar-section-header:focus-within .sidebar-section-header-action {
+  opacity: 1;
+  pointer-events: auto;
+}
