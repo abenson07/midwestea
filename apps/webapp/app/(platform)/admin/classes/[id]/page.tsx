@@ -5,7 +5,6 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, updateClass, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
 import { getStudentsByClassId, getStudents, getStudentEmailFromAuth } from "@/lib/students";
-import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
@@ -16,6 +15,29 @@ import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClas
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
+import type { Enrollment } from "@midwestea/types";
+
+// Client-safe/RLS replacement for lib/enrollments.ts's getEnrollmentByStudentAndClass,
+// which uses the service-role admin client and throws when called from the browser
+// (no SUPABASE_SERVICE_ROLE_KEY client-side) — that throw gets swallowed internally,
+// silently returning enrollment: null, which breaks both the roster's payment-status
+// column and the remove-student refund-prompt logic below (BEN-1178/1181).
+async function fetchEnrollmentClientSafe(
+    studentId: string,
+    classId: string
+): Promise<{ enrollment: Enrollment | null; error: string | null }> {
+    const supabase = await createSupabaseClient();
+    const { data, error } = await supabase
+        .from("enrollments")
+        .select("*")
+        .eq("student_id", studentId)
+        .eq("class_id", classId)
+        .maybeSingle();
+    if (error) {
+        return { enrollment: null, error: error.message };
+    }
+    return { enrollment: (data as Enrollment) ?? null, error: null };
+}
 
 const formatClassDate = (dateString: string): { rendered: string; strategy: "date-only" | "timestamp"; parsedIso: string } => {
     // Date-only values should display as literal calendar dates, independent of viewer timezone.
@@ -238,7 +260,7 @@ function ClassDetailContent() {
     const loadStudentsWithBilling = async (roster: Student[]) => {
         const withBilling = await Promise.all(
             roster.map(async (student) => {
-                const { enrollment } = await getEnrollmentByStudentAndClass(student.id, classId);
+                const { enrollment } = await fetchEnrollmentClientSafe(student.id, classId);
                 if (!enrollment) {
                     return { ...student, paymentStatus: "No invoices yet", transactions: [] };
                 }
@@ -393,7 +415,7 @@ function ClassDetailContent() {
         const student = students.find((s) => s.id === studentId);
         const studentName = student?.name ?? "Student";
 
-        const { enrollment } = await getEnrollmentByStudentAndClass(studentId, classId);
+        const { enrollment } = await fetchEnrollmentClientSafe(studentId, classId);
         let paidTotal = 0;
         if (enrollment) {
             const { transactions } = await getTransactionsByEnrollment(enrollment.id);

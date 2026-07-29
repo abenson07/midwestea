@@ -6,7 +6,6 @@ import Link from "next/link";
 import { getClassesByStudentId, type Class } from "@/lib/classes";
 import { getStudentById, getStudentEmailFromAuth, updateStudent, deleteStudent, type StudentWithEmail } from "@/lib/students";
 import { getPaymentsByStudentId, type PaymentWithDetails, getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
-import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
@@ -144,6 +143,13 @@ function StudentDetailContent() {
     const renderPaymentDateCell = (item: PaymentWithDetails & { due_date?: string | null }) => {
         if (item.paid_at) {
             return formatDate(item.paid_at);
+        }
+        if (item.payment_status === 'cancelled' || item.payment_status === 'refunded') {
+            return (
+                <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 font-medium">
+                    {item.payment_status === 'cancelled' ? 'Cancelled' : 'Refunded'}
+                </span>
+            );
         }
         if (item.due_date) {
             const dueDate = new Date(item.due_date);
@@ -337,15 +343,22 @@ function StudentDetailContent() {
         setIsEnrollmentSidebarOpen(true);
         setSelectedClass(classItem);
         
-        // Fetch enrollment
-        const { enrollment, error: enrollmentError } = await getEnrollmentByStudentAndClass(studentId, classItem.id);
-        
+        // Fetch enrollment (client-safe/RLS query — do not use the admin-client
+        // helper from lib/enrollments.ts here, it throws in the browser)
+        const supabase = await createSupabaseClient();
+        const { data: enrollment, error: enrollmentError } = await supabase
+            .from("enrollments")
+            .select("*")
+            .eq("student_id", studentId)
+            .eq("class_id", classItem.id)
+            .maybeSingle();
+
         if (enrollmentError) {
             console.error("Error fetching enrollment:", enrollmentError);
             setSelectedEnrollment(null);
             setEnrollmentTransactions([]);
         } else if (enrollment) {
-            setSelectedEnrollment(enrollment);
+            setSelectedEnrollment(enrollment as Enrollment);
             
             // Fetch transactions for this enrollment
             const { transactions, error: transactionsError } = await getTransactionsByEnrollment(enrollment.id);

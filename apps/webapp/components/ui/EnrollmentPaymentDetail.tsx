@@ -66,7 +66,9 @@ export function EnrollmentPaymentDetail({ transactions }: { transactions: Transa
                             <div>
                                 <label className="block text-xs font-medium text-gray-500">Amount Due</label>
                                 <p className="mt-1 text-sm text-gray-900">
-                                    {transaction.amount_due ? formatCurrency(transaction.amount_due) : "—"}
+                                    {transaction.amount_due
+                                        ? formatCurrency(transaction.amount_due * (transaction.quantity || 1))
+                                        : "—"}
                                 </p>
                             </div>
                             <div>

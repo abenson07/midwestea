@@ -74,10 +74,10 @@ function StudentBillingPageContent() {
     const { checkoutUrl, error: payError } = await payInvoice(transactionId);
     if (payError || !checkoutUrl) {
       alert(payError || "Failed to start payment");
-      setPayingId(null);
-      return;
+    } else {
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
     }
-    window.location.href = checkoutUrl;
+    setPayingId(null);
   }
 
   async function handlePayAllRemaining(enrollmentId: string) {
@@ -85,10 +85,10 @@ function StudentBillingPageContent() {
     const { checkoutUrl, error: payError } = await payAllRemaining(enrollmentId);
     if (payError || !checkoutUrl) {
       alert(payError || "Failed to start payment");
-      setPayingAllId(null);
-      return;
+    } else {
+      window.open(checkoutUrl, "_blank", "noopener,noreferrer");
     }
-    window.location.href = checkoutUrl;
+    setPayingAllId(null);
   }
 
   return (

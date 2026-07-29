@@ -32,7 +32,7 @@ export async function POST(
 
     const { data: transaction, error: txError } = await supabase
       .from('transactions')
-      .select('id, enrollment_id, student_id, class_id, transaction_type, transaction_status, amount_due, invoice_number, due_date')
+      .select('id, enrollment_id, student_id, class_id, transaction_type, transaction_status, amount_due, quantity, invoice_number, due_date, stripe_hosted_invoice_url')
       .eq('id', id)
       .maybeSingle();
 

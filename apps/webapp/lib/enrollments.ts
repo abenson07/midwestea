@@ -38,7 +38,7 @@ export async function findOrCreateStudent(
       // If listing fails, we'll try to create the user anyway
       console.warn('Failed to list auth users, will attempt to create new user:', authError.message);
   } else {
-    existingAuthUser = authUsers.users.find((user) => user.email === email);
+    existingAuthUser = authUsers.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
   }
 } catch (error: any) {
   // If there's an error listing users, log it but continue to try creating
@@ -62,7 +62,7 @@ if (existingAuthUser) {
     const perPage = 1000;
     for (let page = 1; page <= 5; page++) {
       const { data: pageData } = await supabase.auth.admin.listUsers({ page, perPage });
-      const found = pageData?.users?.find((u) => u.email === email);
+      const found = pageData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
       if (found) {
         authUserId = found.id;
         existingAuthUser = found;
@@ -626,12 +626,12 @@ export async function createInvoiceSchedule(params: {
     try {
       tuitionA = await createTransaction({
         enrollmentId, studentId, classId,
-        classType: 'program', transactionType: 'tuition_a', quantity: 0.5,
+        classType: 'program', transactionType: 'tuition_a', quantity: 1,
         stripePaymentIntentId: null,
         stripeInvoiceId: tuitionAStripeInvoiceId, stripeHostedInvoiceUrl: tuitionAHostedInvoiceUrl,
         transactionStatus: 'pending',
         paymentDate: null, dueDate: tuitionADueDate,
-        amountDue: price, amountPaid: null,
+        amountDue: price !== null ? Math.round(price * 0.5) : null, amountPaid: null,
         invoiceNumber: nextInvoiceNumber,
       });
     } catch (err) {
@@ -674,12 +674,12 @@ export async function createInvoiceSchedule(params: {
     try {
       tuitionB = await createTransaction({
         enrollmentId, studentId, classId,
-        classType: 'program', transactionType: 'tuition_b', quantity: 0.5,
+        classType: 'program', transactionType: 'tuition_b', quantity: 1,
         stripePaymentIntentId: null,
         stripeInvoiceId: tuitionBStripeInvoiceId, stripeHostedInvoiceUrl: tuitionBHostedInvoiceUrl,
         transactionStatus: 'pending',
         paymentDate: null, dueDate: tuitionBDueDate,
-        amountDue: price, amountPaid: null,
+        amountDue: price !== null ? Math.round(price * 0.5) : null, amountPaid: null,
         invoiceNumber: nextInvoiceNumber,
       });
     } catch (err) {

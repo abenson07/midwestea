@@ -67,6 +67,7 @@ export interface TuitionReminderTemplateData {
   amountDue: number; // Amount in cents
   invoiceNumber: number;
   dueDate: string | Date;
+  payUrl: string | null;
 }
 
 // ============================================================================
@@ -80,12 +81,10 @@ export interface TuitionReminderTemplateData {
  * @returns Template HTML string
  */
 function loadTemplate(templateName: string): string {
-  // Use process.cwd() for Next.js compatibility
-  // Templates are in lib/email-templates/ relative to project root
+  // process.cwd() is already apps/webapp — `npm run dev` runs via the
+  // @midwestea/webapp workspace script, which cd's there before invoking `next dev`.
   const templatePath = path.join(
     process.cwd(),
-    'apps',
-    'webapp',
     'lib',
     'email-templates',
     `${templateName}.html`
@@ -356,6 +355,15 @@ export function renderTuitionReminderTemplate(
   data: TuitionReminderTemplateData
 ): string {
   let html = getTemplate('tuition-reminder');
+
+  // Built and substituted before renderTemplate's own pass, since that pass
+  // HTML-escapes every value it substitutes — fine for plain text fields,
+  // but it would mangle this button's markup. escapeHtml still runs on the
+  // URL itself here, which is the correct/safe way to put a URL in an href.
+  const payButtonHtml = data.payUrl
+    ? `<table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 30px 0;"><tr><td align="center"><a href="${escapeHtml(data.payUrl)}" style="display: inline-block; padding: 14px 32px; background-color: #ffb452; color: #191920; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 6px;">Pay Now</a></td></tr></table>`
+    : '';
+  html = html.replace('{{payButtonHtml}}', payButtonHtml);
 
   const templateData: Record<string, string> = {
     studentName: escapeHtml(data.studentName || 'Student'),

@@ -64,7 +64,11 @@ function TransactionsPageContent() {
     useEffect(() => {
         setDiscountPercentInput("");
         if (selectedTransaction?.amount_due != null) {
-            setDirectAmountInput((selectedTransaction.amount_due / 100).toFixed(2));
+            // amount_due is stored pre-quantity (see amount route's doc comment) —
+            // show/seed the actual payable figure so this matches what "Current"
+            // displays and what the student is really being charged.
+            const payable = selectedTransaction.amount_due * (selectedTransaction.quantity || 1);
+            setDirectAmountInput((payable / 100).toFixed(2));
         } else {
             setDirectAmountInput("");
         }
@@ -166,7 +170,11 @@ function TransactionsPageContent() {
 
         setIsUpdatingDueDate(true);
         try {
-            const isoDueDate = new Date(dueDateInput).toISOString();
+            // dueDateInput is a bare "YYYY-MM-DD" from <input type="date">, which
+            // Date() parses as UTC midnight — behind "now" for any timezone west
+            // of UTC once local time passes that instant. Anchor to end-of-day
+            // *local* time instead so any date >= today is safely in the future.
+            const isoDueDate = new Date(`${dueDateInput}T23:59:59`).toISOString();
             const { success, error } = await updateTransactionDueDate(selectedTransaction.id, isoDueDate);
             if (error) {
                 setError(error);
@@ -208,7 +216,13 @@ function TransactionsPageContent() {
 
         setIsAdjustingAmount(true);
         try {
-            const newAmount = Math.round(selectedTransaction.amount_due * (1 - pct / 100));
+            const quantity = selectedTransaction.quantity || 1;
+            const payable = selectedTransaction.amount_due * quantity;
+            const newPayable = Math.round(payable * (1 - pct / 100));
+            // /amount expects the pre-quantity figure — convert back so quantity
+            // (0.5 on legacy rows, 1 on rows created after the amount_due/quantity
+            // refactor) keeps producing the intended payable amount either way.
+            const newAmount = Math.round(newPayable / quantity);
             const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount);
             if (error) {
                 setError(error);
@@ -231,7 +245,10 @@ function TransactionsPageContent() {
 
         setIsAdjustingAmount(true);
         try {
-            const newAmount = Math.round(dollars * 100);
+            const quantity = selectedTransaction.quantity || 1;
+            const newPayable = Math.round(dollars * 100);
+            // Same pre-quantity conversion as handleApplyDiscount above.
+            const newAmount = Math.round(newPayable / quantity);
             const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount);
             if (error) {
                 setError(error);
@@ -500,7 +517,7 @@ function TransactionsPageContent() {
                                 <div className="pt-4 border-t border-gray-200 space-y-3">
                                     <label className="block text-sm font-medium text-gray-500">Adjust Amount</label>
                                     <p className="text-sm text-gray-900">
-                                        Current: {formatCurrency(selectedTransaction.amount_due || 0)}
+                                        Current: {formatCurrency((selectedTransaction.amount_due || 0) * (selectedTransaction.quantity || 1))}
                                     </p>
                                     <div className="flex gap-2 items-center">
                                         <input

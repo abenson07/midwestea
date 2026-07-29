@@ -1145,8 +1145,10 @@ export async function sendTuitionReminderEmail(
     class_id: string | null;
     transaction_type: string | null;
     amount_due: number | null;
+    quantity: number | null;
     invoice_number: number | null;
     due_date: string | null;
+    stripe_hosted_invoice_url: string | null;
   },
   classRecord: { class_name: string | null }
 ): Promise<EmailSendResult> {
@@ -1197,9 +1199,12 @@ export async function sendTuitionReminderEmail(
       studentName,
       programName,
       invoiceDescription,
-      amountDue: transaction.amount_due || 0,
+      // amount_due is stored pre-quantity (see api/admin/transactions/[id]/amount's
+      // doc comment) — same convention every other consumer applies.
+      amountDue: (transaction.amount_due || 0) * (transaction.quantity || 1),
       invoiceNumber: transaction.invoice_number || 0,
       dueDate: transaction.due_date || new Date(),
+      payUrl: transaction.stripe_hosted_invoice_url,
     });
   } catch (error: any) {
     return {

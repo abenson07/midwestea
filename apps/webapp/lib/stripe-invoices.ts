@@ -48,9 +48,18 @@ export async function createAndFinalizeStripeInvoice(params: {
  * Void an open (unpaid) Stripe Invoice. Used both as a compensating action
  * when a paired DB write fails after Stripe succeeded, and as the real
  * "void" half of the admin void-and-reissue exception path.
+ *
+ * No-ops if the invoice is already void — a void-then-reissue call that
+ * succeeded at voiding but failed at reissuing (e.g. a past due_date) would
+ * otherwise be permanently stuck: every retry re-voids the same dead
+ * invoice and Stripe rejects it with "You can only pass in open invoices."
  */
 export async function voidStripeInvoice(stripeInvoiceId: string): Promise<void> {
   const stripe = getStripeClient();
+  const invoice = await stripe.invoices.retrieve(stripeInvoiceId);
+  if (invoice.status === 'void') {
+    return;
+  }
   await stripe.invoices.voidInvoice(stripeInvoiceId);
 }
 
