@@ -1,0 +1,1 @@
+export { CourseSettingsLive } from "./CourseSettingsLive";

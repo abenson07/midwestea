@@ -1,0 +1,1 @@
+export { StudentDetailLive } from "./StudentDetailLive";

@@ -1,4 +1,5 @@
 export { LinearSidebar } from "./LinearSidebar";
+export { MigrateSidebar } from "./MigrateSidebar";
 export { FoundationLayout } from "./FoundationLayout";
 export type { FoundationLayoutProps } from "./FoundationLayout";
 export {

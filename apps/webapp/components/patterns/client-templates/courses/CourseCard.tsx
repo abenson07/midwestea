@@ -7,6 +7,7 @@ import { Badge } from "@/components/patterns/primitives/Badge";
 import { HStack, VStack } from "@/components/patterns/primitives/Stack";
 import { Icon } from "@/components/patterns/primitives/Icon";
 import { Text } from "@/components/patterns/primitives/Text";
+import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
 import type { CourseCard as CourseCardData } from "@/data/mocks/courses";
 
 export type CourseCardProps = {
@@ -15,15 +16,16 @@ export type CourseCardProps = {
 
 export function CourseCard({ course }: CourseCardProps) {
   const router = useRouter();
+  const basePath = useAdminBasePath();
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => router.push("/admin-preview/course-settings")}
+      onClick={() => router.push(`${basePath}/course-settings`)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
-          router.push("/admin-preview/course-settings");
+          router.push(`${basePath}/course-settings`);
         }
       }}
       style={{ cursor: "pointer" }}

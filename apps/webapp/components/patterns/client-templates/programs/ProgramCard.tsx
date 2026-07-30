@@ -7,6 +7,7 @@ import { Badge } from "@/components/patterns/primitives/Badge";
 import { HStack, VStack } from "@/components/patterns/primitives/Stack";
 import { Icon } from "@/components/patterns/primitives/Icon";
 import { Text } from "@/components/patterns/primitives/Text";
+import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
 import type { ProgramCard as ProgramCardData } from "@/data/mocks/programs";
 
 export type ProgramCardProps = {
@@ -15,15 +16,16 @@ export type ProgramCardProps = {
 
 export function ProgramCard({ program }: ProgramCardProps) {
   const router = useRouter();
+  const basePath = useAdminBasePath();
 
   return (
     <div
       role="button"
       tabIndex={0}
-      onClick={() => router.push("/admin-preview/program-settings")}
+      onClick={() => router.push(`${basePath}/program-settings`)}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
-          router.push("/admin-preview/program-settings");
+          router.push(`${basePath}/program-settings`);
         }
       }}
       style={{ cursor: "pointer" }}

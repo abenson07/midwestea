@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { Plus } from "lucide-react";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
@@ -18,7 +18,11 @@ import { sampleStaff, type StaffRow } from "@/data/mocks/staff";
 
 type StaffView = "all" | "trainers" | "admins";
 
-export function StaffDemo() {
+export type StaffDemoProps = {
+  navigation?: ReactNode;
+};
+
+export function StaffDemo({ navigation }: StaffDemoProps = {}) {
   const [staff, setStaff] = useState<StaffRow[]>(sampleStaff);
   const [view, setView] = useState<StaffView>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -51,7 +55,7 @@ export function StaffDemo() {
   return (
     <div style={{ height: "100%" }}>
       <FoundationLayout
-        navigation={<LinearSidebar />}
+        navigation={navigation ?? <LinearSidebar />}
         isSideContentVisible={selected != null}
         sideContent={
           selected ? (

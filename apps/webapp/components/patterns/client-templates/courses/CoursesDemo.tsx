@@ -1,15 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
 import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
 import { CoursesPage } from "./CoursesPage";
 
-export function CoursesDemo() {
+export type CoursesDemoProps = {
+  navigation?: ReactNode;
+};
+
+export function CoursesDemo({ navigation }: CoursesDemoProps = {}) {
   return (
     <div style={{ height: "100%" }}>
       <FoundationLayout
-        navigation={<LinearSidebar />}
+        navigation={navigation ?? <LinearSidebar />}
         contentMaxWidth={1200}
         header={<CanvasHeader topbar={{ title: "Courses" }} />}
       >

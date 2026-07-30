@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
+import { Agentation } from "agentation";
 import { ErrorReporter } from "@/components/ErrorReporter";
 import "./globals.css";
 
@@ -24,6 +25,7 @@ export default function RootLayout({
         <ErrorReporter />
         {children}
         <Analytics />
+        {process.env.NODE_ENV === "development" && <Agentation />}
       </body>
     </html>
   );

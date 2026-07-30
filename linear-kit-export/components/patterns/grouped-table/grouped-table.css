@@ -1,0 +1,156 @@
+/* Linear-ish list chrome on top of Astryx Table */
+
+[data-slot="grouped-table"] {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+[data-slot="grouped-table"] table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/*
+ * Keep <thead> in the layout so Astryx column width styles on <th> still apply.
+ * `display: none` was collapsing body cells (truncate uses max-width: 0).
+ */
+[data-slot="grouped-table"][data-list-chrome="true"] thead {
+  visibility: collapse;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] thead th {
+  padding: 0 !important;
+  border: none !important;
+  height: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
+  font-size: 0 !important;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] tbody tr:not(:has(td[colspan])) {
+  height: 44px;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] tbody tr:not(:has(td[colspan])) td {
+  height: 44px;
+  max-width: none !important;
+  padding-block: 0 !important;
+  padding-inline: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  vertical-align: middle;
+  color: var(--linear-color-ink);
+  font-size: 13px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] tbody tr:not(:has(td[colspan])) td:first-child {
+  padding-inline-start: 12px !important;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] tbody tr:not(:has(td[colspan])) td:last-child {
+  padding-inline-end: 12px !important;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] tbody tr:not(:has(td[colspan])):hover td {
+  background: var(--linear-color-sidebar-item-selected) !important;
+}
+
+[data-slot="grouped-table"][data-list-chrome="true"] tbody tr:has(td[colspan]) td {
+  height: auto;
+  min-height: 36px;
+  max-width: none !important;
+  padding-block: 6px !important;
+  padding-inline: 8px !important;
+  white-space: normal;
+  overflow: visible;
+}
+
+/* Nested appearance — detail-page section table with visible column headers */
+
+[data-slot="grouped-table"][data-appearance="nested"] {
+  height: auto;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] thead th {
+  height: 32px;
+  padding-block: 0 !important;
+  padding-inline: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--linear-color-ink-subtle);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] thead th:first-child {
+  padding-inline-start: 12px !important;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] thead th:last-child {
+  padding-inline-end: 12px !important;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:not(:has(td[colspan])) {
+  height: 40px;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:not(:has(td[colspan])) td {
+  height: 40px;
+  max-width: none !important;
+  padding-block: 0 !important;
+  padding-inline: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  vertical-align: middle;
+  color: var(--linear-color-ink);
+  font-size: 13px;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:not(:has(td[colspan])) td:first-child {
+  padding-inline-start: 12px !important;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:not(:has(td[colspan])) td:last-child {
+  padding-inline-end: 12px !important;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:not(:has(td[colspan])):hover td {
+  background: var(--linear-color-sidebar-item-selected) !important;
+}
+
+/* Group headers: transparent (no wash) — separation is the muted hairline in the header. */
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:has(td[colspan]) {
+  background: transparent !important;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:has(td[colspan]) td {
+  height: 32px;
+  min-height: 32px;
+  max-width: none !important;
+  padding-block: 0 !important;
+  padding-inline: 8px !important;
+  border: none !important;
+  background: transparent !important;
+  white-space: normal;
+  overflow: visible;
+  color: var(--linear-color-ink-subtle);
+  vertical-align: middle;
+}
+
+[data-slot="grouped-table"][data-appearance="nested"] tbody tr:has(td[colspan]):hover td {
+  background: transparent !important;
+}

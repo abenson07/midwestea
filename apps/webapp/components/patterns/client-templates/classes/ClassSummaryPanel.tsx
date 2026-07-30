@@ -7,6 +7,7 @@ import { VStack } from "@/components/patterns/primitives/Stack";
 import { Text, Heading } from "@/components/patterns/primitives/Text";
 import { List } from "@/components/patterns/primitives/List";
 import { SideContentField } from "@/components/patterns/foundation/side-content";
+import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
 import type { OtherClassRow } from "@/data/mocks/classes";
 
 export type ClassSummaryPanelProps = {
@@ -16,6 +17,7 @@ export type ClassSummaryPanelProps = {
 /** Summary side panel for a closed/other class — can drill into full detail. */
 export function ClassSummaryPanel({ otherClass }: ClassSummaryPanelProps) {
   const router = useRouter();
+  const basePath = useAdminBasePath();
 
   return (
     <VStack gap={5}>
@@ -49,7 +51,7 @@ export function ClassSummaryPanel({ otherClass }: ClassSummaryPanelProps) {
         variant="secondary"
         size="sm"
         width="100%"
-        onClick={() => router.push("/admin-preview/class-detail")}
+        onClick={() => router.push(`${basePath}/class-detail`)}
       />
     </VStack>
   );

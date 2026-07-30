@@ -238,7 +238,8 @@ export function LinearSidebar({ onSettingsClick }: LinearSidebarProps = {}) {
             <DropdownItem
               label="Payouts"
               icon={<Banknote size={16} strokeWidth={1.75} />}
-              onSelect={() => setSelectedId("payouts")}
+              selected={pathname === "/admin-preview/payouts"}
+              onSelect={() => router.push("/admin-preview/payouts")}
             />
           </Dropdown>
         </div>
@@ -277,7 +278,10 @@ export function LinearSidebar({ onSettingsClick }: LinearSidebarProps = {}) {
               <DropdownItem
                 key={code}
                 label={code}
-                onSelect={() => setSelectedId(`online-${code}`)}
+                onSelect={() => {
+                  setSelectedId(`online-${code}`);
+                  router.push("/admin-preview/online-class-detail");
+                }}
               />
             ))}
           </Dropdown>

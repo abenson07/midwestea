@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Inbox, MoreHorizontal } from "lucide-react";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
@@ -39,7 +39,11 @@ type Selection =
   | { kind: "invoice"; row: ClassInvoiceRow }
   | null;
 
-export function ClassDetailDemo() {
+export type ClassDetailDemoProps = {
+  navigation?: ReactNode;
+};
+
+export function ClassDetailDemo({ navigation }: ClassDetailDemoProps = {}) {
   const [view, setView] = useState<ClassDetailView>("overview");
   const [selection, setSelection] = useState<Selection>(null);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -87,7 +91,7 @@ export function ClassDetailDemo() {
   return (
     <div style={{ height: "100%" }}>
       <FoundationLayout
-        navigation={<LinearSidebar />}
+        navigation={navigation ?? <LinearSidebar />}
         contentMaxWidth={isFullBleed ? undefined : 1200}
         isSideContentVisible={isEditingClass || selection != null}
         sideContent={
