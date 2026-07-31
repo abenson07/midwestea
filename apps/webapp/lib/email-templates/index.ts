@@ -156,8 +156,14 @@ function calculateTotalOutstanding(invoices: OutstandingInvoice[]): number {
 // ============================================================================
 
 /**
+ * @deprecated Superseded by apps/webapp/emails/enrollment-successful.tsx (rendered via
+ * lib/react-emails.ts). No longer called by sendCourseEnrollmentEmail. Kept because
+ * scripts/test-email-templates.ts and scripts/render-email-preview.ts still reference
+ * it — safe to remove once those scripts are updated too. See
+ * apps/webapp/emails/EMAILS-GUIDE.md.
+ *
  * Render course enrollment email template
- * 
+ *
  * @param data - Course enrollment template data
  * @returns Rendered HTML email string
  * 
@@ -199,8 +205,11 @@ export function renderCourseEnrollmentTemplate(
 }
 
 /**
+ * @deprecated Superseded by apps/webapp/emails/enrollment-successful.tsx. See the
+ * deprecation note on renderCourseEnrollmentTemplate above.
+ *
  * Render program enrollment email template
- * 
+ *
  * @param data - Program enrollment template data
  * @returns Rendered HTML email string
  * 
@@ -332,6 +341,10 @@ export function getProgramEnrollmentSubject(programName: string): string {
 }
 
 /**
+ * @deprecated Superseded by apps/webapp/emails/waitlist-successful.tsx (rendered via
+ * lib/react-emails.ts, called from app/api/waitlist/submit/route.ts). See the
+ * deprecation note on renderCourseEnrollmentTemplate above.
+ *
  * Render waitlist confirmation email template
  */
 export function renderWaitlistConfirmationTemplate(
