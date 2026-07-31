@@ -11,6 +11,7 @@ const EXACT_PAGE_TITLES: Record<string, string> = {
   "/admin/payments": "Transactions",
   "/admin/approvals": "Approvals",
   "/admin/reconcile": "Reconcile",
+  "/admin/recommend-courses": "Recommend Courses",
   "/admin/success": "Success",
 };
 

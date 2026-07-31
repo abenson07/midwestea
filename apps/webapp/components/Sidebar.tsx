@@ -16,6 +16,7 @@ import {
   Settings,
   MapPin,
   FileText,
+  ClipboardList,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Instructors", href: "/admin/instructors", icon: FileText },
   { name: "Transactions", href: "/admin/payments", icon: CreditCard },
   { name: "Approvals", href: "/admin/approvals", icon: CheckSquare },
+  { name: "Recommend Courses", href: "/admin/recommend-courses", icon: ClipboardList },
 ];
 
 export function Sidebar() {
