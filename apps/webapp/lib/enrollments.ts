@@ -423,7 +423,7 @@ export async function getClassType(classId: string): Promise<'course' | 'program
 
 /**
  * Get the next invoice number from the transactions table
- * Returns the highest invoice_number + 1, or 1000 if no transactions exist
+ * Returns the highest invoice_number + 1, or 101 if no transactions exist
  */
 export async function getNextTransactionInvoiceNumber(): Promise<number> {
   const supabase = createSupabaseAdminClient();
@@ -440,9 +440,10 @@ export async function getNextTransactionInvoiceNumber(): Promise<number> {
     throw new Error(`Failed to get next invoice number: ${error.message}`);
   }
 
-  let candidate = data?.invoice_number != null ? data.invoice_number + 1 : 1000;
+  let candidate = data?.invoice_number != null ? Number(data.invoice_number) + 1 : 101;
 
-  // Skip numbers already taken (handles default 1000 when 1000 exists, gaps, races)
+  // Skip numbers already taken (handles gaps, races) — belt-and-suspenders
+  // alongside the DB unique constraint and createTransaction()'s own retry.
   for (let i = 0; i < 25; i++) {
     const { data: existing, error: checkError } = await supabase
       .from('transactions')
