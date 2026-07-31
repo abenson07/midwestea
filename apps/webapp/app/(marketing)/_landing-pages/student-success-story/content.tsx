@@ -24,51 +24,53 @@ export type StudentSuccessStoryContent = {
 export const gregStoryContent: StudentSuccessStoryContent = {
   header137: {
     kicker: "Meet Greg",
-    heading: "EMT in 12 weeks, not 4 years",
+    heading: "From warehouse shifts to lead paramedic on his own rig",
     description:
-      "While his friends headed off to four-year colleges, Greg chose a faster, more direct path. In just 3 months at Midwest EMS Academy, he earned his EMT certification and launched the career of his dreams — without the years of school or the student debt.",
-    button: { title: "Enroll today" },
-    backgroundImage: { src: "/images/emt-hero.avif", alt: "Greg in EMS uniform" },
-    foregroundImage: { src: "/images/emt-compressions.avif", alt: "Greg on shift with his crew" },
+      "Greg made the jump without ever setting foot on a four-year campus. From his first EMT class to full paramedic scope, one accredited program built the whole ladder.",
+    button: { title: "Start the Paramedic Program" },
+    backgroundImage: { src: "/images/paramedic-1.avif", alt: "Greg in EMS uniform" },
+    foregroundImage: { src: "/images/paramedic.avif", alt: "Greg on shift with his crew" },
   },
   layout1A: {
-    heading: "Accelerated path to EMS",
+    heading: "Where Greg started",
     description:
-      "Become job-ready in months, not years. Midwest EMS Academy's EMT program can be completed in roughly 12 weeks, so you can start saving lives now instead of sitting in a classroom until some distant graduation date.",
+      "Three years ago, Greg was working overnight shifts in a warehouse with no clear next step. He got his start with Midwest EMS Academy's 12-week EMT program, certified, and got hired fast — but a year into EMS work, he kept hitting the same wall AEMTs and EMTs hit every shift: waiting on a paramedic to arrive before certain calls could really move forward. He wanted to be the one making the call.",
     button: { title: "Explore programs" },
     image: { src: "/images/student-studying.png", alt: "Greg reviewing his class schedule" },
     imagePosition: "left",
   },
   comparison6: {
-    tagline: "See how we compare",
-    heading: "Affordable hands-on training",
-    description:
-      "Quality EMS training at a fraction of the cost of a college degree. Our programs won't bury you in debt. Plus, we offer flexible payment plans so you can invest in your future without financial strain.",
-    competitorName: "Local college program",
-    baseTuition: { midwestEa: "$1,800", competitor: "$3,600" },
+    tagline: "Before vs. after",
+    heading: "From EMT to lead paramedic",
+    description: "A side-by-side look at what changed for Greg once he advanced to paramedic.",
+    competitorName: "Before (EMT)",
+    baseTuition: { midwestEa: "$8,800", competitor: "$2,150" },
     costRows: [
-      { label: "Books", midwestEa: "$50", competitor: "$300" },
-      { label: "Supplies", midwestEa: "Included", competitor: "$500" },
-      { label: "Certification fee", midwestEa: "N/A", competitor: "$25" },
-      { label: "Materials", midwestEa: "Included", competitor: "$125" },
-      { label: "Insurance", midwestEa: "N/A", competitor: "$60" },
+      { label: "Scope", midwestEa: "Cardiac rhythm interpretation, full pharmacology, advanced airway, lead clinical decisions", competitor: "BLS / limited ALS support" },
+      { label: "Training", midwestEa: "12 months, CAAHEP-accredited, 1 class day/week", competitor: "12 weeks" },
+      { label: "Credential", midwestEa: "State license + CAAHEP accreditation + 30 college credit hours", competitor: "State EMT license" },
+      { label: "Certifications earned", midwestEa: "BLS, ACLS, PALS, PHTLS, AMLS", competitor: "Basic" },
     ],
-    totalCost: { midwestEa: "$1,850", competitor: "$4,610" },
-    button: { title: "Register today to lock in your price" },
+    totalCost: { midwestEa: "$8,800", competitor: "$2,150" },
+    button: { title: "Apply to the Paramedic Program" },
   },
   layout1B: {
-    heading: "Hands-on training, real skills",
+    heading: "Why Greg chose this program",
     description:
-      "From day one, you'll train with real equipment and scenarios. No endless prereqs or unrelated courses; every lesson is focused on emergency care and preparing you for the field.",
+      "Greg wanted a program that would actually be respected — by employers, by hospitals, by the state. Midwest EMS Academy's paramedic program is state-approved and CAAHEP-accredited, with 30 college credit hours through North Central Missouri College built in, so his training counted toward something beyond a certificate. The one-day-a-week class schedule (Monday or Tuesday, based on his shift) meant he didn't have to leave his EMT job to become a paramedic.",
     button: { title: "See the paramedic curriculum" },
     image: { src: "/images/cpr2.avif", alt: "Greg in hands-on paramedic training" },
     imagePosition: "right",
   },
   layout1C: {
-    heading: "Focused on certification & career",
+    heading: "What training was actually like",
     description:
-      "We teach exactly what you need to pass your NREMT certification and excel as an EMT. No filler, no time wasted. Our expert instructors coach you through exams, and our reputation in the EMS community means you'll have a strong foundation when seeking a job.",
-    checklist: ["Exam preparation", "Community involvement", "Career placement"],
+      "Twelve months, one class day a week, plus hospital rotations and a field internship where Greg worked real calls under a preceptor's supervision. Coursework went deep — cardiac rhythm interpretation, pharmacology, advanced airway management — building toward the moment he'd be the one running a cardiac arrest instead of assisting one. The internship was the turning point: the first time he called the shots on scene and it worked.",
+    checklist: [
+      "CAAHEP-accredited certification, plus 30 college credit hours",
+      "Certified in BLS, ACLS, PALS, PHTLS, and AMLS",
+      "Promoted to lead paramedic within months of certifying",
+    ],
     image: { src: "/images/emt.avif", alt: "Greg reviewing certification materials" },
     imagePosition: "left",
   },
@@ -96,47 +98,42 @@ export const gregStoryContent: StudentSuccessStoryContent = {
     ],
   },
   content2: {
-    heading: "Greg's story",
+    heading: "In Greg's own words",
     image: { src: "/images/ems.avif", alt: "Greg on an ambulance call" },
     body: (
       <>
         <p className="mea-body-md">
-          Greg always knew he wanted a career helping others, but the prospect of spending four
-          years in college (and taking on a mountain of debt) just didn&apos;t feel right.{" "}
           <strong>
-            &ldquo;I didn&apos;t want to spend years in a classroom before actually saving
-            lives,&rdquo;
+            &ldquo;People ask if I regret not going to a four-year school. I don&apos;t.&rdquo;
           </strong>{" "}
-          Greg says. After high school, he took a leap and enrolled in Midwest EMS Academy&apos;s
-          12-week EMT program. It turned out to be the best decision of his life.
+          Greg spent three years working overnight shifts in a warehouse before he ever set foot
+          in a classroom. He got his start with Midwest EMS Academy&apos;s 12-week EMT program,
+          certified, and got hired fast — but a year into EMS work, he kept hitting the same wall
+          EMTs hit every shift: waiting on a paramedic to arrive before certain calls could really
+          move forward. He wanted to be the one making the call.
         </p>
         <p className="mea-body-md">
-          From day one, Greg was immersed in real training. He wasn&apos;t sitting in a huge
-          lecture hall learning abstract theory; he was in a small, hands-on class practicing how
-          to stop bleeding, perform CPR, and manage real emergency scenarios.{" "}
-          <strong>The instructors knew him by name</strong> and took extra time to make sure he
-          grasped each skill. &ldquo;It was so engaging. I learned more in three months here than I
-          think I would have in two years of general college classes,&rdquo; he recalls.
+          Greg wanted a program that would actually be respected — by employers, by hospitals, by
+          the state. Midwest EMS Academy&apos;s paramedic program is state-approved{" "}
+          <strong>and</strong> CAAHEP-accredited, with 30 college credit hours through North
+          Central Missouri College built in, so his training counted toward something beyond a
+          certificate. The one-day-a-week class schedule meant he didn&apos;t have to leave his
+          EMT job to become a paramedic.
         </p>
         <p className="mea-body-md">
-          When the 12 weeks were up, Greg had earned his EMT certification. He studied hard and,
-          with Midwest EMS Academy&apos;s preparation,{" "}
-          <strong>passed the NREMT exam on his first attempt</strong>. Just a few weeks later —
-          while some of his high school friends were still picking college majors — Greg started
-          his new job as a full-time EMT with a local ambulance service. He was 19 years old, out
-          in the real world, <strong>making a difference every day</strong>.
+          Twelve months, one class day a week, plus hospital rotations and a field internship
+          where Greg worked real calls under a preceptor&apos;s supervision.{" "}
+          <strong>
+            &ldquo;The hospital rotations and the internship were the hardest part — and the most
+            important. That&apos;s where I actually became a paramedic, not just someone who
+            passed a test.&rdquo;
+          </strong>
         </p>
         <p className="mea-body-md">
-          That was a year ago. Now Greg has responded to dozens of 911 calls, from helping car
-          crash victims to reviving heart attack patients. &ldquo;I love my job and I&apos;m proud
-          of the path I chose,&rdquo; he says. &ldquo;Midwest EMS Academy gave me the head start I
-          needed. Instead of sitting in a dorm room, I&apos;m out here doing what I was meant to
-          do.&rdquo;
-        </p>
-        <p className="mea-body-md">
-          Greg&apos;s story is proof that college isn&apos;t the only path to success. His advice
-          to others: &ldquo;If you&apos;re serious about EMS, don&apos;t wait four years to start.
-          Do it now.&rdquo;
+          Greg was promoted to lead paramedic on his rig within months of certifying —{" "}
+          <strong>full autonomy on scene, no longer waiting on someone else to arrive.</strong>{" "}
+          &ldquo;I have a real accredited credential, college credit, and I&apos;m running my own
+          rig,&rdquo; he says.
         </p>
       </>
     ),
@@ -148,10 +145,10 @@ export const gregStoryContent: StudentSuccessStoryContent = {
       {
         numberOfStars: 5,
         quote:
-          "Midwest EMS Academy's training gave me the skills and confidence I needed. I passed the NREMT exam on the first try and felt prepared for real emergencies from day one on the job.",
-        avatar: { src: "/images/instructors/Brower.jpg", alt: "Emily S." },
-        name: "Emily S.",
-        position: "Certified EMT",
+          "Midwest EMS Academy's paramedic program gave me the clinical depth and the credentials to be trusted running my own calls. The accreditation and college credit made it worth every class day.",
+        avatar: { src: "/images/instructors/Brower.jpg", alt: "Greg T." },
+        name: "Greg T.",
+        position: "Lead Paramedic",
         companyName: "Program Graduate",
       },
       {
@@ -175,35 +172,35 @@ export const gregStoryContent: StudentSuccessStoryContent = {
     ],
   },
   faqBanner: {
-    heading: "Questions about changing careers into EMS",
-    description: "Answers to what students in Greg's position ask most before enrolling.",
+    heading: "Questions about advancing to paramedic",
+    description: "Answers to what working EMTs in Greg's position ask most before enrolling.",
     questions: [
       {
-        title: "Can I keep working while I train, like Greg did?",
+        title: "Is this a \"real\" accredited credential, or just a certificate?",
         answer:
-          "Yes — the paramedic program is built around evening and weekend cohorts so you can keep your current job while you train.",
+          "It's both state-approved and CAAHEP-accredited — the same accreditation standard used by college-based paramedic programs — plus 30 transferable college credit hours through North Central Missouri College.",
       },
       {
-        title: "How long does it take to become a certified paramedic?",
+        title: "Can I work full-time as an EMT while doing this?",
         answer:
-          "Most students, like Greg, complete certification in under a year, depending on the track and prior EMT experience.",
+          "Yes — one class day a week (Monday or Tuesday, based on shift) is built specifically for working EMTs and AEMTs.",
       },
       {
-        title: "What does the program cost?",
+        title: "What does the hands-on part actually involve?",
         answer:
-          "Tuition and financing options vary by track — an admissions advisor can walk you through cost and financial aid.",
+          "Hospital rotations and a field internship where you work real calls under supervision — not just simulations.",
       },
       {
-        title: "Will I get help finding a job after certification?",
+        title: "What's the total cost and payment structure?",
         answer:
-          "Yes — the academy connects graduates with hiring partners, which is how Greg was placed within weeks of finishing.",
+          "$8,800 total, with a three-payment plan ($300 registration + $1,000 + $1,000, remaining balance structured across the program).",
       },
     ],
     button: { title: "Talk to admissions" },
   },
   header108: {
-    title: "Ready to start your own story?",
-    description: "Greg changed careers in under a year. See what the paramedic program could do for you.",
-    button: { title: "Explore the paramedic program" },
+    title: "From first responder to lead paramedic — one accredited program, no four-year detour.",
+    description: "Greg advanced from EMT to lead paramedic. See what the paramedic program could do for you.",
+    button: { title: "Apply to the Paramedic Program" },
   },
 };

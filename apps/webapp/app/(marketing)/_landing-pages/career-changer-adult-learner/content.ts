@@ -26,10 +26,10 @@ export type CareerChangerAdultLearnerContent = {
 
 export const careerChangerContent: CareerChangerAdultLearnerContent = {
   header108A: {
-    title: "Start a New EMS Career Without Quitting Your Day Job",
+    title: "Start a new EMS career without quitting your day job.",
     description:
-      "It's never too late to follow your passion. Midwest EMS Academy offers flexible EMT and Paramedic training programs built for working adults. Keep your job, keep your family commitments, and still get the training you need to launch a rewarding career in emergency services.",
-    button: { title: "Get started" },
+      "It's never too late to start a new path. Midwest EMS Academy offers flexible EMT and Paramedic training built for working adults. Keep your job, keep your family commitments, and still get the training you need to launch a career in emergency services.",
+    button: { title: "Get Started" },
     images: [
       { src: "/images/emt-hero.avif", alt: "EMT student training" },
       { src: "/images/emt.avif", alt: "EMT in the field" },
@@ -41,9 +41,9 @@ export const careerChangerContent: CareerChangerAdultLearnerContent = {
     ],
   },
   layout1A: {
-    heading: "Flexible schedule options",
+    heading: "Fits your current life",
     description:
-      "Life is busy, we get it. That's why we offer evening/weekend classes and hybrid online learning. Train for a new career without upending your current routine or responsibilities.",
+      "Life is busy, and we get it. That's why we offer evening/weekend classes and hybrid online learning. Train for a new career without upending your current routine or responsibilities.",
     checklist: ["Flexible scheduling", "Online learning", "Personalized support"],
     button: { title: "Explore online courses" },
     image: { src: "/images/student-studying.png", alt: "Adult learner studying in the evening" },
@@ -51,47 +51,58 @@ export const careerChangerContent: CareerChangerAdultLearnerContent = {
     imageAspect: "aspect-square",
   },
   layout48: {
-    heading: "Hybrid learning model supports your busy life",
+    heading: "Your biggest hesitations, answered",
     description:
-      "Enjoy the convenience of online learning combined with periodic in-person skill sessions. You might do your weekly lectures online from home, then attend a hands-on training lab on a Saturday. It's the best of both worlds for a busy adult learner.",
+      "If any of these sound familiar, you're not alone — here's how we handle the questions career-changers ask us most.",
     subHeadings: [
       {
-        title: "Weekend classes",
-        description: "Our weekend classes let you complete your certification without missing a day of work.",
+        title: "“I'm too old to start an EMS career.”",
+        description:
+          "Not at all — we have successful graduates in their 30s, 40s, and beyond. As long as you meet the basic requirements (18 or older, high school diploma/GED), a desire to help others is what matters. You are not too late to start this journey.",
       },
       {
-        title: "Remote learning",
-        description: "Our online portal gives you access to course materials and virtual classrooms anytime, anywhere.",
+        title: "“I haven't been a student in years. How will I keep up?”",
+        description:
+          "Our hybrid format is built for adults, not fresh-out-of-high-school students. One-on-one tutoring, detailed study guides, and a community of peers going through the same thing mean you're never studying alone.",
+      },
+      {
+        title: "“Can I really work full-time and do this?”",
+        description:
+          "Yes. Coursework is online and self-paced within deadlines; only skills days require you in person, and we offer multiple scheduling options built around work and family life.",
       },
     ],
   },
   layout241: {
-    tagline: "Tagline",
-    heading: "Supporting you every step of the way",
+    tagline: "How it works",
+    heading: "The path, step by step",
     description:
-      "With Midwest EMS Academy, you get everything you need to succeed – credible training, experienced mentors, and a learning experience that leaves you confident for Day One in the field.",
+      "Becoming an EMT is a finite, three-step process — not an open-ended commitment. Here's exactly what it looks like.",
     sections: [
       {
         icon: { src: "/images/landing-pages/book_ribbon.svg", alt: "Book ribbon icon" },
-        heading: "One-on-one tutoring",
-        description: "Need help with a skill or prepping for the NREMT exam? Our team has your back.",
+        heading: "1. Enroll",
+        description:
+          "Complete your application, meet the basic requirements, and pick a cohort that fits your schedule.",
       },
       {
         icon: { src: "/images/landing-pages/ink_pen.svg", alt: "Ink pen icon" },
-        heading: "In-depth study guides",
-        description: "Stuck on a tough topic? Our detailed study guides make test prep a breeze.",
+        heading: "2. Train",
+        description:
+          "Work through online coursework and attend hands-on skills days with real instructors and real scenarios.",
       },
       {
         icon: { src: "/images/landing-pages/handshake.svg", alt: "Handshake icon" },
-        heading: "Community of peers",
-        description: "Connect with fellow students in study groups for advice and support.",
+        heading: "3. Get hired",
+        description:
+          "Sit for your NREMT exam, get certified, and start applying — many students are hired within weeks of certifying.",
       },
     ],
   },
   layout1B: {
-    heading: "No experience required",
+    heading: "No experience required.",
     description:
-      "Many of our career-changing students come from fields like IT, teaching, military, retail – you name it. You don't need a medical background to start. We begin with the basics and build you up step by step. All you need is commitment and a high school diploma/GED.",
+      "Many of our career-changing students come from fields like IT, teaching, military, retail — you name it. You don't need a medical background to start. We begin with the basics and build you up step by step. All you need is commitment and a high school diploma/GED.",
+    button: { title: "See What You Need to Start" },
     image: { src: "/images/emt.avif", alt: "Career changer training as an EMT" },
     imagePosition: "right",
   },
@@ -100,37 +111,37 @@ export const careerChangerContent: CareerChangerAdultLearnerContent = {
     heading: "Affordable hands-on training",
     description: "Ensuring you get the best value for your money.",
     competitorName: "Local college program",
-    baseTuition: { midwestEa: "$1,800", competitor: "$3,600" },
+    baseTuition: { midwestEa: "$2,150", competitor: "$4,610" },
     costRows: [
-      { label: "Books", midwestEa: "$50", competitor: "$300" },
+      { label: "Books", midwestEa: "Included", competitor: "$300" },
       { label: "Supplies", midwestEa: "Included", competitor: "$500" },
       { label: "Certification fee", midwestEa: "N/A", competitor: "$25" },
       { label: "Materials", midwestEa: "Included", competitor: "$125" },
       { label: "Insurance", midwestEa: "N/A", competitor: "$60" },
     ],
-    totalCost: { midwestEa: "$1,850", competitor: "$4,610" },
+    totalCost: { midwestEa: "$2,150", competitor: "$4,610" },
     button: { title: "Register today to lock in your price" },
   },
   content12: {
     heading: "James' story",
     intro:
-      "Imagine this: you're 35, working full-time, maybe with kids at home. You've spent a decade or more in another field, but you've always felt the call to emergency medicine – to do something more meaningful. Yet, the thought of dropping everything to go back to school is scary. That's exactly the situation many of our students have faced, and Midwest EMS Academy was built to help people like you.",
+      "Imagine this: you're 35, working full-time, maybe with kids at home. You've spent over a decade in another field, but you've always felt the call to emergency medicine – to do something more meaningful. Yet the thought of dropping everything to go back to school is scary. That's exactly the situation James was in, and Midwest EMS Academy was built to help people like him.",
     gettingStartedHeading: "Getting started",
     gettingStartedParagraph:
-      "James spent 15 years in IT. By his mid-30s, he was successful but unfulfilled. He craved a career where he could help others directly. Still, James had a mortgage, a family, and a 9-to-5 job he couldn't just leave. He chose Midwest EMS Academy's flexible Paramedic program to make his transition possible. During the week, after dinner, James would settle in and watch online lectures or complete interactive assignments at his own pace. Every other Saturday, he attended an in-person lab to practice skills like starting IVs and managing airways with instructors.",
+      "James spent over a decade working overnight warehouse shifts. He had a family depending on his paycheck and couldn't just walk away from his job to go back to school full-time. He chose Midwest EMS Academy's hybrid EMT program because it let him keep working while he trained. During the week, after his shift, James worked through online coursework at his own pace. On scheduled skills days, he came in for hands-on practice — CPR, splinting, bleeding control, patient assessment — alongside classmates who were becoming his support system, not just classmates.",
     image: { src: "/images/group-care.avif", alt: "Students attending a hands-on training session" },
     imageCaption:
       "Midwest EMS Academy students attending a hands-on training session as part of a flexible hybrid program.",
     journeyHeading: "His journey",
     journeyParagraph:
-      "Was it easy? Not always. James had long days – work in the morning, classwork at night – and some weekends where he was mastering patient assessment instead of relaxing. But with the support of his family and Midwest EMS Academy's staff, he made steady progress. 18 months later, James graduated as a certified Paramedic. He kept his day job until the very week he landed a paramedic position with a local ambulance service. Now he's 37 and starting a job he loves, without having sacrificed his financial security to get here.",
+      "Was it easy? Not always. James had long days – work overnight, coursework whenever he could fit it in – and weekends spent on skills instead of resting. But with one-on-one tutoring, detailed study guides, and the support of his family, he made steady progress. Twelve weeks after his first class, James was a certified EMT. He was hired by a local ambulance service within weeks of certifying — without ever having to quit his job to get there.",
     quote: "Midwest EMS Academy gave me a second chance at my dream. If I can do it, anyone can.",
-    quoteAvatar: { src: "/images/instructors/Jonathan.jpg", alt: "James Doe" },
-    quoteAuthor: "James Doe, Paramedic",
+    quoteAvatar: { src: "/images/instructors/Jonathan.jpg", alt: "James M." },
+    quoteAuthor: "James M., Certified EMT (formerly full-time warehouse worker)",
     takeawayHeading: "The takeaway",
     takeawayParagraphs: [
-      "Maybe your story will be different – perhaps you'll train to be an EMT first (a shorter program) and get a foot in the door that way. Or maybe you're switching from the military or firefighting into EMS and already have some related skills. Whatever your background, if you're passionate about saving lives, we're here to help you do it. We've had students from age 18 to 60 in our classes. Your life experience is an asset in this field.",
-      "The bottom line: It's never too late to pursue a career you truly care about. Midwest EMS Academy will work with you to make it happen. Keep your paycheck, keep your commitments, and train for a life-changing new role on your terms. We'll make sure the journey fits your life – and leads you to success.",
+      "Maybe your story will be different – maybe you're switching from the military, teaching, IT, or retail, and already have some transferable skills. Whatever your background, if you're passionate about helping others, we're here to help you do it. We've had students from age 18 to 60 in our classes. Your life experience is an asset in this field.",
+      "The bottom line: it's never too late to pursue a career you truly care about. Midwest EMS Academy will work with you to make it happen. Keep your paycheck, keep your commitments, and train for a life-changing new role on your terms. We'll make sure the journey fits your life – and leads you to success.",
     ],
   },
   testimonial19: {
@@ -140,11 +151,11 @@ export const careerChangerContent: CareerChangerAdultLearnerContent = {
       {
         numberOfStars: 5,
         quote:
-          "Midwest EMS Academy's training gave me the skills and confidence I needed. I passed the NREMT exam on the first try and felt prepared for real emergencies from day one on the job.",
-        avatar: { src: "/images/instructors/Brower.jpg", alt: "Emily S." },
-        name: "Emily S.",
+          "Midwest EMS Academy gave me a second chance at my dream. If I can do it, anyone can.",
+        avatar: { src: "/images/instructors/Jonathan.jpg", alt: "James M." },
+        name: "James M.",
         position: "Certified EMT",
-        companyName: "Program Graduate",
+        companyName: "Formerly full-time warehouse worker",
       },
       {
         numberOfStars: 5,
@@ -169,45 +180,45 @@ export const careerChangerContent: CareerChangerAdultLearnerContent = {
   cta25: {
     heading: "Ready to take the leap?",
     description:
-      "You don't have to choose between your current life and your dream career. Midwest EMS Academy provides a bridge from where you are to where you want to be. If you're ready for a change, we're ready to help you every step of the way. Your new EMS career can start today.",
-    button: { title: "Enroll today" },
+      "You don't have to choose between your current life and your dream career. Midwest EMS Academy provides a bridge from where you are to where you want to be. We're ready to help you every step of the way. Your new EMS career can start today.",
+    button: { title: "Enroll Now" },
   },
   faqBanner: {
     heading: "Questions?",
     description:
-      "Visit our FAQ section for more information regarding programs, courses, certifications, and more.",
+      "Remaining practical questions career-changers ask before enrolling.",
     questions: [
       {
         title: "Am I \"too old\" to start an EMS career?",
         answer:
-          "Not at all! We have successful graduates in their 30s, 40s, and beyond. As long as you meet the basic requirements (18 years or older, high school diploma/GED, and a desire to help others), you can become an EMT or Paramedic at any adult age. In fact, students who join later often bring incredible maturity, empathy, and real-world experience. EMS teams value diversity and life experience – it helps in relating to patients. So no, it's not too late for you to start this journey. We welcome and support adult learners.",
+          "Not at all. We have successful graduates in their 30s, 40s, and beyond. As long as you meet the basic requirements (18 or older, high school diploma/GED), a desire to help others is what matters. So it's not too late to start your journey.",
       },
       {
         title: "I haven't been a student in years. How will I keep up with studying and tests?",
         answer:
-          "Our instructors know most students are returning to the classroom after years away. Coursework is broken into manageable modules, and advisors and tutors are available throughout the program to help you build good study habits and stay on track.",
+          "Our tutoring, study guides, and peer community exist specifically for this. You won't be figuring it out alone.",
       },
       {
         title: "Can I really work full-time and do this?",
-        answer:
-          "Yes — the program is built specifically for working adults. Evening, weekend, and hybrid online formats let you keep your job and complete your training around your existing schedule.",
+        answer: "Yes — that's the whole design of the hybrid format.",
       },
       {
         title: "How much time per week will I need to dedicate to training?",
         answer:
-          "It varies by track, but most working students dedicate 8–12 hours a week between online coursework and in-person labs. An advisor can map out a realistic weekly schedule for your specific program.",
+          "Plan for a mix of self-paced online coursework each week plus scheduled in-person skills days — exact hours vary by program (EMT totals roughly 12 weeks of combined coursework and skills days).",
       },
       {
         title: "What if I have family obligations (kids, etc.)?",
         answer:
-          "Many of our students are parents. Evening and weekend class options are designed so you can keep up with family commitments while you train — you don't have to choose one over the other.",
+          "Multiple schedule options, evening/weekend availability, and a support team that understands you're balancing more than just school are built into how we run these programs.",
       },
     ],
     button: { title: "Visit FAQ page" },
   },
   header108C: {
-    title: "Your next career starts here.",
-    description: "Join the working adults who've already made the change into EMS.",
-    button: { title: "Request program info" },
+    title: "It's never too late to start your next chapter.",
+    description:
+      "Midwest EMS Academy offers flexible EMT and Paramedic training built for working adults just like you. Keep your job, keep your family commitments, and still get the training you need to launch a career in emergency services.",
+    button: { title: "Start Your EMS Career Today" },
   },
 };
