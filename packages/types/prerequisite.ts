@@ -16,10 +16,28 @@ export const PREREQUISITE_INPUT_TYPE_LABELS: Record<PrerequisiteInputType, strin
   checkbox: 'Checkbox',
 };
 
+export type PrerequisiteExpirationRule = 'none' | 'fixed_date' | 'duration_from_issue';
+
+export const PREREQUISITE_EXPIRATION_RULES: PrerequisiteExpirationRule[] = [
+  'none',
+  'fixed_date',
+  'duration_from_issue',
+];
+
+export const PREREQUISITE_EXPIRATION_RULE_LABELS: Record<PrerequisiteExpirationRule, string> = {
+  none: 'Never expires',
+  fixed_date: 'Expiration date provided by student',
+  duration_from_issue: 'Expires a set number of months after the issue date',
+};
+
 export type PrerequisiteType = {
   id: string; // UUID
   name: string;
   input_type: PrerequisiteInputType;
+  description: string | null;
+  required_by_default: boolean;
+  expiration_rule: PrerequisiteExpirationRule;
+  expiration_duration_months: number | null;
   archived_at: string | null;
   created_at: string | null;
   updated_at: string | null;

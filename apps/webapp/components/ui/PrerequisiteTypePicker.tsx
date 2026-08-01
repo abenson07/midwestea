@@ -46,7 +46,7 @@ export function PrerequisiteTypePicker({
     setIsCreating(true);
     setCreateError(null);
     try {
-      const result = await createPrerequisiteType(trimmedQuery, selectedInputType);
+      const result = await createPrerequisiteType({ name: trimmedQuery, input_type: selectedInputType });
       if (result.success && result.prerequisiteType) {
         onCreated?.(result.prerequisiteType);
         onSelect(result.prerequisiteType);
