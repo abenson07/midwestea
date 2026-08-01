@@ -3,6 +3,7 @@
 import { createSupabaseClient } from "@midwestea/utils";
 import type {
   ClassPrerequisiteWithType,
+  PrerequisiteEvaluation,
   PrerequisiteExpirationRule,
   PrerequisiteInputType,
   PrerequisiteType,
@@ -299,5 +300,43 @@ export async function getClassPrerequisites(
   } catch (err) {
     const error = err as Error;
     return { classPrerequisites: null, error: error.message || "Failed to fetch class prerequisites" };
+  }
+}
+
+/**
+ * Fetch the evaluation of a class's prerequisites against the current
+ * student's credentials (which prerequisites are satisfied vs. outstanding).
+ */
+export async function fetchPrerequisiteEvaluation(
+  classId: string
+): Promise<{ evaluation: PrerequisiteEvaluation | null; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return { evaluation: null, error: "Not authenticated. Please log in." };
+    }
+
+    const response = await fetch(`/api/prerequisites/evaluate?classId=${classId}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return { evaluation: null, error: result.error || "Failed to evaluate prerequisites" };
+    }
+
+    return { evaluation: result.evaluation as PrerequisiteEvaluation, error: null };
+  } catch (err) {
+    const error = err as Error;
+    return { evaluation: null, error: error.message || "Failed to evaluate prerequisites" };
   }
 }

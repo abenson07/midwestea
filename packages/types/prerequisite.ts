@@ -105,3 +105,39 @@ export type StudentCredential = {
 export type StudentCredentialWithType = StudentCredential & {
   prerequisite_type: PrerequisiteType;
 };
+
+export type PrerequisiteStatus =
+  | 'satisfied'
+  | 'expired'
+  | 'pending_review'
+  | 'rejected'
+  | 'missing'
+  | 'not_required';
+
+export const PREREQUISITE_STATUS_LABELS: Record<PrerequisiteStatus, string> = {
+  satisfied: 'Approved',
+  expired: 'Expired',
+  pending_review: 'Pending review',
+  rejected: 'Needs resubmission',
+  missing: 'Not started',
+  not_required: 'Optional',
+};
+
+export type EvaluatedPrerequisite = {
+  class_prerequisite_id: string;
+  prerequisite_type_id: string;
+  prerequisite_type: PrerequisiteType;
+  is_required: boolean;
+  sort_order: number;
+  status: PrerequisiteStatus;
+  /** The latest credential for this type, or null when none exists. */
+  credential: StudentCredential | null;
+};
+
+export type PrerequisiteEvaluation = {
+  class_id: string;
+  student_id: string;
+  items: EvaluatedPrerequisite[]; // every class prerequisite, sort_order ASC
+  outstanding: EvaluatedPrerequisite[]; // required AND missing/rejected/expired
+  allRequiredSatisfied: boolean;
+};
