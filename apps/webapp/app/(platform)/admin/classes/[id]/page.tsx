@@ -10,12 +10,14 @@ import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { StudentClassPrerequisiteReview } from "@/components/ui/StudentClassPrerequisiteReview";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
 import { getClassPrerequisites } from "@/lib/prerequisites";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
+import { getSession } from "@/lib/auth";
 import type { Enrollment, ClassPrerequisiteWithType } from "@midwestea/types";
 import { PREREQUISITE_INPUT_TYPE_LABELS } from "@midwestea/types";
 
@@ -147,6 +149,11 @@ function ClassDetailContent() {
     const [refundPercentageInput, setRefundPercentageInput] = useState<string>("");
     const [isRemovingStudent, setIsRemovingStudent] = useState(false);
 
+    // Prerequisite review sidebar state (BEN-867)
+    const [prereqReviewCounts, setPrereqReviewCounts] = useState<Record<string, number>>({});
+    const [isPrereqSidebarOpen, setIsPrereqSidebarOpen] = useState(false);
+    const [prereqReviewStudent, setPrereqReviewStudent] = useState<Student | null>(null);
+
     useEffect(() => {
         if (classId) {
             loadClass();
@@ -260,6 +267,7 @@ function ClassDetailContent() {
                 console.log("[ClassDetailContent] Transformed students for class:", transformedStudents);
                 setStudents(transformedStudents);
                 loadStudentsWithBilling(transformedStudents);
+                loadPrereqReviewCounts(transformedStudents);
             } else {
                 console.log("[ClassDetailContent] No students returned for class");
                 setStudents([]);
@@ -288,6 +296,42 @@ function ClassDetailContent() {
             })
         );
         setStudentsWithBilling(withBilling);
+    };
+
+    const loadPrereqReviewCounts = async (roster: Student[]) => {
+        if (!classId || roster.length === 0) return;
+        try {
+            const { session } = await getSession();
+            if (!session) return;
+
+            const entries = await Promise.all(
+                roster.map(async (student) => {
+                    try {
+                        const response = await fetch(
+                            `/api/admin/prerequisites/review?studentId=${encodeURIComponent(student.id)}&classId=${encodeURIComponent(classId)}`,
+                            { headers: { Authorization: `Bearer ${session.access_token}` } }
+                        );
+                        const result = await response.json();
+                        if (!response.ok || !result.success) return [student.id, 0] as const;
+                        const count = (result.evaluation.items as { is_required: boolean; status: string }[]).filter(
+                            (item) => item.is_required && item.status !== "satisfied" && item.status !== "not_required"
+                        ).length;
+                        return [student.id, count] as const;
+                    } catch {
+                        return [student.id, 0] as const;
+                    }
+                })
+            );
+
+            setPrereqReviewCounts(Object.fromEntries(entries));
+        } catch {
+            // Non-fatal: the Prerequisites column simply shows nothing meaningful.
+        }
+    };
+
+    const handlePrereqReviewClick = (student: Student) => {
+        setPrereqReviewStudent(student);
+        setIsPrereqSidebarOpen(true);
     };
 
     const handleViewInvoices = (student: StudentWithBilling) => {
@@ -663,6 +707,24 @@ function ClassDetailContent() {
             },
         },
         {
+            header: "Prerequisites",
+            accessorKey: "id" as keyof Student,
+            cell: (item: Student) => {
+                const count = prereqReviewCounts[item.id] ?? 0;
+                return (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrereqReviewClick(item);
+                        }}
+                        className={`text-sm font-medium hover:underline ${count > 0 ? "text-amber-600" : "text-green-600"}`}
+                    >
+                        {count > 0 ? `${count} to review` : "All complete"}
+                    </button>
+                );
+            },
+        },
+        {
             header: "Actions",
             accessorKey: "id" as keyof Student,
             cell: (item: Student) => (
@@ -873,6 +935,24 @@ function ClassDetailContent() {
 
             {/* Activity Log Section */}
             <LogDisplay referenceId={classData.id} referenceType="class" />
+
+            {/* Prerequisite Review Sidebar (BEN-867) */}
+            <DetailSidebar
+                isOpen={isPrereqSidebarOpen}
+                onClose={() => {
+                    setIsPrereqSidebarOpen(false);
+                    setPrereqReviewStudent(null);
+                }}
+                title={prereqReviewStudent ? `${prereqReviewStudent.name} · ${classData.class_name}` : ""}
+            >
+                {prereqReviewStudent && (
+                    <StudentClassPrerequisiteReview
+                        studentId={prereqReviewStudent.id}
+                        classId={classData.id}
+                        onChanged={() => loadPrereqReviewCounts(students)}
+                    />
+                )}
+            </DetailSidebar>
 
             {/* Add Student Sidebar */}
             <DetailSidebar

@@ -10,6 +10,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { StudentClassPrerequisiteReview } from "@/components/ui/StudentClassPrerequisiteReview";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 import type { Enrollment } from "@midwestea/types";
@@ -731,6 +732,21 @@ function StudentDetailContent() {
                     </div>
                 </div>
             </div>
+
+            {/* Prerequisites Section */}
+            {classes.length > 0 && (
+                <div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Prerequisites</h2>
+                    <div className="space-y-4">
+                        {classes.map((classItem) => (
+                            <div key={classItem.enrollment_id} className="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 className="text-base font-medium text-gray-900 mb-4">{classItem.class_name}</h3>
+                                <StudentClassPrerequisiteReview studentId={studentId} classId={classItem.id} />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Classes Section */}
             <div>
