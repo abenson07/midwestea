@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import { getCredentialHistory, reviewCredential } from '@/lib/admin-prerequisites';
 import { evaluateClassPrerequisites } from '@/lib/prerequisite-evaluation';
+import { sendPrerequisiteRejectedEmail } from '@/lib/email';
 
 export const runtime = 'nodejs';
 
@@ -163,6 +164,38 @@ export async function POST(request: NextRequest) {
     } catch (logError: any) {
       // A logging failure must not fail the review -- the DB write already committed.
       console.error('[API] Failed to log prerequisite review:', logError);
+    }
+
+    if (result.rejectionContext) {
+      const ctx = result.rejectionContext;
+      // Fire-and-forget: a mail failure must not fail an already-committed review.
+      Promise.resolve().then(async () => {
+        try {
+          let className: string | null = null;
+          let classCode: string | null = null;
+          if (ctx.classId) {
+            const { data: cls } = await supabase
+              .from('classes')
+              .select('class_name, class_id')
+              .eq('id', ctx.classId)
+              .maybeSingle();
+            className = cls?.class_name ?? null;
+            classCode = cls?.class_id ?? null;
+          }
+          const emailResult = await sendPrerequisiteRejectedEmail({
+            studentId: ctx.studentId,
+            prerequisiteTypeName: ctx.prerequisiteTypeName,
+            className,
+            classCode,
+            rejectionReason: ctx.rejectionReason,
+          });
+          if (!emailResult.success) {
+            console.error('[API] Failed to send prerequisite rejection email:', emailResult.error);
+          }
+        } catch (err: any) {
+          console.error('[API] Exception sending prerequisite rejection email:', err);
+        }
+      });
     }
 
     return NextResponse.json({ success: true, credential });

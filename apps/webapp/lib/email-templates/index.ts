@@ -70,6 +70,18 @@ export interface TuitionReminderTemplateData {
   payUrl: string | null;
 }
 
+/**
+ * Data structure for the prerequisite rejection email template
+ */
+export interface PrerequisiteRejectedTemplateData {
+  studentName: string;
+  prerequisiteTypeName: string;
+  className: string;
+  rejectionReason: string;
+  resubmitUrl: string;
+  resubmitLabel: string;
+}
+
 // ============================================================================
 // Template Loading
 // ============================================================================
@@ -384,6 +396,35 @@ export function getWaitlistConfirmationSubject(courseName: string): string {
 
 export function getTuitionReminderSubject(programName: string): string {
   return `Payment reminder — ${programName}`;
+}
+
+/**
+ * Render the prerequisite rejection email template.
+ *
+ * Passes every field straight to `renderTemplate`, which HTML-escapes each
+ * value itself -- `rejectionReason` is staff-entered free text and must
+ * never reach the template unescaped.
+ */
+export function renderPrerequisiteRejectedTemplate(
+  data: PrerequisiteRejectedTemplateData
+): string {
+  const html = getTemplate('prerequisite-rejected');
+
+  const templateData: Record<string, string> = {
+    studentName: data.studentName || 'Student',
+    prerequisiteTypeName: data.prerequisiteTypeName,
+    className: data.className,
+    rejectionReason: data.rejectionReason,
+    resubmitUrl: data.resubmitUrl,
+    resubmitLabel: data.resubmitLabel,
+    currentYear: String(new Date().getFullYear()),
+  };
+
+  return renderTemplate(html, templateData);
+}
+
+export function getPrerequisiteRejectedSubject(prerequisiteTypeName: string): string {
+  return `Action needed: ${prerequisiteTypeName}`;
 }
 
 /** Supabase Auth OTP subject line (paste into Supabase dashboard) */
