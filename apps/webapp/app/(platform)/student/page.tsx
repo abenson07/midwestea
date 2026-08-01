@@ -47,6 +47,13 @@ export default function StudentPage() {
           <h2 className="text-lg font-medium text-gray-900 mb-1">Certificates</h2>
           <p className="text-sm text-gray-500">View and download your certificates</p>
         </Link>
+        <Link
+          href="/student/profile"
+          className="block p-6 border border-gray-200 rounded-lg bg-white hover:border-gray-300 transition-colors"
+        >
+          <h2 className="text-lg font-medium text-gray-900 mb-1">Class requirements</h2>
+          <p className="text-sm text-gray-500">Finish anything still outstanding for your classes</p>
+        </Link>
       </div>
     </div>
   );

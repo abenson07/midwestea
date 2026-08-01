@@ -1,13 +1,22 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { Class, EvaluatedPrerequisite, PrerequisiteEvaluation } from "@midwestea/types";
 import CheckoutLayout from "@/components/CheckoutLayout";
 import { PrerequisiteStepForm } from "@/components/ui/PrerequisiteStepForm";
 import { fetchPrerequisiteEvaluation } from "@/lib/prerequisites";
 
-function CompletionPanel({ evaluation, router }: { evaluation: PrerequisiteEvaluation; router: ReturnType<typeof useRouter> }) {
+function CompletionPanel({
+  evaluation,
+  router,
+  fromProfile,
+}: {
+  evaluation: PrerequisiteEvaluation;
+  router: ReturnType<typeof useRouter>;
+  fromProfile: boolean;
+}) {
   const items = evaluation.items;
   const allSatisfied = items.every((item) => item.status === "satisfied");
   const anyPendingReview = items.some((item) => item.status === "pending_review");
@@ -35,7 +44,7 @@ function CompletionPanel({ evaluation, router }: { evaluation: PrerequisiteEvalu
         onClick={() => router.push("/student/profile")}
         className="w-full bg-gray-900 text-white py-3 px-6 rounded-md hover:bg-gray-800 transition-colors"
       >
-        Go to my profile
+        {fromProfile ? "Back to profile" : "Go to my profile"}
       </button>
     </div>
   );
@@ -44,7 +53,9 @@ function CompletionPanel({ evaluation, router }: { evaluation: PrerequisiteEvalu
 function PrerequisitesWizardContent() {
   const params = useParams<{ classId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const classCode = params.classId;
+  const fromProfile = searchParams.get("from") === "profile";
 
   const [classData, setClassData] = useState<Class | null>(null);
   const [evaluation, setEvaluation] = useState<PrerequisiteEvaluation | null>(null);
@@ -114,9 +125,18 @@ function PrerequisitesWizardContent() {
   return (
     <CheckoutLayout
       imageUrl={classData.class_image || undefined}
+      title=""
       titleContent={
         !showCompletion ? (
           <>
+            {fromProfile && (
+              <Link
+                href="/student/profile"
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                ← Back to profile
+              </Link>
+            )}
             <h1
               style={{
                 margin: 0,
@@ -150,7 +170,7 @@ function PrerequisitesWizardContent() {
       }
     >
       {showCompletion ? (
-        <CompletionPanel evaluation={evaluation} router={router} />
+        <CompletionPanel evaluation={evaluation} router={router} fromProfile={fromProfile} />
       ) : (
         <PrerequisiteStepForm
           key={outstanding[stepIndex].class_prerequisite_id}

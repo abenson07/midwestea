@@ -5,6 +5,7 @@ import { getSession, refreshSession } from "@/lib/auth";
 import { getStudentById, type StudentWithEmail } from "@/lib/students";
 import { formatPhone } from "@midwestea/utils";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { StudentClassRequirements } from "@/components/ui/StudentClassRequirements";
 
 interface ProfileFormState {
   full_name: string;
@@ -174,6 +175,8 @@ export default function StudentProfilePage() {
           </button>
         </div>
       </div>
+
+      {student && <StudentClassRequirements studentId={student.id} />}
 
       <DetailSidebar isOpen={isSidebarOpen} onClose={handleCloseSidebar} title="Edit profile">
         <form onSubmit={handleSave} className="space-y-6">

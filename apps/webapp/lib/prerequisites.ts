@@ -9,6 +9,7 @@ import type {
   PrerequisiteType,
   TemplatePrerequisiteWithType,
 } from "@midwestea/types";
+import { getClassesByStudentId } from "@/lib/classes";
 
 /**
  * Fetch all non-archived prerequisite types from the catalog, ordered by name.
@@ -339,4 +340,79 @@ export async function fetchPrerequisiteEvaluation(
     const error = err as Error;
     return { evaluation: null, error: error.message || "Failed to evaluate prerequisites" };
   }
+}
+
+export interface ClassPrerequisiteSummary {
+  classId: string; // classes.id UUID
+  classCode: string; // classes.class_id text code, for the route
+  className: string;
+  evaluation: PrerequisiteEvaluation | null;
+  outstandingCount: number;
+  hasAnyPrerequisites: boolean;
+  summaryLabel: string; // per the precedence in BEN-856's Decisions
+}
+
+function deriveSummaryLabel(evaluation: PrerequisiteEvaluation): string {
+  // `evaluation.outstanding` is already "required AND missing/rejected/
+  // expired/expiring_before_class" (see evaluateClassPrerequisites), which
+  // is exactly the precedence's first bucket.
+  if (evaluation.outstanding.length > 0) {
+    const n = evaluation.outstanding.length;
+    return `${n} requirement${n === 1 ? "" : "s"} outstanding`;
+  }
+
+  const anyPendingReview = evaluation.items.some((item) => item.status === "pending_review");
+  if (anyPendingReview) {
+    return "Awaiting review";
+  }
+
+  return "All requirements complete";
+}
+
+/**
+ * One summary per active (non-removed) enrollment, evaluations fetched in
+ * parallel. Reused by /student/profile's Class requirements section.
+ */
+export async function getStudentClassPrerequisiteSummaries(
+  studentId: string
+): Promise<{ summaries: ClassPrerequisiteSummary[]; error: string | null }> {
+  const { classes, error } = await getClassesByStudentId(studentId);
+
+  if (error) {
+    return { summaries: [], error };
+  }
+
+  if (!classes || classes.length === 0) {
+    return { summaries: [], error: null };
+  }
+
+  const summaries = await Promise.all(
+    classes.map(async (classRecord): Promise<ClassPrerequisiteSummary> => {
+      const { evaluation, error: evaluationError } = await fetchPrerequisiteEvaluation(classRecord.id);
+
+      if (evaluationError || !evaluation) {
+        return {
+          classId: classRecord.id,
+          classCode: classRecord.class_id || "",
+          className: classRecord.class_name || "Untitled class",
+          evaluation: null,
+          outstandingCount: 0,
+          hasAnyPrerequisites: false,
+          summaryLabel: "Status unavailable",
+        };
+      }
+
+      return {
+        classId: classRecord.id,
+        classCode: classRecord.class_id || "",
+        className: classRecord.class_name || "Untitled class",
+        evaluation,
+        outstandingCount: evaluation.outstanding.length,
+        hasAnyPrerequisites: evaluation.items.length > 0,
+        summaryLabel: deriveSummaryLabel(evaluation),
+      };
+    })
+  );
+
+  return { summaries, error: null };
 }
