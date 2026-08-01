@@ -2,6 +2,7 @@
 
 import { createSupabaseClient } from "@midwestea/utils";
 import type {
+  ClassPrerequisiteWithType,
   PrerequisiteExpirationRule,
   PrerequisiteInputType,
   PrerequisiteType,
@@ -273,4 +274,30 @@ export async function reorderTemplatePrerequisites(
     }
   }
   return { success: true };
+}
+
+/**
+ * Fetch the read-only prerequisite snapshot on a class, joined to its
+ * catalog type, ordered by sort_order.
+ */
+export async function getClassPrerequisites(
+  classId: string
+): Promise<{ classPrerequisites: ClassPrerequisiteWithType[] | null; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data, error } = await supabase
+      .from("class_prerequisites")
+      .select("*, prerequisite_type:prerequisite_types(*)")
+      .eq("class_id", classId)
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      return { classPrerequisites: null, error: error.message };
+    }
+
+    return { classPrerequisites: data as unknown as ClassPrerequisiteWithType[], error: null };
+  } catch (err) {
+    const error = err as Error;
+    return { classPrerequisites: null, error: error.message || "Failed to fetch class prerequisites" };
+  }
 }

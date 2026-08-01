@@ -13,9 +13,11 @@ import { LogDisplay } from "@/components/ui/LogDisplay";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
+import { getClassPrerequisites } from "@/lib/prerequisites";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
-import type { Enrollment } from "@midwestea/types";
+import type { Enrollment, ClassPrerequisiteWithType } from "@midwestea/types";
+import { PREREQUISITE_INPUT_TYPE_LABELS } from "@midwestea/types";
 
 // Client-safe/RLS replacement for lib/enrollments.ts's getEnrollmentByStudentAndClass,
 // which uses the service-role admin client and throws when called from the browser
@@ -96,6 +98,8 @@ function ClassDetailContent() {
 
     const [classData, setClassData] = useState<Class | null>(null);
     const [originalClassData, setOriginalClassData] = useState<Class | null>(null);
+    const [classPrerequisites, setClassPrerequisites] = useState<ClassPrerequisiteWithType[]>([]);
+    const [loadingClassPrerequisites, setLoadingClassPrerequisites] = useState(true);
     const [students, setStudents] = useState<Student[]>([]);
     const [studentsWithBilling, setStudentsWithBilling] = useState<StudentWithBilling[]>([]);
     const [isInvoiceSidebarOpen, setIsInvoiceSidebarOpen] = useState(false);
@@ -147,6 +151,7 @@ function ClassDetailContent() {
         if (classId) {
             loadClass();
             loadStudents();
+            loadClassPrerequisites();
         }
         loadPrograms();
         loadCourses();
@@ -221,6 +226,16 @@ function ClassDetailContent() {
             setOriginalClassData(fetchedClass); // Store original for comparison
         }
         setLoading(false);
+    };
+
+    const loadClassPrerequisites = async () => {
+        if (!classId) return;
+        setLoadingClassPrerequisites(true);
+        const { classPrerequisites: fetched, error: fetchError } = await getClassPrerequisites(classId);
+        if (!fetchError && fetched) {
+            setClassPrerequisites(fetched);
+        }
+        setLoadingClassPrerequisites(false);
     };
 
     const loadStudents = async () => {
@@ -798,6 +813,35 @@ function ClassDetailContent() {
                         </p>
                     </div>
                 </div>
+            </div>
+
+            {/* Prerequisites Section */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Prerequisites</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                    Copied from the template when this class was created. Editing the template does not change this list.
+                </p>
+                <DataTable
+                    data={classPrerequisites}
+                    isLoading={loadingClassPrerequisites}
+                    emptyMessage="No prerequisites on this class."
+                    columns={[
+                        {
+                            header: "Prerequisite",
+                            cell: (item: ClassPrerequisiteWithType) => item.prerequisite_type.name,
+                            className: "font-medium",
+                        },
+                        {
+                            header: "Input type",
+                            cell: (item: ClassPrerequisiteWithType) =>
+                                PREREQUISITE_INPUT_TYPE_LABELS[item.prerequisite_type.input_type],
+                        },
+                        {
+                            header: "Required",
+                            cell: (item: ClassPrerequisiteWithType) => (item.is_required ? "Yes" : "No"),
+                        },
+                    ]}
+                />
             </div>
 
             {/* Students Section */}

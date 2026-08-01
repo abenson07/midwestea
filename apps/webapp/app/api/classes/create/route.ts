@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin, insertLog } from '@/lib/logging';
+import { snapshotClassPrerequisites } from '@/lib/class-prerequisites';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 /**
@@ -155,6 +156,24 @@ export async function POST(request: NextRequest) {
         { success: false, error: mapDatabaseError(insertError, "class") },
         { status: 500 }
       );
+    }
+
+    // Snapshot the template's prerequisites onto the new class. Non-fatal:
+    // a class without its snapshot is recoverable; a failed class creation
+    // after Stripe setup is not.
+    try {
+      const { count, error: snapshotError } = await snapshotClassPrerequisites(
+        supabase,
+        classData.id,
+        courseUuid
+      );
+      if (snapshotError) {
+        console.error('[API] Failed to snapshot class prerequisites:', snapshotError);
+      } else {
+        console.log('[API] Snapshotted class prerequisites:', { class_id: classData.id, count });
+      }
+    } catch (snapshotError: any) {
+      console.error('[API] Exception snapshotting class prerequisites:', snapshotError);
     }
 
     // Log class creation (for class detail page, course detail page, and program detail page)

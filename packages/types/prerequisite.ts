@@ -57,3 +57,18 @@ export type TemplatePrerequisite = {
 export type TemplatePrerequisiteWithType = TemplatePrerequisite & {
   prerequisite_type: PrerequisiteType;
 };
+
+export type ClassPrerequisite = {
+  id: string; // UUID
+  class_id: string; // UUID -> classes.id
+  prerequisite_type_id: string; // UUID -> prerequisite_types.id
+  is_required: boolean;
+  sort_order: number;
+  source_course_uuid: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type ClassPrerequisiteWithType = ClassPrerequisite & {
+  prerequisite_type: PrerequisiteType;
+};
