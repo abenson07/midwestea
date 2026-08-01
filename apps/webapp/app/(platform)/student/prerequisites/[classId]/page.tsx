@@ -6,6 +6,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type { Class, EvaluatedPrerequisite, PrerequisiteEvaluation } from "@midwestea/types";
 import CheckoutLayout from "@/components/CheckoutLayout";
 import { PrerequisiteStepForm } from "@/components/ui/PrerequisiteStepForm";
+import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
 import { fetchPrerequisiteEvaluation } from "@/lib/prerequisites";
 
 function CompletionPanel({
@@ -39,6 +40,16 @@ function CompletionPanel({
     <div className="space-y-4">
       <h1 className="text-xl font-semibold text-gray-900">{heading}</h1>
       <p className="text-sm text-gray-600">{body}</p>
+      {items.length > 0 && (
+        <ul className="divide-y divide-gray-100 border-y border-gray-200">
+          {items.map((item) => (
+            <li key={item.class_prerequisite_id} className="py-2 flex items-center justify-between gap-4">
+              <span className="text-sm text-gray-900">{item.prerequisite_type.name}</span>
+              <PrerequisiteStatusBadge status={item.status} />
+            </li>
+          ))}
+        </ul>
+      )}
       <button
         type="button"
         onClick={() => router.push("/student/profile")}

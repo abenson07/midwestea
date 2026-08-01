@@ -346,6 +346,7 @@ export interface ClassPrerequisiteSummary {
   classId: string; // classes.id UUID
   classCode: string; // classes.class_id text code, for the route
   className: string;
+  classStartDate: string | null;
   evaluation: PrerequisiteEvaluation | null;
   outstandingCount: number;
   hasAnyPrerequisites: boolean;
@@ -395,6 +396,7 @@ export async function getStudentClassPrerequisiteSummaries(
           classId: classRecord.id,
           classCode: classRecord.class_id || "",
           className: classRecord.class_name || "Untitled class",
+          classStartDate: classRecord.class_start_date,
           evaluation: null,
           outstandingCount: 0,
           hasAnyPrerequisites: false,
@@ -406,6 +408,7 @@ export async function getStudentClassPrerequisiteSummaries(
         classId: classRecord.id,
         classCode: classRecord.class_id || "",
         className: classRecord.class_name || "Untitled class",
+        classStartDate: classRecord.class_start_date,
         evaluation,
         outstandingCount: evaluation.outstanding.length,
         hasAnyPrerequisites: evaluation.items.length > 0,

@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import type { EvaluatedPrerequisite } from "@midwestea/types";
 import { getStudentClassPrerequisiteSummaries, type ClassPrerequisiteSummary } from "@/lib/prerequisites";
+import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
 
 interface StudentClassRequirementsProps {
   studentId: string;
@@ -21,61 +24,185 @@ function summaryColorClass(summary: ClassPrerequisiteSummary): string {
   return "text-gray-500";
 }
 
+function nextActionLabel(status: EvaluatedPrerequisite["status"]): string | null {
+  if (status === "rejected") return "Resubmit";
+  if (status === "missing") return "Start";
+  if (status === "expired" || status === "expiring_before_class") return "Renew";
+  return null;
+}
+
+function PrerequisiteItemRow({
+  item,
+  classCode,
+  classStartDate,
+}: {
+  item: EvaluatedPrerequisite;
+  classCode: string;
+  classStartDate: string | null;
+}) {
+  const detailParts: string[] = [];
+  if (item.expires_at) {
+    detailParts.push(`Expires ${new Date(item.expires_at).toLocaleDateString()}`);
+  }
+  if (
+    (item.status === "satisfied" || item.status === "rejected") &&
+    item.credential?.reviewed_at
+  ) {
+    detailParts.push(`Reviewed ${new Date(item.credential.reviewed_at).toLocaleDateString()}`);
+  }
+  if (item.status === "expiring_before_class" && classStartDate) {
+    detailParts.push(`Class starts ${new Date(classStartDate).toLocaleDateString()}`);
+  }
+
+  const actionLabel = nextActionLabel(item.status);
+  const rejectionReason =
+    item.status === "rejected" && item.credential?.rejection_reason ? item.credential.rejection_reason : null;
+
+  return (
+    <li className="py-3 flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-medium text-gray-900">{item.prerequisite_type.name}</p>
+        {detailParts.length > 0 && (
+          <p className="text-xs text-gray-500">{detailParts.join(" · ")}</p>
+        )}
+        {rejectionReason && <p className="text-xs text-red-600">Reason: {rejectionReason}</p>}
+      </div>
+      <div className="flex flex-col items-end gap-1">
+        <PrerequisiteStatusBadge status={item.status} />
+        {actionLabel && (
+          <Link
+            href={`/student/prerequisites/${classCode}?from=profile`}
+            className="text-sm font-medium text-gray-900 underline whitespace-nowrap"
+          >
+            {actionLabel}
+          </Link>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export function StudentClassRequirements({ studentId }: StudentClassRequirementsProps) {
   const [summaries, setSummaries] = useState<ClassPrerequisiteSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  const refresh = useCallback(async () => {
+    const { summaries: result } = await getStudentClassPrerequisiteSummaries(studentId);
+    setSummaries(result);
+    setExpanded((prev) => {
+      const next = { ...prev };
+      for (const summary of result) {
+        if (!(summary.classId in next)) {
+          next[summary.classId] = summary.outstandingCount > 0;
+        }
+      }
+      return next;
+    });
+    setLoading(false);
+  }, [studentId]);
 
   useEffect(() => {
-    let cancelled = false;
+    refresh();
 
-    const load = async () => {
-      setLoading(true);
-      const { summaries: result } = await getStudentClassPrerequisiteSummaries(studentId);
-      if (!cancelled) {
-        setSummaries(result);
-        setLoading(false);
-      }
-    };
-
-    load();
-
+    window.addEventListener("focus", refresh);
     return () => {
-      cancelled = true;
+      window.removeEventListener("focus", refresh);
     };
-  }, [studentId]);
+  }, [refresh]);
+
+  const toggle = (classId: string) => {
+    setExpanded((prev) => ({ ...prev, [classId]: !prev[classId] }));
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6 max-w-lg">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Class requirements</h2>
 
-      {loading && <p className="text-sm text-gray-500">Loading...</p>}
+      {loading && !summaries && <p className="text-sm text-gray-500">Loading...</p>}
 
       {!loading && summaries && summaries.length === 0 && (
         <p className="text-sm text-gray-500">You&apos;re not enrolled in any classes yet.</p>
       )}
 
-      {!loading && summaries && summaries.length > 0 && (
+      {summaries && summaries.length > 0 && (
         <ul className="divide-y divide-gray-100">
-          {summaries.map((summary) => (
-            <li key={summary.classId} className="py-3 flex items-center justify-between gap-4">
-              <div>
-                <p className="font-medium text-gray-900">{summary.className}</p>
-                {summary.hasAnyPrerequisites ? (
-                  <p className={`text-sm ${summaryColorClass(summary)}`}>{summary.summaryLabel}</p>
-                ) : (
-                  <p className="text-sm text-gray-500">No requirements for this class.</p>
-                )}
-              </div>
-              {summary.hasAnyPrerequisites && (
-                <Link
-                  href={`/student/prerequisites/${summary.classCode}?from=profile`}
-                  className="text-sm font-medium text-gray-900 underline whitespace-nowrap"
+          {summaries.map((summary) => {
+            const isExpanded = !!expanded[summary.classId];
+            return (
+              <li key={summary.classId} className="py-1">
+                {/*
+                  A native <button> cannot legally contain an <a>/<Link>
+                  (nested interactive content is invalid HTML and some
+                  browsers auto-close the button early). Using a
+                  role="button" div reproduces the plan's "full-width
+                  toggle button with a propagation-stopped link inside it"
+                  behavior without that nesting problem.
+                */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => summary.hasAnyPrerequisites && toggle(summary.classId)}
+                  onKeyDown={(e) => {
+                    if ((e.key === "Enter" || e.key === " ") && summary.hasAnyPrerequisites) {
+                      e.preventDefault();
+                      toggle(summary.classId);
+                    }
+                  }}
+                  aria-expanded={isExpanded}
+                  className="w-full flex items-center justify-between gap-4 py-2 text-left cursor-pointer"
                 >
-                  {summary.outstandingCount > 0 ? "Continue" : "View"}
-                </Link>
-              )}
-            </li>
-          ))}
+                  <div className="flex items-center gap-2">
+                    {summary.hasAnyPrerequisites ? (
+                      isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                      )
+                    ) : (
+                      <span className="h-4 w-4 shrink-0" />
+                    )}
+                    <div>
+                      <p className="font-medium text-gray-900">{summary.className}</p>
+                      {summary.hasAnyPrerequisites ? (
+                        <p className={`text-sm ${summaryColorClass(summary)}`}>{summary.summaryLabel}</p>
+                      ) : (
+                        <p className="text-sm text-gray-500">No requirements for this class.</p>
+                      )}
+                    </div>
+                  </div>
+                  {summary.hasAnyPrerequisites && (
+                    <Link
+                      href={`/student/prerequisites/${summary.classCode}?from=profile`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-sm font-medium text-gray-900 underline whitespace-nowrap"
+                    >
+                      {summary.outstandingCount > 0 ? "Continue" : "View"}
+                    </Link>
+                  )}
+                </div>
+
+                {isExpanded && summary.hasAnyPrerequisites && (
+                  <div className="border-t border-gray-200 pl-6">
+                    {summary.evaluation ? (
+                      <ul className="divide-y divide-gray-100">
+                        {summary.evaluation.items.map((item) => (
+                          <PrerequisiteItemRow
+                            key={item.class_prerequisite_id}
+                            item={item}
+                            classCode={summary.classCode}
+                            classStartDate={summary.classStartDate}
+                          />
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="py-3 text-sm text-gray-500">Status unavailable</p>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
