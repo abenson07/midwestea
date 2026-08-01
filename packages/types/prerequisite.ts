@@ -112,7 +112,8 @@ export type PrerequisiteStatus =
   | 'pending_review'
   | 'rejected'
   | 'missing'
-  | 'not_required';
+  | 'not_required'
+  | 'expiring_before_class';
 
 export const PREREQUISITE_STATUS_LABELS: Record<PrerequisiteStatus, string> = {
   satisfied: 'Approved',
@@ -121,6 +122,7 @@ export const PREREQUISITE_STATUS_LABELS: Record<PrerequisiteStatus, string> = {
   rejected: 'Needs resubmission',
   missing: 'Not started',
   not_required: 'Optional',
+  expiring_before_class: 'Expires before class starts',
 };
 
 export type EvaluatedPrerequisite = {
@@ -132,6 +134,8 @@ export type EvaluatedPrerequisite = {
   status: PrerequisiteStatus;
   /** The latest credential for this type, or null when none exists. */
   credential: StudentCredential | null;
+  /** The latest credential's expiry, lifted for convenient rendering, or null. */
+  expires_at: string | null;
 };
 
 export type PrerequisiteEvaluation = {

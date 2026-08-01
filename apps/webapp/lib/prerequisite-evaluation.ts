@@ -25,7 +25,8 @@ export function isExpired(expiresAt: string | null, asOf: Date = new Date()): bo
 
 function computeStatus(
   isRequired: boolean,
-  credential: StudentCredential | null
+  credential: StudentCredential | null,
+  classStartDate: string | null
 ): PrerequisiteStatus {
   let status: PrerequisiteStatus;
 
@@ -37,11 +38,18 @@ function computeStatus(
     status = 'rejected';
   } else if (credential.review_status === 'approved' && isExpired(credential.expires_at)) {
     status = 'expired';
+  } else if (
+    credential.review_status === 'approved' &&
+    classStartDate !== null &&
+    credential.expires_at !== null &&
+    isExpired(credential.expires_at, new Date(`${classStartDate}T00:00:00Z`))
+  ) {
+    status = 'expiring_before_class';
   } else {
     status = 'satisfied';
   }
 
-  if (!isRequired && (status === 'missing' || status === 'rejected')) {
+  if (!isRequired && (status === 'missing' || status === 'rejected' || status === 'expiring_before_class')) {
     status = 'not_required';
   }
 
@@ -68,6 +76,15 @@ export async function evaluateClassPrerequisites(
   if (classPrereqsError) {
     return { evaluation: null, error: classPrereqsError.message };
   }
+
+  // A failed lookup or a NULL value means "no class-timing comparison"; this
+  // must never error the evaluation.
+  const { data: classRow } = await supabase
+    .from('classes')
+    .select('class_start_date')
+    .eq('id', classId)
+    .single();
+  const classStartDate: string | null = classRow?.class_start_date ?? null;
 
   if (!classPrereqs || classPrereqs.length === 0) {
     return {
@@ -102,7 +119,7 @@ export async function evaluateClassPrerequisites(
 
   const items: EvaluatedPrerequisite[] = rows.map((row) => {
     const credential = credentialByType.get(row.prerequisite_type_id) || null;
-    const status = computeStatus(row.is_required, credential);
+    const status = computeStatus(row.is_required, credential, classStartDate);
 
     return {
       class_prerequisite_id: row.id,
@@ -112,13 +129,17 @@ export async function evaluateClassPrerequisites(
       sort_order: row.sort_order,
       status,
       credential,
+      expires_at: credential?.expires_at ?? null,
     };
   });
 
   const outstanding = items.filter(
     (item) =>
       item.is_required &&
-      (item.status === 'missing' || item.status === 'rejected' || item.status === 'expired')
+      (item.status === 'missing' ||
+        item.status === 'rejected' ||
+        item.status === 'expired' ||
+        item.status === 'expiring_before_class')
   );
 
   const allRequiredSatisfied = items
@@ -135,4 +156,16 @@ export async function evaluateClassPrerequisites(
     },
     error: null,
   };
+}
+
+/** Days until `expiresAt`, or null when it never expires. Negative when already past. */
+export function daysUntilExpiry(expiresAt: string | null, asOf: Date = new Date()): number | null {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const expiryMs = Date.parse(`${expiresAt}T00:00:00Z`);
+  const asOfMidnightMs = Date.UTC(asOf.getUTCFullYear(), asOf.getUTCMonth(), asOf.getUTCDate());
+
+  return Math.round((expiryMs - asOfMidnightMs) / (24 * 60 * 60 * 1000));
 }

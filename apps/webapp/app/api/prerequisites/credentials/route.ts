@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
     const valueDate = formData.get('valueDate');
     const valueBooleanRaw = formData.get('valueBoolean');
     const issuedAt = formData.get('issuedAt');
+    const expiresAt = formData.get('expiresAt');
     const file = formData.get('file');
 
     if (!prerequisiteTypeId || typeof prerequisiteTypeId !== 'string') {
@@ -79,6 +80,7 @@ export async function POST(request: NextRequest) {
       valueBoolean: typeof valueBooleanRaw === 'string' ? valueBooleanRaw === 'true' : null,
       fileUrl,
       issuedAt: typeof issuedAt === 'string' ? issuedAt : null,
+      expiresAt: typeof expiresAt === 'string' ? expiresAt : null,
     });
 
     if (!result.success) {
