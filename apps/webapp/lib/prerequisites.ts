@@ -5,6 +5,7 @@ import type {
   PrerequisiteExpirationRule,
   PrerequisiteInputType,
   PrerequisiteType,
+  TemplatePrerequisiteWithType,
 } from "@midwestea/types";
 
 /**
@@ -156,4 +157,120 @@ export async function archivePrerequisiteType(id: string): Promise<{ success: bo
     const error = err as Error;
     return { success: false, error: error.message || "Failed to archive prerequisite type" };
   }
+}
+
+/**
+ * Fetch the prerequisites assigned to a program or course template, joined
+ * to their catalog type, ordered by sort_order.
+ */
+export async function getTemplatePrerequisites(
+  courseUuid: string
+): Promise<{ templatePrerequisites: TemplatePrerequisiteWithType[] | null; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data, error } = await supabase
+      .from("template_prerequisites")
+      .select("*, prerequisite_type:prerequisite_types(*)")
+      .eq("course_uuid", courseUuid)
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      return { templatePrerequisites: null, error: error.message };
+    }
+
+    return { templatePrerequisites: data as unknown as TemplatePrerequisiteWithType[], error: null };
+  } catch (err) {
+    const error = err as Error;
+    return { templatePrerequisites: null, error: error.message || "Failed to fetch template prerequisites" };
+  }
+}
+
+/**
+ * Assign a prerequisite type to a program or course template.
+ */
+export async function addTemplatePrerequisite(
+  courseUuid: string,
+  prerequisiteTypeId: string,
+  isRequired: boolean,
+  sortOrder: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { error } = await supabase.from("template_prerequisites").insert({
+      course_uuid: courseUuid,
+      prerequisite_type_id: prerequisiteTypeId,
+      is_required: isRequired,
+      sort_order: sortOrder,
+    });
+
+    if (error) {
+      if ((error as any).code === "23505") {
+        return { success: false, error: "That prerequisite is already assigned to this template." };
+      }
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to assign prerequisite" };
+  }
+}
+
+/**
+ * Update an existing template prerequisite assignment (required flag and/or sort order).
+ */
+export async function updateTemplatePrerequisite(
+  id: string,
+  input: { is_required?: boolean; sort_order?: number }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { error } = await supabase.from("template_prerequisites").update(input).eq("id", id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to update prerequisite assignment" };
+  }
+}
+
+/**
+ * Remove a prerequisite assignment from a template. Safe because class
+ * snapshots are independent copies (BEN-853).
+ */
+export async function removeTemplatePrerequisite(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { error } = await supabase.from("template_prerequisites").delete().eq("id", id);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to remove prerequisite assignment" };
+  }
+}
+
+/**
+ * Rewrite the sort_order of a full ordered list of template prerequisite ids.
+ * Issues one update per id, sequentially, and returns the first failure if any.
+ */
+export async function reorderTemplatePrerequisites(
+  orderedIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+  for (let index = 0; index < orderedIds.length; index++) {
+    const result = await updateTemplatePrerequisite(orderedIds[index], { sort_order: index });
+    if (!result.success) {
+      return result;
+    }
+  }
+  return { success: true };
 }

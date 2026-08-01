@@ -42,3 +42,18 @@ export type PrerequisiteType = {
   created_at: string | null;
   updated_at: string | null;
 };
+
+export type TemplatePrerequisite = {
+  id: string; // UUID
+  course_uuid: string; // UUID -> courses.id (a program OR a course template)
+  prerequisite_type_id: string; // UUID -> prerequisite_types.id
+  is_required: boolean;
+  sort_order: number;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+// Assignment joined to its catalog type, as read by the admin UI.
+export type TemplatePrerequisiteWithType = TemplatePrerequisite & {
+  prerequisite_type: PrerequisiteType;
+};

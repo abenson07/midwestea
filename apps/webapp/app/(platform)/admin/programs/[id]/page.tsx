@@ -9,6 +9,7 @@ import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
+import { TemplatePrerequisites } from "@/components/ui/TemplatePrerequisites";
 import { formatCurrency } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 
@@ -507,6 +508,8 @@ function ProgramDetailContent() {
                     </div>
                 </div>
             </div>
+
+            <TemplatePrerequisites courseUuid={program.id} templateKind="program" />
 
             {/* Classes or Waitlist Section */}
             <div>
