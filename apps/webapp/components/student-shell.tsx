@@ -27,7 +27,7 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
-        router.push("/student/login");
+        router.push(`/student/login?next=${encodeURIComponent(pathname)}`);
       }
       setIsCheckingAuth(false);
     };

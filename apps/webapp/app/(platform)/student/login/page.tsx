@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, FormEvent, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { sendStudentOTP } from "@/lib/student-auth";
 import { getSession } from "@/lib/auth";
 import { Logo } from "@midwestea/ui";
 
-export default function StudentLoginPage() {
+function StudentLoginContent() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next");
 
   // Check if already authenticated
   useEffect(() => {
@@ -29,8 +31,12 @@ export default function StudentLoginPage() {
     const result = await sendStudentOTP(email);
 
     if (result.success) {
-      // Redirect to OTP page with email in query params
-      router.push(`/student/otp?email=${encodeURIComponent(email)}`);
+      // Redirect to OTP page with email (and the intended destination, if any) in query params
+      const otpParams = new URLSearchParams({ email });
+      if (next) {
+        otpParams.set("next", next);
+      }
+      router.push(`/student/otp?${otpParams.toString()}`);
     } else {
       setError(result.error || "Failed to send OTP");
       setLoading(false);
@@ -106,5 +112,13 @@ export default function StudentLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function StudentLoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <StudentLoginContent />
+    </Suspense>
   );
 }

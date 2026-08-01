@@ -3,16 +3,48 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, Suspense } from 'react';
 
+const PENDING_PREREQ_CLASS_ID_KEY = 'midwestea.pendingPrereqClassId';
+
 function SuccessPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
+  const [classCode, setClassCode] = useState<string | null>(null);
 
   useEffect(() => {
     // Get payment_intent from URL if present (Stripe redirect)
     const intentId = searchParams.get('payment_intent');
     if (intentId) {
       setPaymentIntentId(intentId);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    // Resolve which class this payment was for: the ?classID query param
+    // first, then the sessionStorage handoff written by /checkout/confirm
+    // before the Stripe redirect. Neither may be present (e.g. private
+    // browsing with sessionStorage disabled) -- that's a valid state, not
+    // an error.
+    const queryClassId = searchParams.get('classID');
+    if (queryClassId) {
+      setClassCode(queryClassId);
+      try {
+        sessionStorage.removeItem(PENDING_PREREQ_CLASS_ID_KEY);
+      } catch {
+        // sessionStorage unavailable -- nothing to clear.
+      }
+      return;
+    }
+
+    try {
+      const stored = sessionStorage.getItem(PENDING_PREREQ_CLASS_ID_KEY);
+      if (stored) {
+        setClassCode(stored);
+        sessionStorage.removeItem(PENDING_PREREQ_CLASS_ID_KEY);
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private browsing) -- fall through
+      // to the "Go to your student portal" link.
     }
   }, [searchParams]);
 
@@ -52,12 +84,24 @@ function SuccessPageContent() {
         )}
 
         <div className="space-y-4">
-          <button
-            onClick={() => router.push('/admin')}
-            className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            Return to Home
-          </button>
+          {classCode ? (
+            <>
+              <button
+                onClick={() => router.push(`/student/prerequisites/${classCode}`)}
+                className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                Continue to class requirements
+              </button>
+              <p className="text-sm text-gray-500">You&apos;ll be asked to sign in to continue.</p>
+            </>
+          ) : (
+            <a
+              href="/student"
+              className="block w-full text-sm text-gray-600 hover:text-gray-900 underline"
+            >
+              Go to your student portal
+            </a>
+          )}
         </div>
       </div>
     </div>

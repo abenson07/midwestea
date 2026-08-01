@@ -6,10 +6,24 @@ import { verifyOTP, getSession } from "@/lib/auth";
 import { resendStudentOTP } from "@/lib/student-auth";
 import { Logo } from "@midwestea/ui";
 
+/**
+ * Only accept a `next` destination that starts with `/student/` -- anything
+ * else (an absolute URL, `/admin`, etc.) falls back to `/student` so this
+ * param can never be used as an open redirect.
+ */
+function resolveNextDestination(next: string | null): string {
+  if (next && next.startsWith("/student/")) {
+    return next;
+  }
+  return "/student";
+}
+
 function OTPForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const next = searchParams.get("next");
+  const destination = resolveNextDestination(next);
 
   const [otpDigits, setOtpDigits] = useState<string[]>(Array(8).fill(""));
   const [error, setError] = useState("");
@@ -142,13 +156,13 @@ function OTPForm() {
       // Check session before redirecting
       const { session } = await getSession();
       if (session) {
-        router.push("/student");
+        router.push(destination);
       } else {
         // Retry once more after a short delay
         await new Promise(resolve => setTimeout(resolve, 500));
         const { session: retrySession } = await getSession();
         if (retrySession) {
-          router.push("/student");
+          router.push(destination);
         } else {
           setError("Session not established. Please try again.");
           setLoading(false);
