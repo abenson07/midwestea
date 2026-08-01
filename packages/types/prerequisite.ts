@@ -72,3 +72,36 @@ export type ClassPrerequisite = {
 export type ClassPrerequisiteWithType = ClassPrerequisite & {
   prerequisite_type: PrerequisiteType;
 };
+
+export type CredentialReviewStatus = 'pending' | 'approved' | 'rejected' | 'superseded';
+
+export const CREDENTIAL_REVIEW_STATUS_LABELS: Record<CredentialReviewStatus, string> = {
+  pending: 'Pending review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  superseded: 'Replaced',
+};
+
+export type StudentCredential = {
+  id: string; // UUID
+  student_id: string; // UUID -> students.id
+  prerequisite_type_id: string; // UUID -> prerequisite_types.id
+  submitted_for_class_id: string | null; // UUID -> classes.id
+  value_text: string | null;
+  value_date: string | null; // date
+  value_boolean: boolean | null;
+  file_url: string | null; // storage object path, NOT a URL
+  review_status: CredentialReviewStatus;
+  reviewed_by: string | null; // UUID -> admins.id
+  reviewed_at: string | null;
+  rejection_reason: string | null;
+  issued_at: string | null; // date, written by BEN-871
+  expires_at: string | null; // date, written by BEN-871
+  submitted_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type StudentCredentialWithType = StudentCredential & {
+  prerequisite_type: PrerequisiteType;
+};
