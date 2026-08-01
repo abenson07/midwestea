@@ -16,6 +16,7 @@ import {
   Settings,
   MapPin,
   FileText,
+  ClipboardList,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
@@ -26,6 +27,7 @@ const navigation = [
   { name: "Classes", href: "/admin/classes", icon: Users },
   { name: "Students", href: "/admin/students", icon: GraduationCap },
   { name: "Instructors", href: "/admin/instructors", icon: FileText },
+  { name: "Prerequisites", href: "/admin/prerequisites", icon: ClipboardList },
   { name: "Transactions", href: "/admin/payments", icon: CreditCard },
   { name: "Approvals", href: "/admin/approvals", icon: CheckSquare },
 ];
