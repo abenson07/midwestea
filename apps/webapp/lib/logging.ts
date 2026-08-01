@@ -5,7 +5,7 @@ export interface LogEntry {
   admin_user_id?: string | null;
   reference_id: string;
   reference_type: "program" | "course" | "class" | "student";
-  action_type: "detail_updated" | "class_created" | "class_updated" | "class_deleted" | "student_added" | "student_removed" | "student_registered" | "student_deleted" | "payment_success" | "webflow_synced";
+  action_type: "detail_updated" | "class_created" | "class_updated" | "class_deleted" | "student_added" | "student_removed" | "student_registered" | "student_deleted" | "payment_success" | "webflow_synced" | "prerequisite_approved" | "prerequisite_rejected";
   field_name?: string | null;
   old_value?: string | null;
   new_value?: string | null;

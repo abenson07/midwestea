@@ -110,3 +110,92 @@ export async function getCredentialHistory(
 
   return { credentials: (data || []) as StudentCredential[], error: null };
 }
+
+export interface ReviewDecisionInput {
+  credentialId: string;
+  decision: 'approved' | 'rejected';
+  rejectionReason?: string | null;
+  reviewerAdminId: string;
+}
+
+/**
+ * Approve or reject a submitted credential.
+ *
+ * Only `pending` credentials are normally reviewable; staff may also
+ * correct an already-decided (`approved`/`rejected`) row to the other
+ * outcome. A `superseded` row can never be reviewed. Approval always
+ * clears `rejection_reason` to null. Rejection requires a non-empty
+ * reason and populates `rejectionContext` for BEN-866 to consume -- this
+ * function never sends email itself.
+ */
+export async function reviewCredential(
+  supabase: SupabaseClient,
+  input: ReviewDecisionInput
+): Promise<{
+  success: boolean;
+  credential?: StudentCredential;
+  rejectionContext?: {
+    studentId: string;
+    prerequisiteTypeId: string;
+    prerequisiteTypeName: string;
+    classId: string | null;
+    rejectionReason: string;
+  };
+  error?: string;
+  status?: number;
+}> {
+  const { data: existing, error: loadError } = await supabase
+    .from('student_credentials')
+    .select('*, prerequisite_type:prerequisite_types(name)')
+    .eq('id', input.credentialId)
+    .single();
+
+  if (loadError || !existing) {
+    return { success: false, error: 'Credential not found.', status: 404 };
+  }
+
+  if (existing.review_status === 'superseded') {
+    return { success: false, error: 'This submission was replaced by a newer one.', status: 409 };
+  }
+
+  const trimmedReason = input.rejectionReason?.trim() ?? '';
+
+  if (input.decision === 'rejected' && trimmedReason === '') {
+    return { success: false, error: 'A rejection reason is required.', status: 400 };
+  }
+
+  const { data: updated, error: updateError } = await supabase
+    .from('student_credentials')
+    .update({
+      review_status: input.decision,
+      reviewed_by: input.reviewerAdminId,
+      reviewed_at: new Date().toISOString(),
+      rejection_reason: input.decision === 'rejected' ? trimmedReason : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.credentialId)
+    .select()
+    .single();
+
+  if (updateError || !updated) {
+    return { success: false, error: updateError?.message || 'Failed to update credential.', status: 500 };
+  }
+
+  const credential = updated as StudentCredential;
+
+  if (input.decision === 'rejected') {
+    return {
+      success: true,
+      credential,
+      rejectionContext: {
+        studentId: existing.student_id,
+        prerequisiteTypeId: existing.prerequisite_type_id,
+        prerequisiteTypeName: existing.prerequisite_type?.name ?? 'this prerequisite',
+        classId: existing.submitted_for_class_id ?? null,
+        rejectionReason: trimmedReason,
+      },
+    };
+  }
+
+  return { success: true, credential };
+}

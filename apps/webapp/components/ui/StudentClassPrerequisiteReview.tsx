@@ -5,6 +5,7 @@ import type { EvaluatedPrerequisite, StudentCredential } from "@midwestea/types"
 import { PREREQUISITE_STATUS_LABELS } from "@midwestea/types";
 import { getSession } from "@/lib/auth";
 import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
+import { CredentialReviewActions } from "@/components/ui/CredentialReviewActions";
 
 interface StudentClassPrerequisiteReviewProps {
   studentId: string;
@@ -59,7 +60,15 @@ function SubmittedValue({ credential, onViewFile }: { credential: StudentCredent
   return <>—</>;
 }
 
-function HistoryRow({ credential, onViewFile }: { credential: StudentCredential; onViewFile: (credentialId: string) => void }) {
+function HistoryRow({
+  credential,
+  onViewFile,
+  onReviewed,
+}: {
+  credential: StudentCredential;
+  onViewFile: (credentialId: string) => void;
+  onReviewed: () => void;
+}) {
   return (
     <div className="border border-gray-200 rounded-md p-3 text-xs space-y-1 bg-gray-50">
       <div className="flex items-center justify-between">
@@ -80,6 +89,9 @@ function HistoryRow({ credential, onViewFile }: { credential: StudentCredential;
       {credential.rejection_reason && (
         <div className="text-red-600">Rejected: {credential.rejection_reason}</div>
       )}
+      <div data-review-actions>
+        <CredentialReviewActions credential={credential} onReviewed={onReviewed} />
+      </div>
     </div>
   );
 }
@@ -159,6 +171,11 @@ export function StudentClassPrerequisiteReview({ studentId, classId, onChanged }
     setExpandedHistory((prev) => ({ ...prev, [typeId]: !prev[typeId] }));
   };
 
+  const handleReviewed = () => {
+    refresh();
+    onChanged?.();
+  };
+
   if (loading) {
     return <div className="text-sm text-gray-500 py-4">Loading prerequisites...</div>;
   }
@@ -214,8 +231,11 @@ export function StudentClassPrerequisiteReview({ studentId, classId, onChanged }
               <div className="text-xs text-red-600">Rejected: {item.credential.rejection_reason}</div>
             )}
 
-            {/* eslint-disable-next-line react/no-unknown-property -- intentional data attribute, filled by BEN-868 */}
-            <div data-review-actions />
+            <div data-review-actions>
+              {item.credential && (
+                <CredentialReviewActions credential={item.credential} onReviewed={handleReviewed} />
+              )}
+            </div>
 
             {earlierSubmissions.length > 0 && (
               <div>
@@ -229,7 +249,12 @@ export function StudentClassPrerequisiteReview({ studentId, classId, onChanged }
                 {isExpanded && (
                   <div className="mt-2 space-y-2">
                     {earlierSubmissions.map((credential) => (
-                      <HistoryRow key={credential.id} credential={credential} onViewFile={handleViewFile} />
+                      <HistoryRow
+                        key={credential.id}
+                        credential={credential}
+                        onViewFile={handleViewFile}
+                        onReviewed={handleReviewed}
+                      />
                     ))}
                   </div>
                 )}
