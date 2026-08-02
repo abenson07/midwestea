@@ -7,6 +7,10 @@ import type {
   StudentCredential,
 } from '@midwestea/types';
 
+// Prerequisite state and payment state are independent by design.
+// This module must never read transactions, invoices, or balances --
+// enforced by scripts/verify-prerequisite-payment-separation.ts (BEN-858).
+
 /**
  * True when `expiresAt` (a 'YYYY-MM-DD' date string) is strictly before `asOf`.
  * A null expiry never expires. Compared date-only in UTC to avoid the

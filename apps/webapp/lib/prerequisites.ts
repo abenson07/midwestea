@@ -11,6 +11,12 @@ import type {
 } from "@midwestea/types";
 import { getClassesByStudentId } from "@/lib/classes";
 import type { ClassAccessResult } from "@/lib/class-access";
+import {
+  getMyProgramInvoices,
+  groupInvoicesByClass,
+  getInvoiceDisplayStatus,
+  type StudentInvoice,
+} from "@/lib/student-billing";
 
 /**
  * Fetch all non-archived prerequisite types from the catalog, ordered by name.
@@ -392,6 +398,13 @@ export interface ClassPrerequisiteSummary {
   hasAnyPrerequisites: boolean;
   summaryLabel: string; // per the precedence in BEN-856's Decisions
   access: ClassAccessResult | null; // class-material access decision (BEN-864)
+  /**
+   * Read-only payment label for this class, derived from the student's
+   * existing invoices (BEN-858). Null when the student has no invoices for
+   * this class -- render nothing in that case. Never affects prerequisite
+   * evaluation, gating, or styling; shown purely side-by-side.
+   */
+  paymentStatus: string | null;
 }
 
 function deriveSummaryLabel(evaluation: PrerequisiteEvaluation): string {
@@ -412,6 +425,27 @@ function deriveSummaryLabel(evaluation: PrerequisiteEvaluation): string {
 }
 
 /**
+ * Derive one payment label per class group, checked in this precedence:
+ * any past_due -> 'Past due'; every invoice paid -> 'All paid'; any paid ->
+ * 'Partially paid'; otherwise -> 'Pending' (BEN-858). Purely informational
+ * -- never consulted by prerequisite evaluation or access gating.
+ */
+function derivePaymentStatusLabel(invoices: StudentInvoice[]): string {
+  const statuses = invoices.map((invoice) => getInvoiceDisplayStatus(invoice));
+
+  if (statuses.some((status) => status === "past_due")) {
+    return "Past due";
+  }
+  if (statuses.length > 0 && statuses.every((status) => status === "paid")) {
+    return "All paid";
+  }
+  if (statuses.some((status) => status === "paid")) {
+    return "Partially paid";
+  }
+  return "Pending";
+}
+
+/**
  * One summary per active (non-removed) enrollment, evaluations fetched in
  * parallel. Reused by /student/profile's Class requirements section.
  */
@@ -428,6 +462,15 @@ export async function getStudentClassPrerequisiteSummaries(
     return { summaries: [], error: null };
   }
 
+  // Fetched once for the whole summary list, not once per class (BEN-858).
+  const { invoices } = await getMyProgramInvoices();
+  const paymentStatusByClassName = new Map<string, string>();
+  if (invoices && invoices.length > 0) {
+    for (const group of groupInvoicesByClass(invoices)) {
+      paymentStatusByClassName.set(group.className, derivePaymentStatusLabel(group.invoices));
+    }
+  }
+
   const summaries = await Promise.all(
     classes.map(async (classRecord): Promise<ClassPrerequisiteSummary> => {
       // Batched together (not a second waterfall) -- both requests fire
@@ -437,30 +480,35 @@ export async function getStudentClassPrerequisiteSummaries(
         fetchClassMaterialAccess(classRecord.id),
       ]);
 
+      const className = classRecord.class_name || "Untitled class";
+      const paymentStatus = paymentStatusByClassName.get(className) ?? null;
+
       if (evaluationError || !evaluation) {
         return {
           classId: classRecord.id,
           classCode: classRecord.class_id || "",
-          className: classRecord.class_name || "Untitled class",
+          className,
           classStartDate: classRecord.class_start_date,
           evaluation: null,
           outstandingCount: 0,
           hasAnyPrerequisites: false,
           summaryLabel: "Status unavailable",
           access,
+          paymentStatus,
         };
       }
 
       return {
         classId: classRecord.id,
         classCode: classRecord.class_id || "",
-        className: classRecord.class_name || "Untitled class",
+        className,
         classStartDate: classRecord.class_start_date,
         evaluation,
         outstandingCount: evaluation.outstanding.length,
         hasAnyPrerequisites: evaluation.items.length > 0,
         summaryLabel: deriveSummaryLabel(evaluation),
         access,
+        paymentStatus,
       };
     })
   );

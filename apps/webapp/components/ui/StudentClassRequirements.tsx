@@ -221,6 +221,9 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
                       ) : (
                         <p className="text-sm text-gray-500">No requirements for this class.</p>
                       )}
+                      {summary.paymentStatus !== null && (
+                        <p className="text-xs text-gray-500 mt-1">Payment: {summary.paymentStatus}</p>
+                      )}
                     </div>
                   </div>
                   {summary.hasAnyPrerequisites && (

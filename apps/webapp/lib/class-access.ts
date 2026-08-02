@@ -2,6 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { EvaluatedPrerequisite } from '@midwestea/types';
 import { evaluateClassPrerequisites } from './prerequisite-evaluation';
 
+// Prerequisite state and payment state are independent by design.
+// This module must never read transactions, invoices, or balances --
+// enforced by scripts/verify-prerequisite-payment-separation.ts (BEN-858).
+
 export type ClassAccessReason =
   | 'granted'
   | 'not_enrolled'
