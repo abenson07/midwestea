@@ -11,6 +11,7 @@ import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { StudentClassPrerequisiteReview } from "@/components/ui/StudentClassPrerequisiteReview";
+import { ClassPrerequisiteMatrix } from "@/components/ui/ClassPrerequisiteMatrix";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
@@ -932,6 +933,9 @@ function ClassDetailContent() {
                     />
                 )}
             </div>
+
+            {/* Prerequisite status by student (BEN-869) */}
+            <ClassPrerequisiteMatrix classId={classData.id} />
 
             {/* Activity Log Section */}
             <LogDisplay referenceId={classData.id} referenceType="class" />

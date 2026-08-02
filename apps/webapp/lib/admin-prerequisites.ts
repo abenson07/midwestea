@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { StudentCredential } from '@midwestea/types';
+import type { PrerequisiteEvaluation, StudentCredential } from '@midwestea/types';
+import { evaluateClassPrerequisites } from './prerequisite-evaluation';
 
 export interface PendingReviewRow {
   credential_id: string;
@@ -198,4 +199,147 @@ export async function reviewCredential(
   }
 
   return { success: true, credential };
+}
+
+// ============================================================================
+// Class prerequisite matrix (BEN-869)
+// ============================================================================
+
+export interface ClassMatrixStudentRow {
+  student_id: string;
+  student_name: string;
+  student_email: string | null;
+  evaluation: PrerequisiteEvaluation;
+}
+
+export interface ClassMatrixPayload {
+  class_id: string;
+  class_name: string | null;
+  class_start_date: string | null;
+  /** Column definitions, in class_prerequisites.sort_order. */
+  columns: Array<{
+    prerequisite_type_id: string;
+    name: string;
+    is_required: boolean;
+  }>;
+  rows: ClassMatrixStudentRow[];
+  summary: {
+    fully_approved: number;
+    awaiting_review: number;
+    outstanding: number;
+  };
+}
+
+/**
+ * Class-wide roster view of prerequisite state -- one row per enrolled
+ * student, one column per class prerequisite. Runs one evaluation per
+ * student via Promise.all so the client issues a single request.
+ */
+export async function getClassPrerequisiteMatrix(
+  supabase: SupabaseClient,
+  classId: string
+): Promise<{ payload: ClassMatrixPayload | null; error: string | null }> {
+  const { data: classRow, error: classError } = await supabase
+    .from('classes')
+    .select('id, class_name, class_start_date')
+    .eq('id', classId)
+    .maybeSingle();
+
+  if (classError) {
+    return { payload: null, error: classError.message };
+  }
+
+  if (!classRow) {
+    return { payload: null, error: 'Class not found.' };
+  }
+
+  const { data: classPrereqs, error: classPrereqsError } = await supabase
+    .from('class_prerequisites')
+    .select('prerequisite_type_id, is_required, sort_order, prerequisite_type:prerequisite_types(name)')
+    .eq('class_id', classId)
+    .order('sort_order', { ascending: true });
+
+  if (classPrereqsError) {
+    return { payload: null, error: classPrereqsError.message };
+  }
+
+  const columns = ((classPrereqs || []) as any[]).map((row) => ({
+    prerequisite_type_id: row.prerequisite_type_id,
+    name: row.prerequisite_type?.name ?? 'Unknown prerequisite',
+    is_required: row.is_required,
+  }));
+
+  const { data: enrollments, error: enrollmentsError } = await supabase
+    .from('enrollments')
+    .select('student_id, students(first_name, last_name)')
+    .eq('class_id', classId)
+    .neq('enrollment_status', 'removed');
+
+  if (enrollmentsError) {
+    return { payload: null, error: enrollmentsError.message };
+  }
+
+  const enrollmentRows = (enrollments || []) as any[];
+
+  const studentNameById = new Map<string, string>();
+  for (const row of enrollmentRows) {
+    const name = `${row.students?.first_name ?? ''} ${row.students?.last_name ?? ''}`.trim();
+    if (name) {
+      studentNameById.set(row.student_id, name);
+    }
+  }
+
+  // Resolve email fallback only for students missing both name parts.
+  const emailById = new Map<string, string | null>();
+  await Promise.all(
+    enrollmentRows
+      .filter((row) => !studentNameById.get(row.student_id))
+      .map(async (row) => {
+        try {
+          const { data: userData } = await supabase.auth.admin.getUserById(row.student_id);
+          if (userData?.user?.email) {
+            emailById.set(row.student_id, userData.user.email);
+          }
+        } catch {
+          // Non-fatal: leave the name unresolved for this row.
+        }
+      })
+  );
+
+  const rows: ClassMatrixStudentRow[] = await Promise.all(
+    enrollmentRows.map(async (row): Promise<ClassMatrixStudentRow> => {
+      const { evaluation } = await evaluateClassPrerequisites(supabase, row.student_id, classId);
+      return {
+        student_id: row.student_id,
+        student_name: studentNameById.get(row.student_id) || emailById.get(row.student_id) || 'Unknown student',
+        student_email: emailById.get(row.student_id) ?? null,
+        evaluation: evaluation ?? { class_id: classId, student_id: row.student_id, items: [], outstanding: [], allRequiredSatisfied: true },
+      };
+    })
+  );
+
+  let fully_approved = 0;
+  let awaiting_review = 0;
+  let outstanding = 0;
+  for (const row of rows) {
+    if (row.evaluation.allRequiredSatisfied) {
+      fully_approved += 1;
+    } else if (row.evaluation.outstanding.length === 0) {
+      awaiting_review += 1;
+    } else {
+      outstanding += 1;
+    }
+  }
+
+  return {
+    payload: {
+      class_id: classId,
+      class_name: classRow.class_name ?? null,
+      class_start_date: classRow.class_start_date ?? null,
+      columns,
+      rows,
+      summary: { fully_approved, awaiting_review, outstanding },
+    },
+    error: null,
+  };
 }
