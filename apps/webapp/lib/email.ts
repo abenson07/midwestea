@@ -1276,6 +1276,290 @@ export async function sendPrerequisiteRejectedEmail(
 }
 
 // ============================================================================
+// Prerequisite Pending-Review Email Function (BEN-865)
+// ============================================================================
+
+/**
+ * Sent at enrollment when a class has required prerequisites that are not
+ * all approved yet. Branches purely on prerequisite state -- never on
+ * courseType or program type. Dedup against email_logs is the caller's
+ * responsibility (the Stripe webhook has two send sites and Stripe retries
+ * events).
+ */
+export async function sendPrerequisitePendingReviewEmail(
+  params: {
+    studentId: string;
+    enrollmentId: string;
+    className: string;
+    classCode: string | null;
+    outstandingNames: string[];
+  },
+  options?: { preview?: boolean }
+): Promise<EmailSendResult & { previewHtml?: string }> {
+  // Import here to avoid circular dependencies
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { renderPrerequisitePendingReviewTemplate, getPrerequisitePendingReviewSubject } = await import(
+    './email-templates'
+  );
+
+  const supabase = createSupabaseAdminClient();
+  let studentEmail: string | null = null;
+
+  try {
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(params.studentId);
+
+    if (getUserError) {
+      console.error('[sendPrerequisitePendingReviewEmail] Failed to get student email:', getUserError.message);
+      return {
+        success: false,
+        error: `Failed to get student email: ${getUserError.message}`,
+        retries: 0,
+      };
+    }
+
+    if (!authUser?.user?.email) {
+      return {
+        success: false,
+        error: 'Student email not found',
+        retries: 0,
+      };
+    }
+
+    studentEmail = authUser.user.email;
+  } catch (error: any) {
+    console.error('[sendPrerequisitePendingReviewEmail] Error fetching student email:', error);
+    return {
+      success: false,
+      error: `Failed to fetch student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Invalid student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // students has no email column -- resolve the display name separately.
+  const { data: studentRow } = await supabase
+    .from('students')
+    .select('first_name, last_name')
+    .eq('id', params.studentId)
+    .maybeSingle();
+  const studentName = `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() || 'Student';
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const actionUrl = params.classCode
+    ? `${baseUrl}/student/prerequisites/${params.classCode}?from=profile`
+    : `${baseUrl}/student/profile`;
+  const outstandingList = params.outstandingNames.join(', ');
+
+  let html: string;
+  try {
+    html = renderPrerequisitePendingReviewTemplate({
+      studentName,
+      className: params.className,
+      outstandingList,
+      actionUrl,
+    });
+  } catch (error: any) {
+    console.error('[sendPrerequisitePendingReviewEmail] Template rendering error:', error);
+    return {
+      success: false,
+      error: `Failed to render email template: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  const subject = getPrerequisitePendingReviewSubject(params.className);
+
+  if (options?.preview) {
+    return {
+      success: true,
+      previewHtml: html,
+      retries: 0,
+    };
+  }
+
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'prerequisite_pending_review' },
+      { name: 'enrollment_id', value: params.enrollmentId },
+      { name: 'student_id', value: params.studentId },
+    ],
+    metadata: {
+      enrollment_id: params.enrollmentId,
+      student_id: params.studentId,
+    },
+  });
+
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: 'prerequisite_pending_review',
+      enrollment_id: params.enrollmentId,
+      student_id: params.studentId,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      console.error('[sendPrerequisitePendingReviewEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Fully-Enrolled Email Function (BEN-865)
+// ============================================================================
+
+/**
+ * Sent on the transition when the last required prerequisite for a class
+ * becomes approved. A transition email, not a state email -- callers must
+ * detect the transition and dedup against email_logs themselves.
+ */
+export async function sendFullyEnrolledEmail(
+  params: {
+    studentId: string;
+    enrollmentId: string;
+    className: string;
+  },
+  options?: { preview?: boolean }
+): Promise<EmailSendResult & { previewHtml?: string }> {
+  // Import here to avoid circular dependencies
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { renderFullyEnrolledTemplate, getFullyEnrolledSubject } = await import('./email-templates');
+
+  const supabase = createSupabaseAdminClient();
+  let studentEmail: string | null = null;
+
+  try {
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(params.studentId);
+
+    if (getUserError) {
+      console.error('[sendFullyEnrolledEmail] Failed to get student email:', getUserError.message);
+      return {
+        success: false,
+        error: `Failed to get student email: ${getUserError.message}`,
+        retries: 0,
+      };
+    }
+
+    if (!authUser?.user?.email) {
+      return {
+        success: false,
+        error: 'Student email not found',
+        retries: 0,
+      };
+    }
+
+    studentEmail = authUser.user.email;
+  } catch (error: any) {
+    console.error('[sendFullyEnrolledEmail] Error fetching student email:', error);
+    return {
+      success: false,
+      error: `Failed to fetch student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Invalid student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // students has no email column -- resolve the display name separately.
+  const { data: studentRow } = await supabase
+    .from('students')
+    .select('first_name, last_name')
+    .eq('id', params.studentId)
+    .maybeSingle();
+  const studentName = `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() || 'Student';
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const profileUrl = `${baseUrl}/student/profile`;
+
+  let html: string;
+  try {
+    html = renderFullyEnrolledTemplate({
+      studentName,
+      className: params.className,
+      profileUrl,
+    });
+  } catch (error: any) {
+    console.error('[sendFullyEnrolledEmail] Template rendering error:', error);
+    return {
+      success: false,
+      error: `Failed to render email template: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  const subject = getFullyEnrolledSubject(params.className);
+
+  if (options?.preview) {
+    return {
+      success: true,
+      previewHtml: html,
+      retries: 0,
+    };
+  }
+
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'fully_enrolled' },
+      { name: 'enrollment_id', value: params.enrollmentId },
+      { name: 'student_id', value: params.studentId },
+    ],
+    metadata: {
+      enrollment_id: params.enrollmentId,
+      student_id: params.studentId,
+    },
+  });
+
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: 'fully_enrolled',
+      enrollment_id: params.enrollmentId,
+      student_id: params.studentId,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      console.error('[sendFullyEnrolledEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
 // Tuition Reminder Email Function
 // ============================================================================
 

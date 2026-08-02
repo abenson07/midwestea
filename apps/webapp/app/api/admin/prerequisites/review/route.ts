@@ -3,7 +3,7 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import { getCredentialHistory, reviewCredential } from '@/lib/admin-prerequisites';
 import { evaluateClassPrerequisites } from '@/lib/prerequisite-evaluation';
-import { sendPrerequisiteRejectedEmail } from '@/lib/email';
+import { sendPrerequisiteRejectedEmail, sendFullyEnrolledEmail } from '@/lib/email';
 
 export const runtime = 'nodejs';
 
@@ -194,6 +194,68 @@ export async function POST(request: NextRequest) {
           }
         } catch (err: any) {
           console.error('[API] Exception sending prerequisite rejection email:', err);
+        }
+      });
+    }
+
+    // Fully-enrolled email (BEN-865): only on a successful approval that
+    // transitions the class to fully satisfied, and only once per
+    // enrollment. Fire-and-forget, in its own promise so a mail failure
+    // never fails an already-committed review.
+    if (decision === 'approved' && credential.submitted_for_class_id) {
+      const submittedForClassId = credential.submitted_for_class_id;
+      Promise.resolve().then(async () => {
+        try {
+          const { evaluation: postApprovalEvaluation, error: postApprovalError } = await evaluateClassPrerequisites(
+            supabase,
+            credential.student_id,
+            submittedForClassId
+          );
+
+          if (postApprovalError || !postApprovalEvaluation || !postApprovalEvaluation.allRequiredSatisfied) {
+            return;
+          }
+
+          const { data: enrollmentRow } = await supabase
+            .from('enrollments')
+            .select('id')
+            .eq('student_id', credential.student_id)
+            .eq('class_id', submittedForClassId)
+            .maybeSingle();
+
+          if (!enrollmentRow) {
+            return;
+          }
+
+          const { data: existingLog } = await supabase
+            .from('email_logs')
+            .select('id')
+            .eq('enrollment_id', enrollmentRow.id)
+            .eq('email_type', 'fully_enrolled')
+            .eq('success', true)
+            .limit(1);
+
+          if (existingLog && existingLog.length > 0) {
+            return;
+          }
+
+          const { data: cls } = await supabase
+            .from('classes')
+            .select('class_name')
+            .eq('id', submittedForClassId)
+            .maybeSingle();
+
+          const emailResult = await sendFullyEnrolledEmail({
+            studentId: credential.student_id,
+            enrollmentId: enrollmentRow.id,
+            className: cls?.class_name || 'your class',
+          });
+
+          if (!emailResult.success) {
+            console.error('[API] Failed to send fully-enrolled email:', emailResult.error);
+          }
+        } catch (err: any) {
+          console.error('[API] Exception sending fully-enrolled email:', err);
         }
       });
     }

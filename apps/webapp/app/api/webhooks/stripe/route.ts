@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getStripeClient } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { createSupabaseAdminClient } from '@midwestea/utils';
@@ -22,11 +23,67 @@ import { markTransactionPaidByInvoiceId, payStripeInvoiceOutOfBand } from '@/lib
 import {
   sendCourseEnrollmentEmail,
   sendProgramEnrollmentEmail,
+  sendPrerequisitePendingReviewEmail,
   type CourseEnrollmentTransaction,
   type ProgramEnrollmentTransaction,
 } from '@/lib/email';
+import { evaluateClassPrerequisites } from '@/lib/prerequisite-evaluation';
 
 export const runtime = 'nodejs';
+
+/**
+ * Sends the prerequisite_pending_review email for a fresh enrollment when
+ * its class has required prerequisites that are not all approved yet.
+ * Shared by both checkout.session.completed and payment_intent.succeeded
+ * send sites (BEN-865) so the branching logic exists in exactly one place.
+ * Never sends when the class has no prerequisite snapshot or is already
+ * fully satisfied -- the receipt email already told the student they're in.
+ */
+async function maybeSendPrerequisitePendingReview(
+  supabase: SupabaseClient,
+  student: { id: string },
+  enrollment: { id: string; class_id: string },
+  classRecord: { class_name: string | null; class_id: string | null }
+): Promise<void> {
+  const { evaluation, error: evaluationError } = await evaluateClassPrerequisites(
+    supabase,
+    student.id,
+    enrollment.class_id
+  );
+
+  if (evaluationError || !evaluation) {
+    console.error('[webhook] Failed to evaluate prerequisites for pending-review email:', evaluationError);
+    return;
+  }
+
+  if (evaluation.items.length === 0 || evaluation.allRequiredSatisfied) {
+    return;
+  }
+
+  const { data: existingLog } = await supabase
+    .from('email_logs')
+    .select('id')
+    .eq('enrollment_id', enrollment.id)
+    .eq('email_type', 'prerequisite_pending_review')
+    .eq('success', true)
+    .limit(1);
+
+  if (existingLog && existingLog.length > 0) {
+    return;
+  }
+
+  const emailResult = await sendPrerequisitePendingReviewEmail({
+    studentId: student.id,
+    enrollmentId: enrollment.id,
+    className: classRecord.class_name || 'your class',
+    classCode: classRecord.class_id,
+    outstandingNames: evaluation.outstanding.map((item) => item.prerequisite_type.name),
+  });
+
+  if (!emailResult.success) {
+    console.error('[webhook] Failed to send prerequisite pending-review email:', emailResult.error);
+  }
+}
 
 export async function POST(request: NextRequest) {  
   // Get the raw body as text - critical for Stripe signature verification
@@ -388,6 +445,28 @@ export async function POST(request: NextRequest) {
           event_id: eventId,
         });
       }
+
+      // Step 7: Send the prerequisite pending-review email (BEN-865), if the
+      // class has required prerequisites that aren't all approved yet.
+      // Fire-and-forget, after the receipt email above -- never blocks or
+      // conditions on it.
+      Promise.resolve().then(async () => {
+        try {
+          await maybeSendPrerequisitePendingReview(supabase, student, enrollment, classRecord);
+        } catch (err: any) {
+          console.error('[webhook] Error sending prerequisite pending-review email:', {
+            enrollment_id: enrollment.id,
+            error: err.message,
+            event_id: eventId,
+          });
+        }
+      }).catch((error) => {
+        console.error('[webhook] Unhandled error in prerequisite pending-review promise:', {
+          enrollment_id: enrollment.id,
+          error: error.message,
+          event_id: eventId,
+        });
+      });
 
       return NextResponse.json({
         success: true,
@@ -803,6 +882,28 @@ export async function POST(request: NextRequest) {
           event_id: eventId,
         });
       }
+
+      // Step 7: Send the prerequisite pending-review email (BEN-865), if the
+      // class has required prerequisites that aren't all approved yet.
+      // Fire-and-forget, after the receipt email above -- never blocks or
+      // conditions on it.
+      Promise.resolve().then(async () => {
+        try {
+          await maybeSendPrerequisitePendingReview(supabase, student, enrollment, classRecord);
+        } catch (err: any) {
+          console.error('[webhook] Error sending prerequisite pending-review email:', {
+            enrollment_id: enrollment.id,
+            error: err.message,
+            event_id: eventId,
+          });
+        }
+      }).catch((error) => {
+        console.error('[webhook] Unhandled error in prerequisite pending-review promise:', {
+          enrollment_id: enrollment.id,
+          error: error.message,
+          event_id: eventId,
+        });
+      });
 
       return NextResponse.json({
         success: true,
