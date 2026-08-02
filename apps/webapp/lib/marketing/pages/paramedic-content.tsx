@@ -6,11 +6,11 @@ export const paramedicSections = [
     props: {
       titleLines: ["Paramedic"],
       description:
-        "Take the next step in your EMS career with a state-approved, CAAHEP-accredited Paramedic program designed for working EMTs. Learn advanced assessment, cardiology, pharmacology, airway management, and hands-on ALS care in a supportive, structured environment.",
+        "Take the next step in your EMS career with a state-approved, Paramedic program designed for working EMTs. Learn advanced assessment, cardiology, pharmacology, airway management, and hands-on ALS care in a supportive, structured environment.",
       classStartLabel: "Next class starts",
       classStartDate: "January 11, 2026",
       priceNote:
-        "This 12-month, state-approved, CAAHEP-accredited Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $0.",
+        "This 12-month, state-approved, Paramedic program helps you earn advanced certification on a shift-friendly schedule — all for $8,800.",
       variant: "register",
       registerLabel: "Register now for just",
       registerPrice: "0",
@@ -217,23 +217,16 @@ export const paramedicSections = [
           answer: (
             <div className="flex flex-col gap-4">
               <p>
-                The Midwest Emergency Academy Paramedic program is accredited by the
-                Commission on Accreditation of Allied Health Education Programs (
-                <a
-                  href="https://www.caahep.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-mea-red-darker"
-                >
-                  www.caahep.org
-                </a>
-                ) upon the recommendation of the Committee on Accreditation of Educational
-                Programs for the Emergency Medical Services Professions (CoAEMSP).
+                The Midwwest Emergency Academy Paramedic program has been issued a Letter of
+                Review by the Committee on Accreditation of Educational Programs for the
+                Emergency Medical Services Professions (CoAEMSP). This letter is NOT a CAAHEP
+                accreditation status, it is a status signifying that a program seeking initial
+                accreditation has demonstrated sufficient compliance with the accreditation
+                standards through the Letter of Review Self-Study Report (LSSR) and other
+                documentation. The Letter of Review NOT a guarantee of eventual accreditation.
               </p>
-              <p>Commission on Accreditation of Allied Health Education Programs</p>
               <div>
                 <p>To contact CAAHEP:</p>
-                <p>Commission on Accreditation of Allied Health Education Programs</p>
                 <p>
                   <a href="tel:+17272102350" className="underline hover:text-mea-red-darker">
                     727-210-2350
