@@ -10,6 +10,13 @@ import type { ClassMatrixPayload, ClassMatrixStudentRow } from "@/lib/admin-prer
 
 interface ClassPrerequisiteMatrixProps {
   classId: string;
+  /**
+   * Notified whenever the matrix payload (re)loads, so a parent page can
+   * reuse the already-fetched per-student evaluations elsewhere on the page
+   * (e.g. the remove-student modal's read-only context block, BEN-872)
+   * without issuing a second request.
+   */
+  onPayloadChange?: (payload: ClassMatrixPayload | null) => void;
 }
 
 type FilterKey = "all" | "outstanding" | "pending_review" | "expiring";
@@ -37,7 +44,7 @@ function truncateName(name: string, max = 20): string {
   return name.length > max ? `${name.slice(0, max)}…` : name;
 }
 
-export function ClassPrerequisiteMatrix({ classId }: ClassPrerequisiteMatrixProps) {
+export function ClassPrerequisiteMatrix({ classId, onPayloadChange }: ClassPrerequisiteMatrixProps) {
   const [payload, setPayload] = useState<ClassMatrixPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,18 +71,21 @@ export function ClassPrerequisiteMatrix({ classId }: ClassPrerequisiteMatrixProp
       if (!response.ok || !result.success) {
         setError(result.error || "Failed to load prerequisite matrix.");
         setPayload(null);
+        onPayloadChange?.(null);
         setLoading(false);
         return;
       }
 
       setPayload(result.payload as ClassMatrixPayload);
+      onPayloadChange?.(result.payload as ClassMatrixPayload);
     } catch (err: any) {
       setError(err.message || "Failed to load prerequisite matrix.");
       setPayload(null);
+      onPayloadChange?.(null);
     } finally {
       setLoading(false);
     }
-  }, [classId]);
+  }, [classId, onPayloadChange]);
 
   useEffect(() => {
     refresh();

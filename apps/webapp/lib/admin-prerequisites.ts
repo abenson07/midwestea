@@ -2,6 +2,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PrerequisiteEvaluation, PrerequisiteStatus, StudentCredential } from '@midwestea/types';
 import { daysUntilExpiry, evaluateClassPrerequisites } from './prerequisite-evaluation';
 
+// Prerequisite state never triggers removal or refund. Those stay in
+// /api/enrollments/remove and the admin remove modal, driven by a human.
+// Enforced by scripts/verify-prerequisite-payment-separation.ts (BEN-858, BEN-872).
+
 export interface PendingReviewRow {
   credential_id: string;
   student_id: string;

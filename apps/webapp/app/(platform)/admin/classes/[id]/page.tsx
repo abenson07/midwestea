@@ -12,6 +12,8 @@ import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { StudentClassPrerequisiteReview } from "@/components/ui/StudentClassPrerequisiteReview";
 import { ClassPrerequisiteMatrix } from "@/components/ui/ClassPrerequisiteMatrix";
+import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
+import type { ClassMatrixPayload } from "@/lib/admin-prerequisites";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
@@ -149,6 +151,11 @@ function ClassDetailContent() {
     } | null>(null);
     const [refundPercentageInput, setRefundPercentageInput] = useState<string>("");
     const [isRemovingStudent, setIsRemovingStudent] = useState(false);
+
+    // Reused by the remove-student modal's read-only prerequisite context
+    // block (BEN-872) -- populated by ClassPrerequisiteMatrix (BEN-869) so
+    // no second request is issued.
+    const [matrixPayload, setMatrixPayload] = useState<ClassMatrixPayload | null>(null);
 
     // Prerequisite review sidebar state (BEN-867)
     const [prereqReviewCounts, setPrereqReviewCounts] = useState<Record<string, number>>({});
@@ -935,7 +942,7 @@ function ClassDetailContent() {
             </div>
 
             {/* Prerequisite status by student (BEN-869) */}
-            <ClassPrerequisiteMatrix classId={classData.id} />
+            <ClassPrerequisiteMatrix classId={classData.id} onPayloadChange={setMatrixPayload} />
 
             {/* Activity Log Section */}
             <LogDisplay referenceId={classData.id} referenceType="class" />
@@ -1138,6 +1145,39 @@ function ClassDetailContent() {
                         <p className="text-gray-700 mb-4">
                             Remove this student from the class? This can be undone immediately after.
                         </p>
+
+                        {/* Read-only prerequisite context (BEN-872) -- advisory only, never
+                            preselects a refund percentage or changes this modal's behavior. */}
+                        {(() => {
+                            const row = matrixPayload?.rows.find((r) => r.student_id === removeStudentModal.studentId);
+                            const outstanding = row?.evaluation.outstanding ?? [];
+                            return (
+                                <div className="mb-4 space-y-1">
+                                    {outstanding.length === 0 ? (
+                                        <p className="text-sm text-gray-500">All class requirements are complete.</p>
+                                    ) : (
+                                        <div>
+                                            <p className="text-sm text-gray-700">Outstanding requirements:</p>
+                                            <ul className="mt-1 space-y-1">
+                                                {outstanding.map((item) => (
+                                                    <li
+                                                        key={item.class_prerequisite_id}
+                                                        className="text-sm text-gray-500 flex items-center gap-2"
+                                                    >
+                                                        {item.prerequisite_type.name}
+                                                        <PrerequisiteStatusBadge status={item.status} />
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        Requirement status is shown for context only. It does not affect removal or refund.
+                                    </p>
+                                </div>
+                            );
+                        })()}
+
                         {removeStudentModal.hasPaidTransactions && (
                             <div className="mb-4 space-y-3">
                                 <p className="text-sm text-gray-700">
