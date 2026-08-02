@@ -17,6 +17,8 @@ interface DataTableProps<T> {
     onEditClick?: (item: T, e: React.MouseEvent) => void;
     isLoading?: boolean;
     emptyMessage?: string;
+    /** Optional extra classes applied to each row, e.g. for urgency highlighting. */
+    rowClassName?: (item: T) => string;
 }
 
 export function DataTable<T extends { id: string | number }>({
@@ -26,6 +28,7 @@ export function DataTable<T extends { id: string | number }>({
     onEditClick,
     isLoading,
     emptyMessage = "No data available",
+    rowClassName,
 }: DataTableProps<T>) {
     if (isLoading) {
         return <div className="p-8 text-center text-gray-500">Loading...</div>;
@@ -48,7 +51,7 @@ export function DataTable<T extends { id: string | number }>({
                         key={item.id}
                         onClick={() => onRowClick?.(item)}
                         className={`bg-white border border-gray-200 rounded-lg p-4 ${onRowClick ? "active:bg-gray-50 cursor-pointer" : ""
-                            }`}
+                            } ${rowClassName?.(item) || ""}`}
                     >
                         <div className="space-y-2">
                             {columns.map((column, index) => (
@@ -111,7 +114,7 @@ export function DataTable<T extends { id: string | number }>({
                                 key={item.id}
                                 onClick={() => onRowClick?.(item)}
                                 className={`group transition-colors ${onRowClick ? "cursor-pointer hover:bg-gray-50" : ""
-                                    }`}
+                                    } ${rowClassName?.(item) || ""}`}
                             >
                                 {columns.map((column, index) => (
                                     <td

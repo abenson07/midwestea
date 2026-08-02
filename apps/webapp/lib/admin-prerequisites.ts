@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { PrerequisiteEvaluation, StudentCredential } from '@midwestea/types';
-import { evaluateClassPrerequisites } from './prerequisite-evaluation';
+import type { PrerequisiteEvaluation, PrerequisiteStatus, StudentCredential } from '@midwestea/types';
+import { daysUntilExpiry, evaluateClassPrerequisites } from './prerequisite-evaluation';
 
 export interface PendingReviewRow {
   credential_id: string;
@@ -342,4 +342,191 @@ export async function getClassPrerequisiteMatrix(
     },
     error: null,
   };
+}
+
+// ============================================================================
+// Cross-class follow-up list (BEN-894)
+// ============================================================================
+
+export type FollowUpReason =
+  | 'rejected'
+  | 'expired'
+  | 'expiring_before_class'
+  | 'missing'
+  | 'expiring_soon';
+
+export const FOLLOW_UP_REASON_LABELS: Record<FollowUpReason, string> = {
+  rejected: 'Rejected — needs resubmission',
+  expired: 'Expired',
+  expiring_before_class: 'Expires before class starts',
+  missing: 'Not started',
+  expiring_soon: 'Expiring soon',
+};
+
+export interface FollowUpRow {
+  student_id: string;
+  student_name: string;
+  student_email: string | null;
+  class_id: string; // classes.id UUID
+  class_name: string | null;
+  class_start_date: string | null;
+  days_until_class: number | null;
+  prerequisite_type_id: string;
+  prerequisite_type_name: string;
+  status: PrerequisiteStatus;
+  reason: FollowUpReason;
+  expires_at: string | null;
+  days_until_expiry: number | null;
+}
+
+function reasonForOutstandingStatus(status: PrerequisiteStatus): FollowUpReason {
+  if (status === 'rejected') return 'rejected';
+  if (status === 'expired') return 'expired';
+  if (status === 'expiring_before_class') return 'expiring_before_class';
+  return 'missing';
+}
+
+/** Splits `items` into consecutive chunks of at most `size`. */
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    chunks.push(items.slice(i, i + size));
+  }
+  return chunks;
+}
+
+/** All actionable prerequisite gaps across upcoming classes, soonest class first. */
+export async function getFollowUpRows(
+  supabase: SupabaseClient
+): Promise<{ rows: FollowUpRow[]; error: string | null }> {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: classRows, error: classesError } = await supabase
+    .from('classes')
+    .select('id, class_name, class_start_date')
+    .or(`class_start_date.gte.${today},class_start_date.is.null`);
+
+  if (classesError) {
+    return { rows: [], error: classesError.message };
+  }
+
+  const classes = (classRows || []) as { id: string; class_name: string | null; class_start_date: string | null }[];
+  if (classes.length === 0) {
+    return { rows: [], error: null };
+  }
+
+  const classIds = classes.map((c) => c.id);
+
+  const { data: enrollmentRowsRaw, error: enrollmentsError } = await supabase
+    .from('enrollments')
+    .select('student_id, class_id, students(first_name, last_name)')
+    .in('class_id', classIds)
+    .neq('enrollment_status', 'removed');
+
+  if (enrollmentsError) {
+    return { rows: [], error: enrollmentsError.message };
+  }
+
+  const enrollmentRows = (enrollmentRowsRaw || []) as any[];
+
+  const studentNameById = new Map<string, string>();
+  for (const row of enrollmentRows) {
+    const name = `${row.students?.first_name ?? ''} ${row.students?.last_name ?? ''}`.trim();
+    if (name) {
+      studentNameById.set(row.student_id, name);
+    }
+  }
+
+  // Resolve email fallback only for students missing both name parts.
+  const emailById = new Map<string, string | null>();
+  const studentIdsMissingName = Array.from(
+    new Set(enrollmentRows.filter((row) => !studentNameById.get(row.student_id)).map((row) => row.student_id))
+  );
+  await Promise.all(
+    studentIdsMissingName.map(async (id) => {
+      try {
+        const { data: userData } = await supabase.auth.admin.getUserById(id);
+        if (userData?.user?.email) {
+          emailById.set(id, userData.user.email);
+        }
+      } catch {
+        // Non-fatal: leave the name unresolved for this row.
+      }
+    })
+  );
+
+  const classById = new Map(classes.map((c) => [c.id, c]));
+
+  const rows: FollowUpRow[] = [];
+
+  for (const batch of chunk(enrollmentRows, 25)) {
+    const evaluations = await Promise.all(
+      batch.map(async (row) => ({
+        row,
+        result: await evaluateClassPrerequisites(supabase, row.student_id, row.class_id),
+      }))
+    );
+
+    for (const { row, result } of evaluations) {
+      const { evaluation } = result;
+      if (!evaluation) continue;
+
+      const classRecord = classById.get(row.class_id);
+      const daysUntilClass = classRecord ? daysUntilExpiry(classRecord.class_start_date) : null;
+      const studentName = studentNameById.get(row.student_id) || emailById.get(row.student_id) || 'Unknown student';
+      const studentEmail = emailById.get(row.student_id) ?? null;
+
+      for (const item of evaluation.outstanding) {
+        rows.push({
+          student_id: row.student_id,
+          student_name: studentName,
+          student_email: studentEmail,
+          class_id: row.class_id,
+          class_name: classRecord?.class_name ?? null,
+          class_start_date: classRecord?.class_start_date ?? null,
+          days_until_class: daysUntilClass,
+          prerequisite_type_id: item.prerequisite_type_id,
+          prerequisite_type_name: item.prerequisite_type.name,
+          status: item.status,
+          reason: reasonForOutstandingStatus(item.status),
+          expires_at: item.expires_at,
+          days_until_expiry: daysUntilExpiry(item.expires_at),
+        });
+      }
+
+      for (const item of evaluation.items) {
+        if (item.status === 'satisfied' && item.expires_at) {
+          rows.push({
+            student_id: row.student_id,
+            student_name: studentName,
+            student_email: studentEmail,
+            class_id: row.class_id,
+            class_name: classRecord?.class_name ?? null,
+            class_start_date: classRecord?.class_start_date ?? null,
+            days_until_class: daysUntilClass,
+            prerequisite_type_id: item.prerequisite_type_id,
+            prerequisite_type_name: item.prerequisite_type.name,
+            status: item.status,
+            reason: 'expiring_soon',
+            expires_at: item.expires_at,
+            days_until_expiry: daysUntilExpiry(item.expires_at),
+          });
+        }
+      }
+    }
+  }
+
+  rows.sort((a, b) => {
+    if (a.days_until_class === null && b.days_until_class === null) {
+      return a.student_name.localeCompare(b.student_name);
+    }
+    if (a.days_until_class === null) return 1;
+    if (b.days_until_class === null) return -1;
+    if (a.days_until_class !== b.days_until_class) {
+      return a.days_until_class - b.days_until_class;
+    }
+    return a.student_name.localeCompare(b.student_name);
+  });
+
+  return { rows, error: null };
 }
