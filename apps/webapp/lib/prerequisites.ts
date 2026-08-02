@@ -10,6 +10,7 @@ import type {
   TemplatePrerequisiteWithType,
 } from "@midwestea/types";
 import { getClassesByStudentId } from "@/lib/classes";
+import type { ClassAccessResult } from "@/lib/class-access";
 
 /**
  * Fetch all non-archived prerequisite types from the catalog, ordered by name.
@@ -342,6 +343,45 @@ export async function fetchPrerequisiteEvaluation(
   }
 }
 
+/**
+ * Fetch the current student's class-material access decision for a class
+ * (BEN-864). The student is always derived server-side from the bearer
+ * token -- this never sends a student id.
+ */
+export async function fetchClassMaterialAccess(
+  classId: string
+): Promise<{ access: ClassAccessResult | null; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session) {
+      return { access: null, error: "Not authenticated. Please log in." };
+    }
+
+    const response = await fetch(`/api/classes/${classId}/materials`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      return { access: null, error: result.error || "Failed to check class material access" };
+    }
+
+    return { access: result.access as ClassAccessResult, error: null };
+  } catch (err) {
+    const error = err as Error;
+    return { access: null, error: error.message || "Failed to check class material access" };
+  }
+}
+
 export interface ClassPrerequisiteSummary {
   classId: string; // classes.id UUID
   classCode: string; // classes.class_id text code, for the route
@@ -351,6 +391,7 @@ export interface ClassPrerequisiteSummary {
   outstandingCount: number;
   hasAnyPrerequisites: boolean;
   summaryLabel: string; // per the precedence in BEN-856's Decisions
+  access: ClassAccessResult | null; // class-material access decision (BEN-864)
 }
 
 function deriveSummaryLabel(evaluation: PrerequisiteEvaluation): string {
@@ -389,7 +430,12 @@ export async function getStudentClassPrerequisiteSummaries(
 
   const summaries = await Promise.all(
     classes.map(async (classRecord): Promise<ClassPrerequisiteSummary> => {
-      const { evaluation, error: evaluationError } = await fetchPrerequisiteEvaluation(classRecord.id);
+      // Batched together (not a second waterfall) -- both requests fire
+      // concurrently per class.
+      const [{ evaluation, error: evaluationError }, { access }] = await Promise.all([
+        fetchPrerequisiteEvaluation(classRecord.id),
+        fetchClassMaterialAccess(classRecord.id),
+      ]);
 
       if (evaluationError || !evaluation) {
         return {
@@ -401,6 +447,7 @@ export async function getStudentClassPrerequisiteSummaries(
           outstandingCount: 0,
           hasAnyPrerequisites: false,
           summaryLabel: "Status unavailable",
+          access,
         };
       }
 
@@ -413,6 +460,7 @@ export async function getStudentClassPrerequisiteSummaries(
         outstandingCount: evaluation.outstanding.length,
         hasAnyPrerequisites: evaluation.items.length > 0,
         summaryLabel: deriveSummaryLabel(evaluation),
+        access,
       };
     })
   );

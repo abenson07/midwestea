@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Lock } from "lucide-react";
 import type { EvaluatedPrerequisite } from "@midwestea/types";
 import { getStudentClassPrerequisiteSummaries, type ClassPrerequisiteSummary } from "@/lib/prerequisites";
 import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
@@ -80,6 +80,58 @@ function PrerequisiteItemRow({
       </div>
     </li>
   );
+}
+
+function ClassMaterialsSection({ summary }: { summary: ClassPrerequisiteSummary }) {
+  const access = summary.access;
+  if (!access || access.reason === "not_enrolled") {
+    return null;
+  }
+
+  if (access.reason === "granted" && access.materialsUrl) {
+    return (
+      <div className="pt-3">
+        <a
+          href={access.materialsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-black text-white hover:bg-gray-800 h-10 px-4 py-2"
+        >
+          Open class materials
+        </a>
+      </div>
+    );
+  }
+
+  if (access.reason === "prerequisites_incomplete") {
+    const anyPendingReview = access.blockingItems.some((item) => item.status === "pending_review");
+    return (
+      <div className="pt-3">
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 text-gray-500 shrink-0" />
+            <p className="text-sm text-gray-700">
+              Class materials unlock once your required prerequisites are approved.
+            </p>
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            {access.blockingItems.map((item) => item.prerequisite_type.name).join(", ")}
+            {anyPendingReview ? " Some items are still under review." : ""}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (access.reason === "no_materials") {
+    return (
+      <div className="pt-3">
+        <p className="text-sm text-gray-500">Materials aren&apos;t posted for this class yet.</p>
+      </div>
+    );
+  }
+
+  return null;
 }
 
 export function StudentClassRequirements({ studentId }: StudentClassRequirementsProps) {
@@ -198,6 +250,17 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
                     ) : (
                       <p className="py-3 text-sm text-gray-500">Status unavailable</p>
                     )}
+                    <ClassMaterialsSection summary={summary} />
+                  </div>
+                )}
+                {/*
+                  Classes with no prerequisites have no expand affordance at
+                  all, but materials access (BEN-864) must still be visible
+                  for them -- render the section here too in that case.
+                */}
+                {!summary.hasAnyPrerequisites && (
+                  <div className="pl-6">
+                    <ClassMaterialsSection summary={summary} />
                   </div>
                 )}
               </li>
