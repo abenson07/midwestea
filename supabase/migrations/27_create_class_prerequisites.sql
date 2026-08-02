@@ -1,4 +1,4 @@
--- Migration: Class-owned prerequisite snapshots (BEN-853)
+-- Migration 27: Class-owned prerequisite snapshots (BEN-853)
 -- Copied from template_prerequisites at class-creation time so later template
 -- edits never rewrite classes that already exist. Intentionally no backfill:
 -- classes created before this migration have no snapshot.
@@ -19,10 +19,6 @@ CREATE INDEX class_prerequisites_class_id_idx
   ON class_prerequisites (class_id, sort_order);
 
 ALTER TABLE class_prerequisites ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Service role can manage class prerequisites" ON class_prerequisites;
-DROP POLICY IF EXISTS "Authenticated users can read class prerequisites" ON class_prerequisites;
-DROP POLICY IF EXISTS "Admins can manage class prerequisites" ON class_prerequisites;
 
 CREATE POLICY "Service role can manage class prerequisites"
   ON class_prerequisites FOR ALL TO service_role

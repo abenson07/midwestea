@@ -1,4 +1,4 @@
--- Migration: Create certificates table for student certificate history
+-- Migration 17: Create certificates table for student certificate history
 -- Certificates start as 'pending' placeholders (BEN-848 wires up automatic
 -- creation on enrollment) and move to 'issued' once a file is attached.
 -- expires_at is set explicitly at issuance time; it is not derived from

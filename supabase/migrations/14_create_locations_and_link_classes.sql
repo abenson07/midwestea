@@ -1,3 +1,4 @@
+-- Migration 14: Create locations and link classes
 -- Create locations table with structured address for class locations
 CREATE TABLE IF NOT EXISTS locations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

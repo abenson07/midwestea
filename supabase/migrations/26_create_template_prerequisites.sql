@@ -1,4 +1,4 @@
--- Migration: Prerequisite assignment on program and course templates (BEN-851)
+-- Migration 26: Prerequisite assignment on program and course templates (BEN-851)
 -- `courses` holds both programs (program_type = 'program') and course templates
 -- (program_type = 'course' or NULL), so one table serves both surfaces.
 
@@ -17,10 +17,6 @@ CREATE INDEX template_prerequisites_course_uuid_idx
   ON template_prerequisites (course_uuid, sort_order);
 
 ALTER TABLE template_prerequisites ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Service role can manage template prerequisites" ON template_prerequisites;
-DROP POLICY IF EXISTS "Authenticated users can read template prerequisites" ON template_prerequisites;
-DROP POLICY IF EXISTS "Admins can manage template prerequisites" ON template_prerequisites;
 
 CREATE POLICY "Service role can manage template prerequisites"
   ON template_prerequisites FOR ALL TO service_role

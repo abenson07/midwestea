@@ -1,4 +1,4 @@
--- Migration: Prerequisite type detail + expiration rule metadata (BEN-870)
+-- Migration 25: Prerequisite type detail + expiration rule metadata (BEN-870)
 -- Additive to migration 24. Existing rows take the column defaults.
 
 ALTER TABLE prerequisite_types

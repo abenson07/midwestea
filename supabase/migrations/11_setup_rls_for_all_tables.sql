@@ -1,4 +1,4 @@
--- Migration: Setup Row Level Security (RLS) for all tables
+-- Migration 11: Setup Row Level Security (RLS) for all tables
 -- This migration ensures all tables have RLS enabled with appropriate policies
 -- Run this migration to secure your production database
 

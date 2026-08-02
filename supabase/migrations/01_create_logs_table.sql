@@ -1,3 +1,4 @@
+-- Migration 01: Create logs table
 -- Create logs table for cron job activity tracking
 CREATE TABLE IF NOT EXISTS logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

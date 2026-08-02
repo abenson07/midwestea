@@ -1,4 +1,4 @@
--- Migration: Student-owned credential records (BEN-893)
+-- Migration 28: Student-owned credential records (BEN-893)
 -- Keyed by (student_id, prerequisite_type_id) so one approved credential can
 -- satisfy any class that requires that prerequisite type. History is preserved
 -- by inserting a new row per submission and marking the prior row 'superseded',
@@ -61,10 +61,6 @@ ORDER BY student_id, prerequisite_type_id, submitted_at DESC, created_at DESC;
 
 ALTER TABLE student_credentials ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Service role can manage student credentials" ON student_credentials;
-DROP POLICY IF EXISTS "Students can read own credentials" ON student_credentials;
-DROP POLICY IF EXISTS "Admins can manage student credentials" ON student_credentials;
-
 CREATE POLICY "Service role can manage student credentials"
   ON student_credentials FOR ALL TO service_role
   USING (true) WITH CHECK (true);
@@ -94,10 +90,6 @@ GRANT SELECT ON latest_student_credentials TO authenticated;
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('student-credentials', 'student-credentials', false)
 ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "Service role manages credential files" ON storage.objects;
-DROP POLICY IF EXISTS "Students read own credential files" ON storage.objects;
-DROP POLICY IF EXISTS "Admins read credential files" ON storage.objects;
 
 CREATE POLICY "Service role manages credential files"
   ON storage.objects FOR ALL TO service_role

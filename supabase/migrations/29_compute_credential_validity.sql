@@ -1,4 +1,4 @@
--- Migration: Stored expiration dates on student credential records (BEN-871)
+-- Migration 29: Stored expiration dates on student credential records (BEN-871)
 -- Month arithmetic lives in Postgres so month-end clamping (31 Jan + 1 month
 -- = 28 Feb) is identical for every caller. Expiry is computed at write time
 -- and stored; it is never recomputed on read.

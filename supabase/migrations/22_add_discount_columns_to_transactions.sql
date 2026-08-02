@@ -1,3 +1,4 @@
+-- Migration 22: Add discount columns to transactions
 -- Track discount provenance on transactions, so the admin UI can show
 -- "XX% discount applied to original $XX" wherever amount_due is displayed.
 -- Both nullable; NULL means "amount_due has never been adjusted via the

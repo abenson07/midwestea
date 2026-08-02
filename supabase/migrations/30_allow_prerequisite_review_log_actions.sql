@@ -1,3 +1,4 @@
+-- Migration 30: Allow prerequisite review log actions
 -- Allow prerequisite review outcomes in logs.action_type (BEN-868)
 ALTER TABLE logs
   DROP CONSTRAINT IF EXISTS logs_action_type_check;

@@ -1,3 +1,4 @@
+-- Migration 05: Create invoices to import table
 -- Create invoices_to_import table for CSV export to QuickBooks
 CREATE TABLE IF NOT EXISTS invoices_to_import (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

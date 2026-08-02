@@ -1,3 +1,4 @@
+-- Migration 16: Add student self update policy
 -- The "Authenticated users can update own student data" policy from
 -- 11_setup_rls_for_all_tables.sql was never actually applied to the live
 -- database (only the SELECT and service_role policies exist there), so a

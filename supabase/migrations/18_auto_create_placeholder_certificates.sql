@@ -1,4 +1,4 @@
--- Migration: Automatically create a placeholder certificate for every
+-- Migration 18: Automatically create a placeholder certificate for every
 -- enrollment, so "coming soon" certificate entries (BEN-848) don't depend
 -- on a manual/admin step.
 

@@ -1,4 +1,4 @@
--- Migration: Global prerequisite type catalog (BEN-854)
+-- Migration 24: Global prerequisite type catalog (BEN-854)
 -- Reusable prerequisite definitions that programs, course templates, classes,
 -- and student credential records all key off of. Additional detail columns
 -- (description, required_by_default, expiration rules) are added in BEN-870.
@@ -20,10 +20,6 @@ CREATE UNIQUE INDEX prerequisite_types_name_input_type_key
 CREATE INDEX prerequisite_types_archived_at_idx ON prerequisite_types (archived_at);
 
 ALTER TABLE prerequisite_types ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Service role can manage prerequisite types" ON prerequisite_types;
-DROP POLICY IF EXISTS "Authenticated users can read prerequisite types" ON prerequisite_types;
-DROP POLICY IF EXISTS "Admins can manage prerequisite types" ON prerequisite_types;
 
 CREATE POLICY "Service role can manage prerequisite types"
   ON prerequisite_types FOR ALL TO service_role

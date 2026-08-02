@@ -1,3 +1,4 @@
+-- Migration 21: Add stripe invoice columns to transactions
 -- Add Stripe Invoice tracking columns to transactions table
 -- Populated for tuition_a/tuition_b (and, from BEN-1180 forward, custom/pay_in_full)
 -- rows, which are real Stripe Invoice objects created at registration or
