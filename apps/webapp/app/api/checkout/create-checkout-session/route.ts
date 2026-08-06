@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     let session;
     try {
-      const successUrl = `${origin}/purchase-confirmation/general`;
+      const successUrl = `${origin}/checkout/success?classID=${classId}`;
       const cancelUrl = `${origin}/checkout/details?classID=${classId}`;
 
       const sessionResult = await createStripeCheckoutSessionWithFetch(
