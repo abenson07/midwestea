@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, FormEvent, Suspense, useRef } from "react";
+import { useState, useEffect, FormEvent, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { verifyOTP, getSession } from "@/lib/auth";
-import { resendStudentOTP } from "@/lib/student-auth";
+import { resendStudentOTP, ensureNoMismatchedSession } from "@/lib/student-auth";
 import { Logo } from "@midwestea/ui";
+import { OtpDigitsInput } from "@/components/ui/OtpDigitsInput";
 
 /**
  * Only accept a `next` destination that starts with `/student/` -- anything
@@ -25,20 +26,29 @@ function OTPForm() {
   const next = searchParams.get("next");
   const destination = resolveNextDestination(next);
 
-  const [otpDigits, setOtpDigits] = useState<string[]>(Array(8).fill(""));
+  const [otpCode, setOtpCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Check if already authenticated
+  // If a session already exists, only treat it as "already logged in" when
+  // it belongs to this email. A mismatched session (e.g. a different
+  // student never signed out on this browser) gets signed out instead of
+  // silently accepted -- previously this bounced to /student as whoever was
+  // already logged in, regardless of whose OTP link this was.
   useEffect(() => {
-    getSession().then(({ session }) => {
-      if (session) {
-        router.push("/student");
+    if (!email) return;
+    (async () => {
+      const { session } = await getSession();
+      if (session && session.user?.email?.toLowerCase() === email.toLowerCase()) {
+        router.push(destination);
+        return;
       }
-    });
-  }, [router]);
+      if (session) {
+        await ensureNoMismatchedSession(email);
+      }
+    })();
+  }, [router, email, destination]);
 
   // Redirect if no email (but wait a bit for searchParams to be available)
   useEffect(() => {
@@ -52,90 +62,11 @@ function OTPForm() {
     return () => clearTimeout(timer);
   }, [email, router]);
 
-  const focusInput = (index: number) => {
-    if (inputRefs.current[index]) {
-      inputRefs.current[index]?.focus();
-    }
-  };
-
-  const handleDigitChange = (index: number, value: string) => {
-    // Only allow digits
-    const digit = value.replace(/\D/g, "").slice(-1); // Take only the last character if multiple
-
-    if (digit) {
-      const newDigits = [...otpDigits];
-      newDigits[index] = digit;
-      setOtpDigits(newDigits);
-      setError("");
-
-      // Auto-advance to next input
-      if (index < 7) {
-        focusInput(index + 1);
-      }
-    } else {
-      // Clear current input
-      const newDigits = [...otpDigits];
-      newDigits[index] = "";
-      setOtpDigits(newDigits);
-    }
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace") {
-      if (!otpDigits[index] && index > 0) {
-        // If current input is empty, go back and clear previous
-        const newDigits = [...otpDigits];
-        newDigits[index - 1] = "";
-        setOtpDigits(newDigits);
-        focusInput(index - 1);
-      } else if (otpDigits[index]) {
-        // If current input has value, clear it
-        const newDigits = [...otpDigits];
-        newDigits[index] = "";
-        setOtpDigits(newDigits);
-      }
-    } else if (e.key === "Delete") {
-      // Clear current input without moving
-      const newDigits = [...otpDigits];
-      newDigits[index] = "";
-      setOtpDigits(newDigits);
-    } else if (e.key === "ArrowLeft" && index > 0) {
-      e.preventDefault();
-      focusInput(index - 1);
-    } else if (e.key === "ArrowRight" && index < 7) {
-      e.preventDefault();
-      focusInput(index + 1);
-    }
-  };
-
-  const handlePaste = (index: number, e: React.ClipboardEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").trim();
-    const digits = pastedData.replace(/\D/g, "").slice(0, 8); // Extract up to 8 digits
-
-    if (digits) {
-      const newDigits = [...otpDigits];
-      // Fill inputs starting from the current index
-      for (let i = 0; i < digits.length && (index + i) < 8; i++) {
-        newDigits[index + i] = digits[i];
-      }
-      setOtpDigits(newDigits);
-      setError("");
-
-      // Focus the input after the last filled digit
-      const nextIndex = Math.min(index + digits.length, 7);
-      focusInput(nextIndex);
-    }
-  };
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    // Join all digits together
-    const otp = otpDigits.join("");
-
-    if (!otp || otp.length !== 8) {
+    if (!otpCode || otpCode.length !== 8) {
       setError("Please enter the complete 8-digit code");
       return;
     }
@@ -147,7 +78,11 @@ function OTPForm() {
 
     setLoading(true);
 
-    const result = await verifyOTP(email, otp);
+    // Defensive: clear any mismatched session before this verify attempt,
+    // in case one appeared between mount and submit.
+    await ensureNoMismatchedSession(email);
+
+    const result = await verifyOTP(email, otpCode);
 
     if (result.success) {
       // Wait a moment for session to be established, then verify and redirect
@@ -166,16 +101,14 @@ function OTPForm() {
         } else {
           setError("Session not established. Please try again.");
           setLoading(false);
-          setOtpDigits(Array(8).fill(""));
-          focusInput(0);
+          setOtpCode("");
         }
       }
     } else {
       setError(result.error || "Invalid OTP code");
       setLoading(false);
       // Clear OTP on error
-      setOtpDigits(Array(8).fill(""));
-      focusInput(0);
+      setOtpCode("");
     }
   };
 
@@ -238,26 +171,14 @@ function OTPForm() {
             <label htmlFor="otp-0" className="block text-sm font-medium text-gray-700 mb-3">
               Verification code
             </label>
-            <div className="flex gap-2 justify-center">
-              {otpDigits.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  type="text"
-                  inputMode="numeric"
-                  value={digit}
-                  onChange={(e) => handleDigitChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={(e) => handlePaste(index, e)}
-                  disabled={loading}
-                  maxLength={1}
-                  ref={(el) => {
-                    inputRefs.current[index] = el;
-                  }}
-                  className="w-12 h-14 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-center text-2xl font-semibold disabled:opacity-50"
-                />
-              ))}
-            </div>
+            <OtpDigitsInput
+              value={otpCode}
+              onChange={(value) => {
+                setOtpCode(value);
+                setError("");
+              }}
+              disabled={loading}
+            />
             {email && (
               <p className="mt-2 text-sm text-gray-500 text-center">
                 Code sent to {email}
@@ -267,7 +188,7 @@ function OTPForm() {
 
           <button
             type="submit"
-            disabled={loading || otpDigits.some(d => !d)}
+            disabled={loading || otpCode.length !== 8}
             className="w-full bg-gray-900 text-white py-2 px-4 rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? "Verifying..." : "Continue"}

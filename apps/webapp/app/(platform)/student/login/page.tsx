@@ -6,6 +6,18 @@ import { sendStudentOTP } from "@/lib/student-auth";
 import { getSession } from "@/lib/auth";
 import { Logo } from "@midwestea/ui";
 
+/**
+ * Only accept a `next` destination that starts with `/student/` -- anything
+ * else (an absolute URL, `/admin`, etc.) falls back to `/student` so this
+ * param can never be used as an open redirect.
+ */
+function resolveNextDestination(next: string | null): string {
+  if (next && next.startsWith("/student/")) {
+    return next;
+  }
+  return "/student";
+}
+
 function StudentLoginContent() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
@@ -13,15 +25,19 @@ function StudentLoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next");
+  const destination = resolveNextDestination(next);
 
-  // Check if already authenticated
+  // Check if already authenticated. This page doesn't know the intended
+  // email until the student types it, so it can't verify a match yet --
+  // just preserve `next` instead of always dropping the student at the
+  // generic /student dashboard.
   useEffect(() => {
     getSession().then(({ session }) => {
       if (session) {
-        router.push("/student");
+        router.push(destination);
       }
     });
-  }, [router]);
+  }, [router, destination]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

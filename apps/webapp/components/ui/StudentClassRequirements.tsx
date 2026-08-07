@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { ChevronDown, ChevronRight, Lock } from "lucide-react";
 import type { EvaluatedPrerequisite } from "@midwestea/types";
 import { getStudentClassPrerequisiteSummaries, type ClassPrerequisiteSummary } from "@/lib/prerequisites";
 import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
+import { PrerequisiteModal } from "@/components/ui/PrerequisiteModal";
+import { PrerequisiteStepForm } from "@/components/ui/PrerequisiteStepForm";
 
 interface StudentClassRequirementsProps {
   studentId: string;
@@ -33,12 +34,12 @@ function nextActionLabel(status: EvaluatedPrerequisite["status"]): string | null
 
 function PrerequisiteItemRow({
   item,
-  classCode,
   classStartDate,
+  onAction,
 }: {
   item: EvaluatedPrerequisite;
-  classCode: string;
   classStartDate: string | null;
+  onAction: (item: EvaluatedPrerequisite) => void;
 }) {
   const detailParts: string[] = [];
   if (item.expires_at) {
@@ -70,12 +71,13 @@ function PrerequisiteItemRow({
       <div className="flex flex-col items-end gap-1">
         <PrerequisiteStatusBadge status={item.status} />
         {actionLabel && (
-          <Link
-            href={`/student/prerequisites/${classCode}?from=profile`}
+          <button
+            type="button"
+            onClick={() => onAction(item)}
             className="text-sm font-medium text-gray-900 underline whitespace-nowrap"
           >
             {actionLabel}
-          </Link>
+          </button>
         )}
       </div>
     </li>
@@ -138,6 +140,7 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
   const [summaries, setSummaries] = useState<ClassPrerequisiteSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [modalState, setModalState] = useState<{ item: EvaluatedPrerequisite; classId: string } | null>(null);
 
   const refresh = useCallback(async () => {
     const { summaries: result } = await getStudentClassPrerequisiteSummaries(studentId);
@@ -183,14 +186,6 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
             const isExpanded = !!expanded[summary.classId];
             return (
               <li key={summary.classId} className="py-1">
-                {/*
-                  A native <button> cannot legally contain an <a>/<Link>
-                  (nested interactive content is invalid HTML and some
-                  browsers auto-close the button early). Using a
-                  role="button" div reproduces the plan's "full-width
-                  toggle button with a propagation-stopped link inside it"
-                  behavior without that nesting problem.
-                */}
                 <div
                   role="button"
                   tabIndex={0}
@@ -226,15 +221,6 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
                       )}
                     </div>
                   </div>
-                  {summary.hasAnyPrerequisites && (
-                    <Link
-                      href={`/student/prerequisites/${summary.classCode}?from=profile`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-sm font-medium text-gray-900 underline whitespace-nowrap"
-                    >
-                      {summary.outstandingCount > 0 ? "Continue" : "View"}
-                    </Link>
-                  )}
                 </div>
 
                 {isExpanded && summary.hasAnyPrerequisites && (
@@ -245,8 +231,8 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
                           <PrerequisiteItemRow
                             key={item.class_prerequisite_id}
                             item={item}
-                            classCode={summary.classCode}
                             classStartDate={summary.classStartDate}
+                            onAction={(item) => setModalState({ item, classId: summary.classId })}
                           />
                         ))}
                       </ul>
@@ -271,6 +257,20 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
           })}
         </ul>
       )}
+
+      <PrerequisiteModal isOpen={!!modalState} onClose={() => setModalState(null)}>
+        {modalState && (
+          <PrerequisiteStepForm
+            key={modalState.item.class_prerequisite_id}
+            item={modalState.item}
+            classId={modalState.classId}
+            onSubmitted={() => {
+              setModalState(null);
+              refresh();
+            }}
+          />
+        )}
+      </PrerequisiteModal>
     </div>
   );
 }

@@ -110,7 +110,24 @@ export async function GET(
       }
     }
 
-    return NextResponse.json({ class: classData });
+    // Whether this class has any *required* prerequisites, computed
+    // server-side with the admin client since class_prerequisites' RLS only
+    // grants SELECT to `authenticated`, not `anon` -- callers like
+    // /checkout/success need this before the student has logged in.
+    const { count: requiredPrereqCount, error: prereqCountError } = await supabase
+      .from('class_prerequisites')
+      .select('id', { count: 'exact', head: true })
+      .eq('class_id', classData.id)
+      .eq('is_required', true);
+
+    if (prereqCountError) {
+      console.error('Error counting class prerequisites:', prereqCountError);
+    }
+
+    return NextResponse.json({
+      class: classData,
+      hasRequiredPrerequisites: (requiredPrereqCount ?? 0) > 0,
+    });
   } catch (error: any) {
     console.error('Error in class API:', error);
     return NextResponse.json(
