@@ -1,8 +1,25 @@
 "use client";
 
+import { getSession, signOut } from "@/lib/auth";
+
 export interface AuthResponse {
   success: boolean;
   error?: string;
+}
+
+/**
+ * Ensure the browser's current Supabase session (if any) belongs to
+ * expectedEmail. If a session exists for a different email, sign it out
+ * first. Call this before sending a fresh OTP, and re-check the match after
+ * verifyOTP succeeds -- OTP verification is itself scoped to the email it
+ * was sent to, but this makes the invariant explicit and defends against a
+ * stale session cookie winning a race.
+ */
+export async function ensureNoMismatchedSession(expectedEmail: string): Promise<void> {
+  const { session } = await getSession();
+  if (session && session.user?.email?.toLowerCase() !== expectedEmail.toLowerCase()) {
+    await signOut();
+  }
 }
 
 /**

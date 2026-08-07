@@ -115,6 +115,48 @@ export async function createStripeCheckoutSessionWithFetch(
 }
 
 /**
+ * Retrieve a Stripe checkout session using raw fetch (for Cloudflare Workers
+ * compatibility). Used to resolve the paying customer's email/metadata
+ * server-side after redirect, rather than trusting client-supplied query
+ * params.
+ */
+export async function retrieveStripeCheckoutSessionWithFetch(
+  sessionId: string,
+  secretKey?: string
+): Promise<{
+  id: string;
+  payment_status: string;
+  customer_email: string | null;
+  customer_details: { email: string | null } | null;
+  metadata: Record<string, string> | null;
+}> {
+  const key = secretKey || process.env.STRIPE_SECRET_KEY;
+
+  if (!key) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+  }
+
+  const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${sessionId}`, {
+    headers: {
+      'Authorization': `Bearer ${key}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorData;
+    try {
+      errorData = JSON.parse(errorText);
+    } catch {
+      errorData = { message: errorText };
+    }
+    throw new Error(`Stripe API error: ${errorData.error?.message || errorData.message || `HTTP ${response.status}`}`);
+  }
+
+  return response.json();
+}
+
+/**
  * Create a Stripe checkout session for an ad-hoc amount (not tied to a fixed
  * Stripe price id), using raw fetch for Cloudflare Workers compatibility.
  */

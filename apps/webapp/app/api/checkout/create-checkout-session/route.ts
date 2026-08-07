@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
 
     let session;
     try {
-      const successUrl = `${origin}/checkout/success?classID=${classId}`;
+      const successUrl = `${origin}/checkout/success?classID=${classId}&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${origin}/checkout/details?classID=${classId}`;
 
       const sessionResult = await createStripeCheckoutSessionWithFetch(

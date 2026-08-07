@@ -10,6 +10,7 @@ interface PrerequisiteStepFormProps {
   onSubmitted: () => void; // called after a successful POST
   onSkip?: () => void; // omitted => no skip link rendered
   submitLabel?: string; // default 'Continue'
+  skipLabel?: string; // default 'Skip for now'
 }
 
 /**
@@ -24,6 +25,7 @@ export function PrerequisiteStepForm({
   onSubmitted,
   onSkip,
   submitLabel = "Continue",
+  skipLabel = "Skip for now",
 }: PrerequisiteStepFormProps) {
   const { prerequisite_type: type } = item;
 
@@ -184,7 +186,7 @@ export function PrerequisiteStepForm({
           onClick={onSkip}
           className="w-full text-center text-sm text-gray-500 hover:text-gray-700"
         >
-          Skip for now
+          {skipLabel}
         </button>
       )}
     </form>
