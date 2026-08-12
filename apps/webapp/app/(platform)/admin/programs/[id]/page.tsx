@@ -8,6 +8,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
+import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
 import { formatCurrency } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 
@@ -468,6 +469,7 @@ function ProgramDetailContent() {
                     >
                         ← Back to Programs
                     </Link>
+                    <ViewMarketingPageLink courseCode={program.course_code} />
                     <h1 className="text-2xl font-bold text-gray-900">{program.course_name}</h1>
                     <p className="text-sm text-gray-500 mt-1">{program.course_code}</p>
                 </div>

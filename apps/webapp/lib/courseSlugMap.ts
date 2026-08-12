@@ -1,4 +1,4 @@
-import { programLinks } from "@/lib/marketing/nav-data";
+import { courseLinks, programLinks } from "@/lib/marketing/nav-data";
 
 /**
  * Maps URL slugs to course codes
@@ -100,7 +100,7 @@ export function getAllSlugs(): string[] {
 }
 
 const COURSE_CODE_TO_ROUTE: Record<string, string> = {};
-for (const link of programLinks) {
+for (const link of [...programLinks, ...courseLinks]) {
   const slug = link.href.replace(/^\//, "");
   const code = getCourseCodeFromSlug(slug);
   if (code && !COURSE_CODE_TO_ROUTE[code]) {
