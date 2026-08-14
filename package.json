@@ -1,6 +1,7 @@
 {
   "name": "midwestea-monorepo",
   "private": true,
+  "license": "UNLICENSED",
   "workspaces": [
     "apps/*",
     "packages/*"
