@@ -64,21 +64,23 @@ export async function createStripeCustomerWithFetch(
  */
 export async function createStripeCheckoutSessionWithFetch(
   customerId: string,
-  priceId: string,
+  lineItem: { productId: string; unitAmount: number; currency?: string },
   successUrl: string,
   cancelUrl: string,
   metadata: Record<string, string>,
   secretKey?: string
 ): Promise<{ id: string; url: string | null }> {
   const key = secretKey || process.env.STRIPE_SECRET_KEY;
-  
+
   if (!key) {
     throw new Error('STRIPE_SECRET_KEY is not set');
   }
 
   const params = new URLSearchParams({
     customer: customerId,
-    'line_items[0][price]': priceId,
+    'line_items[0][price_data][currency]': lineItem.currency || 'usd',
+    'line_items[0][price_data][product]': lineItem.productId,
+    'line_items[0][price_data][unit_amount]': String(lineItem.unitAmount),
     'line_items[0][quantity]': '1',
     mode: 'payment',
     success_url: successUrl,

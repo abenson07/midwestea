@@ -89,14 +89,14 @@ export async function POST(request: NextRequest) {
     try {
       let { data, error: classError } = await supabase
         .from('classes')
-        .select('stripe_price_id, id, class_id')
+        .select('product_id, registration_fee, id, class_id')
         .eq('class_id', classId)
         .maybeSingle();
 
       if (!data && !classError) {
         const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
           .from('classes')
-          .select('stripe_price_id, id, class_id')
+          .select('product_id, registration_fee, id, class_id')
           .ilike('class_id', classId)
           .maybeSingle();
 
@@ -129,9 +129,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!classRecord.stripe_price_id) {
+    if (!classRecord.product_id) {
       return NextResponse.json(
-        { error: `Class ${classId} does not have a stripe_price_id configured` },
+        { error: `Class ${classId} does not have a product_id configured` },
+        { status: 400 }
+      );
+    }
+
+    if (!classRecord.registration_fee) {
+      return NextResponse.json(
+        { error: `Class ${classId} does not have a registration_fee configured` },
         { status: 400 }
       );
     }
@@ -172,7 +179,7 @@ export async function POST(request: NextRequest) {
 
       const sessionResult = await createStripeCheckoutSessionWithFetch(
         customerId,
-        classRecord.stripe_price_id,
+        { productId: classRecord.product_id, unitAmount: classRecord.registration_fee },
         successUrl,
         cancelUrl,
         {
