@@ -160,7 +160,14 @@ export function StudentClassPrerequisiteReview({ studentId, classId, onChanged }
       });
       const result = await response.json();
       if (result.success && result.url) {
-        window.open(result.url, "_blank");
+        // Route through our own /view proxy instead of opening the raw signed
+        // URL directly, so a stale tab reload after expiry shows our own
+        // "link expired, go back and click View file again" page instead of
+        // Supabase Storage's raw InvalidJWT error.
+        window.open(
+          `/api/prerequisites/credentials/${credentialId}/view?src=${encodeURIComponent(result.url)}`,
+          "_blank"
+        );
       }
     } catch {
       // Non-fatal: the click simply does nothing on failure.
