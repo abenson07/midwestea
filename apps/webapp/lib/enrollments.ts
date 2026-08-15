@@ -367,7 +367,7 @@ export async function findClassWithCourse(classId: string): Promise<{
   // Also fetch registration_fee and price for amount calculations
   const { data: classRecord, error: classError } = await supabase
     .from('classes')
-    .select('id, class_id, course_code, class_start_date, registration_fee, price')
+    .select('id, class_id, class_name, course_code, class_start_date, registration_fee, price')
     .eq('class_id', classId)
     .maybeSingle();
 
@@ -538,6 +538,19 @@ export async function createTransaction(data: {
 }
 
 /**
+ * Stripe rejects any Invoice `due_date` that isn't strictly in the future.
+ * Tuition due dates are normally computed relative to the class start date
+ * (e.g. 21 days before), but a student can register less than that many
+ * days out -- in that case the naive calculation lands in the past. Clamp
+ * to "now" so the invoice is still created (due immediately) instead of
+ * the whole registration failing.
+ */
+function clampDueDateToNotPast(d: Date): Date {
+  const now = new Date();
+  return d > now ? d : now;
+}
+
+/**
  * Create the standard invoice schedule (registration fee + tuition rows) for an enrollment
  */
 export async function createInvoiceSchedule(params: {
@@ -604,7 +617,7 @@ export async function createInvoiceSchedule(params: {
     if (classStartDate) {
       const d = new Date(classStartDate);
       d.setDate(d.getDate() - 21);
-      tuitionADueDate = d.toISOString();
+      tuitionADueDate = clampDueDateToNotPast(d).toISOString();
     }
 
     let tuitionAStripeInvoiceId: string | null = null;
@@ -652,7 +665,7 @@ export async function createInvoiceSchedule(params: {
     if (classStartDate) {
       const d = new Date(classStartDate);
       d.setDate(d.getDate() + 7);
-      tuitionBDueDate = d.toISOString();
+      tuitionBDueDate = clampDueDateToNotPast(d).toISOString();
     }
 
     let tuitionBStripeInvoiceId: string | null = null;
