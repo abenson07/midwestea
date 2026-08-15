@@ -562,6 +562,15 @@ export async function sendEmail(
         headers: options.metadata,
       });
 
+      // The Resend SDK does not throw on most send failures -- it returns
+      // { data: null, error: {...} } instead. Without this check, a
+      // rejected send (bad domain config, rate limit, etc.) was logged and
+      // reported as a full success with emailId left undefined as the only
+      // tell.
+      if (result.error) {
+        throw new Error(result.error.message || JSON.stringify(result.error));
+      }
+
       // Success - increment counter and log
       incrementEmailCounter();
       
