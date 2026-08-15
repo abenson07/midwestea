@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { getStudentById, type StudentWithEmail } from "@/lib/students";
+import { ExternalLearningLinks } from "@/components/ExternalLearningLinks";
 
 export default function StudentPage() {
   const [student, setStudent] = useState<StudentWithEmail | null>(null);
@@ -55,6 +56,7 @@ export default function StudentPage() {
           <p className="text-sm text-gray-500">Finish anything still outstanding for your classes</p>
         </Link>
       </div>
+      <ExternalLearningLinks />
     </div>
   );
 }

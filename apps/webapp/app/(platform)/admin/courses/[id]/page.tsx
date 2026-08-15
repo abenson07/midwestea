@@ -3,11 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { getCourseById, updateCourse, getClasses, createClass, generateClassId, getPrograms, getCourses, type Course, type Class } from "@/lib/classes";
+import { getCourseById, updateCourse, updateCourseExternalLinks, getClasses, createClass, generateClassId, getPrograms, getCourses, type Course, type Class } from "@/lib/classes";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
 import { LogDisplay } from "@/components/ui/LogDisplay";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
+import { ExternalLearningLinksCard } from "@/components/ui/ExternalLearningLinksCard";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
 import { TemplatePrerequisites } from "@/components/ui/TemplatePrerequisites";
 import { formatCurrency } from "@midwestea/utils";
@@ -524,6 +525,27 @@ function CourseDetailContent() {
             </div>
 
             <TemplatePrerequisites courseUuid={course.id} templateKind="course" />
+            <ExternalLearningLinksCard
+                values={{
+                    jbLearningLabel: course.jb_learning_label,
+                    jbLearningUrl: course.jb_learning_url,
+                    platinumEdLabel: course.platinum_ed_label,
+                    platinumEdUrl: course.platinum_ed_url,
+                }}
+                onSave={async (values) => {
+                    const result = await updateCourseExternalLinks(
+                        course.id,
+                        values.jbLearningLabel,
+                        values.jbLearningUrl,
+                        values.platinumEdLabel,
+                        values.platinumEdUrl
+                    );
+                    if (result.success && result.course) {
+                        setCourse({ ...course, ...result.course });
+                    }
+                    return result;
+                }}
+            />
 
             {/* Classes or Waitlist Section */}
             <div>
