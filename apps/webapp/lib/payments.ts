@@ -183,7 +183,7 @@ export interface TransactionWithDetails {
   invoice_number: string | null;
   student_id: string | null;
   class_id: string | null;
-  transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | null;
+  transaction_type: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | 'pay_in_full' | null;
   quantity: number | null;
   amount_due: number | null;
   transaction_status: string | null;
@@ -198,6 +198,8 @@ export interface TransactionWithDetails {
   payment_date?: string | null;
   created_at?: string | null;
   stripe_payment_intent_id?: string | null;
+  discount_percent?: number | null;
+  original_amount_due?: number | null;
 }
 
 /**
@@ -233,6 +235,95 @@ export async function updateTransactionStatus(
   } catch (err) {
     const error = err as PostgrestError;
     return { success: false, error: error.message || "Failed to update transaction status" };
+  }
+}
+
+/**
+ * Update a transaction's due date. Proxies through an admin API route (rather
+ * than updating Supabase directly, like before) because keeping a linked
+ * Stripe Invoice's due date in sync needs STRIPE_SECRET_KEY, which isn't
+ * available in this client-side file.
+ */
+export async function updateTransactionDueDate(
+  transactionId: string,
+  dueDate: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+    const response = await fetch(`/api/admin/transactions/${transactionId}/due-date`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ dueDate }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || "Failed to update due date" };
+    }
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to update due date" };
+  }
+}
+
+/**
+ * Update a transaction's amount due (cents). Proxies through an admin API
+ * route for the same reason as updateTransactionDueDate above - a linked
+ * Stripe Invoice's amount can only be changed by voiding and reissuing it,
+ * which needs STRIPE_SECRET_KEY.
+ */
+export async function updateTransactionAmount(
+  transactionId: string,
+  amountDueCents: number,
+  discountPercent?: number
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+    const response = await fetch(`/api/admin/transactions/${transactionId}/amount`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ amountDueCents, discountPercent }),
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || "Failed to update amount" };
+    }
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to update amount" };
+  }
+}
+
+export async function sendTransactionReminder(
+  transactionId: string
+): Promise<{ success: boolean; error: string | null }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { success: false, error: 'Not authenticated' };
+    }
+    const response = await fetch(`/api/admin/transactions/${transactionId}/send-reminder`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || 'Failed to send reminder' };
+    }
+    return { success: true, error: null };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to send reminder' };
   }
 }
 

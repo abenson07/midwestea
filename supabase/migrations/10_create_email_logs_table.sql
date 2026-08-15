@@ -1,3 +1,4 @@
+-- Migration 10: Create email logs table
 -- Create email_logs table for tracking email delivery status
 CREATE TABLE IF NOT EXISTS email_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

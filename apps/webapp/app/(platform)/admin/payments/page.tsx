@@ -4,9 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
-import { 
-    getTransactions, 
-    updateTransactionStatus, 
+import {
+    getTransactions,
+    updateTransactionStatus,
+    updateTransactionDueDate,
+    updateTransactionAmount,
+    sendTransactionReminder,
     type TransactionWithDetails,
 } from "@/lib/payments";
 import { formatCurrency } from "@midwestea/utils";
@@ -17,12 +20,19 @@ function TransactionsPageContent() {
     const [transactions, setTransactions] = useState<TransactionWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'paid' | 'past_due' | 'pending' | 'cancelled' | 'refunded'>('all');
 
 
     // Sidebar state
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithDetails | null>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [dueDateInput, setDueDateInput] = useState<string>("");
+    const [isUpdatingDueDate, setIsUpdatingDueDate] = useState(false);
+    const [isSendingReminder, setIsSendingReminder] = useState(false);
+    const [discountPercentInput, setDiscountPercentInput] = useState<string>("");
+    const [directAmountInput, setDirectAmountInput] = useState<string>("");
+    const [isAdjustingAmount, setIsAdjustingAmount] = useState(false);
 
     useEffect(() => {
         loadTransactions();
@@ -42,6 +52,27 @@ function TransactionsPageContent() {
             setSelectedTransaction(null);
         }
     }, [searchParams, transactions]);
+
+    useEffect(() => {
+        if (selectedTransaction?.due_date) {
+            setDueDateInput(new Date(selectedTransaction.due_date).toISOString().split('T')[0]);
+        } else {
+            setDueDateInput('');
+        }
+    }, [selectedTransaction]);
+
+    useEffect(() => {
+        setDiscountPercentInput("");
+        if (selectedTransaction?.amount_due != null) {
+            // amount_due is stored pre-quantity (see amount route's doc comment) —
+            // show/seed the actual payable figure so this matches what "Current"
+            // displays and what the student is really being charged.
+            const payable = selectedTransaction.amount_due * (selectedTransaction.quantity || 1);
+            setDirectAmountInput((payable / 100).toFixed(2));
+        } else {
+            setDirectAmountInput("");
+        }
+    }, [selectedTransaction]);
 
     const loadTransactions = async () => {
         setLoading(true);
@@ -134,6 +165,114 @@ function TransactionsPageContent() {
         }
     };
 
+    const handleUpdateDueDate = async () => {
+        if (!selectedTransaction || !dueDateInput) return;
+
+        setIsUpdatingDueDate(true);
+        try {
+            // dueDateInput is a bare "YYYY-MM-DD" from <input type="date">, which
+            // Date() parses as UTC midnight — behind "now" for any timezone west
+            // of UTC once local time passes that instant. Anchor to end-of-day
+            // *local* time instead so any date >= today is safely in the future.
+            const isoDueDate = new Date(`${dueDateInput}T23:59:59`).toISOString();
+            const { success, error } = await updateTransactionDueDate(selectedTransaction.id, isoDueDate);
+            if (error) {
+                setError(error);
+            } else if (success) {
+                await loadTransactions();
+                setSelectedTransaction({
+                    ...selectedTransaction,
+                    due_date: isoDueDate,
+                });
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to update due date");
+        } finally {
+            setIsUpdatingDueDate(false);
+        }
+    };
+
+    const handleSendReminder = async () => {
+        if (!selectedTransaction) return;
+        if (!confirm('Send a payment reminder email to this student now?')) return;
+
+        setIsSendingReminder(true);
+        try {
+            const { success, error } = await sendTransactionReminder(selectedTransaction.id);
+            if (!success) {
+                setError(error || 'Failed to send reminder');
+            }
+        } catch (err: any) {
+            setError(err.message || 'Failed to send reminder');
+        } finally {
+            setIsSendingReminder(false);
+        }
+    };
+
+    const handleApplyDiscount = async () => {
+        if (!selectedTransaction || selectedTransaction.amount_due == null) return;
+        const pct = parseFloat(discountPercentInput);
+        if (Number.isNaN(pct) || pct <= 0 || pct > 100) return;
+
+        setIsAdjustingAmount(true);
+        try {
+            const quantity = selectedTransaction.quantity || 1;
+            const payable = selectedTransaction.amount_due * quantity;
+            const newPayable = Math.round(payable * (1 - pct / 100));
+            // /amount expects the pre-quantity figure — convert back so quantity
+            // (0.5 on legacy rows, 1 on rows created after the amount_due/quantity
+            // refactor) keeps producing the intended payable amount either way.
+            const newAmount = Math.round(newPayable / quantity);
+            const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount, pct);
+            if (error) {
+                setError(error);
+            } else if (success) {
+                await loadTransactions();
+                setSelectedTransaction({
+                    ...selectedTransaction,
+                    amount_due: newAmount,
+                    original_amount_due: selectedTransaction.amount_due,
+                    discount_percent: pct,
+                });
+                setDiscountPercentInput("");
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to apply discount");
+        } finally {
+            setIsAdjustingAmount(false);
+        }
+    };
+
+    const handleSetAmountDirectly = async () => {
+        if (!selectedTransaction) return;
+        const dollars = parseFloat(directAmountInput);
+        if (Number.isNaN(dollars) || dollars < 0) return;
+
+        setIsAdjustingAmount(true);
+        try {
+            const quantity = selectedTransaction.quantity || 1;
+            const newPayable = Math.round(dollars * 100);
+            // Same pre-quantity conversion as handleApplyDiscount above.
+            const newAmount = Math.round(newPayable / quantity);
+            const { success, error } = await updateTransactionAmount(selectedTransaction.id, newAmount);
+            if (error) {
+                setError(error);
+            } else if (success) {
+                await loadTransactions();
+                setSelectedTransaction({
+                    ...selectedTransaction,
+                    amount_due: newAmount,
+                    original_amount_due: selectedTransaction.amount_due,
+                    discount_percent: null,
+                });
+            }
+        } catch (err: any) {
+            setError(err.message || "Failed to set amount");
+        } finally {
+            setIsAdjustingAmount(false);
+        }
+    };
+
     const formatDate = (dateString: string | null) => {
         if (!dateString) return "N/A";
         const date = new Date(dateString);
@@ -145,6 +284,8 @@ function TransactionsPageContent() {
         if (type === 'registration_fee') return 'Registration Fee';
         if (type === 'tuition_a') return 'First Invoice';
         if (type === 'tuition_b') return 'Second Invoice';
+        if (type === 'custom') return 'Custom Invoice';
+        if (type === 'pay_in_full') return 'Pay in Full';
         return type || 'N/A';
     };
 
@@ -152,6 +293,64 @@ function TransactionsPageContent() {
         const quantity = transaction.quantity || 1;
         const amountDue = transaction.amount_due || 0;
         return quantity * amountDue;
+    };
+
+    // Discount tooltip text, or null if this row's amount was never adjusted
+    // via Apply Discount / Set Amount, or the "adjustment" wasn't actually a
+    // reduction (e.g. amount was raised, not discounted).
+    const getDiscountTooltip = (transaction: TransactionWithDetails): string | null => {
+        if (transaction.original_amount_due == null) return null;
+        const quantity = transaction.quantity || 1;
+        const originalPayable = transaction.original_amount_due * quantity;
+        const currentPayable = calculateAmountDue(transaction);
+        if (currentPayable >= originalPayable) return null;
+
+        const discountLabel =
+            transaction.discount_percent != null
+                ? `${transaction.discount_percent}%`
+                : formatCurrency(originalPayable - currentPayable);
+        return `${discountLabel} discount applied to original ${formatCurrency(originalPayable)}`;
+    };
+
+    const DiscountInfoIcon = ({ transaction }: { transaction: TransactionWithDetails }) => {
+        const tooltip = getDiscountTooltip(transaction);
+        if (!tooltip) return null;
+        return (
+            <span
+                title={tooltip}
+                className="ml-1 inline-flex items-center justify-center w-4 h-4 text-[10px] leading-none rounded-full border border-gray-400 text-gray-500 cursor-help align-middle"
+            >
+                i
+            </span>
+        );
+    };
+
+    type InvoiceDisplayStatus = 'paid' | 'past_due' | 'pending' | 'cancelled' | 'refunded';
+
+    const getInvoiceDisplayStatus = (transaction: TransactionWithDetails): InvoiceDisplayStatus => {
+        if (transaction.transaction_status === 'paid') return 'paid';
+        if (transaction.transaction_status === 'cancelled') return 'cancelled';
+        if (transaction.transaction_status === 'refunded') return 'refunded';
+        if (transaction.due_date && new Date(transaction.due_date) < new Date()) {
+            return 'past_due';
+        }
+        return 'pending';
+    };
+
+    const INVOICE_STATUS_LABEL: Record<InvoiceDisplayStatus, string> = {
+        paid: 'Paid',
+        past_due: 'Past due',
+        pending: 'Pending',
+        cancelled: 'Cancelled',
+        refunded: 'Refunded',
+    };
+
+    const INVOICE_STATUS_CLASSES: Record<InvoiceDisplayStatus, string> = {
+        paid: 'bg-green-100 text-green-800',
+        past_due: 'bg-red-100 text-red-800',
+        pending: 'bg-yellow-100 text-yellow-800',
+        cancelled: 'bg-gray-100 text-gray-800',
+        refunded: 'bg-blue-100 text-blue-800',
     };
 
     const columns = [
@@ -184,30 +383,39 @@ function TransactionsPageContent() {
         { 
             header: "Amount Due", 
             accessorKey: "amount_due" as keyof TransactionWithDetails,
-            cell: (item: TransactionWithDetails) => formatCurrency(calculateAmountDue(item)),
+            cell: (item: TransactionWithDetails) => (
+                <span>
+                    {formatCurrency(calculateAmountDue(item))}
+                    <DiscountInfoIcon transaction={item} />
+                </span>
+            ),
             className: "font-medium"
         },
-        { 
-            header: "Status", 
+        {
+            header: "Status",
             accessorKey: "transaction_status" as keyof TransactionWithDetails,
-            cell: (item: TransactionWithDetails) => (
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                    item.transaction_status === "paid" ? "bg-green-100 text-green-800" :
-                    item.transaction_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                    item.transaction_status === "cancelled" ? "bg-gray-100 text-gray-800" :
-                    item.transaction_status === "refunded" ? "bg-blue-100 text-blue-800" :
-                    "bg-red-100 text-red-800"
-                }`}>
-                    {item.transaction_status || "N/A"}
-                </span>
-            )
+            cell: (item: TransactionWithDetails) => {
+                const status = getInvoiceDisplayStatus(item);
+                return (
+                    <span className={`px-2 py-1 text-xs rounded-full ${INVOICE_STATUS_CLASSES[status]}`}>
+                        {INVOICE_STATUS_LABEL[status]}
+                    </span>
+                );
+            }
         },
-        { 
-            header: "Due Date", 
+        {
+            header: "Due Date",
             accessorKey: "due_date" as keyof TransactionWithDetails,
             cell: (item: TransactionWithDetails) => formatDate(item.due_date)
         },
     ];
+
+    const filteredTransactions = transactions.filter((t) => {
+        if (statusFilter === 'all') return true;
+        const status = getInvoiceDisplayStatus(t);
+        if (statusFilter === 'open') return status === 'pending' || status === 'past_due';
+        return status === statusFilter;
+    });
 
     return (
         <div className="space-y-6">
@@ -226,7 +434,25 @@ function TransactionsPageContent() {
 
             {/* All Transactions Section */}
             <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">All Transactions</h2>
+                <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">All Transactions</h2>
+                    <div className="flex items-center gap-2">
+                        <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">Status</label>
+                        <select
+                            id="status-filter"
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                            className="text-sm border border-gray-300 rounded-md px-2 py-1"
+                        >
+                            <option value="all">All</option>
+                            <option value="open">Open (unpaid)</option>
+                            <option value="past_due">Past due</option>
+                            <option value="paid">Paid</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="refunded">Refunded</option>
+                        </select>
+                    </div>
+                </div>
                 {transactions.length === 0 && !loading ? (
                     <div className="border border-dashed border-gray-300 rounded-lg p-12 text-center bg-white">
                         <h3 className="mt-2 text-sm font-semibold text-gray-900">No transactions</h3>
@@ -234,7 +460,7 @@ function TransactionsPageContent() {
                     </div>
                 ) : (
                     <DataTable
-                        data={transactions}
+                        data={filteredTransactions}
                         columns={columns}
                         isLoading={loading}
                         onRowClick={handleRowClick}
@@ -256,19 +482,16 @@ function TransactionsPageContent() {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Amount Due</label>
-                            <p className="mt-1 text-lg font-semibold text-gray-900">{formatCurrency(calculateAmountDue(selectedTransaction))}</p>
+                            <p className="mt-1 text-lg font-semibold text-gray-900">
+                                {formatCurrency(calculateAmountDue(selectedTransaction))}
+                                <DiscountInfoIcon transaction={selectedTransaction} />
+                            </p>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-500">Status</label>
                             <p className="mt-1 text-sm text-gray-900">
-                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                    selectedTransaction.transaction_status === "paid" ? "bg-green-100 text-green-800" :
-                                    selectedTransaction.transaction_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                                    selectedTransaction.transaction_status === "cancelled" ? "bg-gray-100 text-gray-800" :
-                                    selectedTransaction.transaction_status === "refunded" ? "bg-blue-100 text-blue-800" :
-                                    "bg-red-100 text-red-800"
-                                }`}>
-                                    {selectedTransaction.transaction_status || "N/A"}
+                                <span className={`px-2 py-1 text-xs rounded-full ${INVOICE_STATUS_CLASSES[getInvoiceDisplayStatus(selectedTransaction)]}`}>
+                                    {INVOICE_STATUS_LABEL[getInvoiceDisplayStatus(selectedTransaction)]}
                                 </span>
                             </p>
                         </div>
@@ -303,6 +526,96 @@ function TransactionsPageContent() {
                                 <p className="mt-1 text-sm text-gray-900">{selectedTransaction.class_id_display || "N/A"}</p>
                             </div>
                         </div>
+                        {selectedTransaction.transaction_status === 'pending' && (
+                            <div className="pt-4 border-t border-gray-200 space-y-2">
+                                <label htmlFor="due-date-input" className="block text-sm font-medium text-gray-500">
+                                    Edit Due Date
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        id="due-date-input"
+                                        type="date"
+                                        value={dueDateInput}
+                                        onChange={(e) => setDueDateInput(e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                    <button
+                                        onClick={handleUpdateDueDate}
+                                        disabled={isUpdatingDueDate || !dueDateInput}
+                                        className={`px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors ${
+                                            isUpdatingDueDate || !dueDateInput
+                                                ? "bg-gray-400 cursor-not-allowed"
+                                                : "bg-black hover:bg-gray-800"
+                                        }`}
+                                    >
+                                        {isUpdatingDueDate ? "Saving..." : "Save"}
+                                    </button>
+                                </div>
+                                <button
+                                    onClick={handleSendReminder}
+                                    disabled={isSendingReminder}
+                                    className={`w-full px-3 py-1.5 text-sm font-medium rounded-md border transition-colors ${
+                                        isSendingReminder
+                                            ? "border-gray-300 text-gray-400 cursor-not-allowed"
+                                            : "border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400"
+                                    }`}
+                                >
+                                    {isSendingReminder ? "Sending..." : "Send Reminder"}
+                                </button>
+                                <div className="pt-4 border-t border-gray-200 space-y-3">
+                                    <label className="block text-sm font-medium text-gray-500">Adjust Amount</label>
+                                    <p className="text-sm text-gray-900">
+                                        Current: {formatCurrency((selectedTransaction.amount_due || 0) * (selectedTransaction.quantity || 1))}
+                                        <DiscountInfoIcon transaction={selectedTransaction} />
+                                    </p>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="1"
+                                            placeholder="Discount %"
+                                            value={discountPercentInput}
+                                            onChange={(e) => setDiscountPercentInput(e.target.value)}
+                                            className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                        />
+                                        <button
+                                            onClick={handleApplyDiscount}
+                                            disabled={isAdjustingAmount || !discountPercentInput}
+                                            className={`px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors whitespace-nowrap ${
+                                                isAdjustingAmount || !discountPercentInput
+                                                    ? "bg-gray-400 cursor-not-allowed"
+                                                    : "bg-black hover:bg-gray-800"
+                                            }`}
+                                        >
+                                            Apply Discount
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Amount ($)"
+                                            value={directAmountInput}
+                                            onChange={(e) => setDirectAmountInput(e.target.value)}
+                                            className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                        />
+                                        <button
+                                            onClick={handleSetAmountDirectly}
+                                            disabled={isAdjustingAmount || !directAmountInput}
+                                            className={`px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors whitespace-nowrap ${
+                                                isAdjustingAmount || !directAmountInput
+                                                    ? "bg-gray-400 cursor-not-allowed"
+                                                    : "bg-black hover:bg-gray-800"
+                                            }`}
+                                        >
+                                            Set Amount
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         {(selectedTransaction.transaction_status !== 'paid' && selectedTransaction.transaction_status !== 'cancelled') && (
                             <div className="pt-4 border-t border-gray-200 space-y-3">
                                 <button

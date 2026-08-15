@@ -1,13 +1,21 @@
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { formatCurrency } from '@midwestea/utils';
 import { getStripeClient } from './stripe';
+import { createAndFinalizeStripeInvoice, voidStripeInvoice } from './stripe-invoices';
 import Stripe from 'stripe';
-import type { Student, Class, Enrollment, Payment } from '@midwestea/types';
+import type { Student, Class, Enrollment, Payment, Transaction } from '@midwestea/types';
 import { formatDate } from './email';
 
 /**
  * Find or create a student by email
  * Returns the student record, creating auth user and student record if needed
+ *
+ * Must keep email_confirm: true — registration auto-confirms accounts with no
+ * separate activation step. apps/webapp/app/api/checkout/ensure-user/route.ts
+ * duplicates this same creation logic; keep both in sync.
+ *
+ * Each email is treated as a fully separate account by design — do not add
+ * fuzzy-matching or auto-merge logic across different email addresses.
  */
 export async function findOrCreateStudent(
   email: string
@@ -30,7 +38,7 @@ export async function findOrCreateStudent(
       // If listing fails, we'll try to create the user anyway
       console.warn('Failed to list auth users, will attempt to create new user:', authError.message);
   } else {
-    existingAuthUser = authUsers.users.find((user) => user.email === email);
+    existingAuthUser = authUsers.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
   }
 } catch (error: any) {
   // If there's an error listing users, log it but continue to try creating
@@ -54,7 +62,7 @@ if (existingAuthUser) {
     const perPage = 1000;
     for (let page = 1; page <= 5; page++) {
       const { data: pageData } = await supabase.auth.admin.listUsers({ page, perPage });
-      const found = pageData?.users?.find((u) => u.email === email);
+      const found = pageData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
       if (found) {
         authUserId = found.id;
         existingAuthUser = found;
@@ -359,7 +367,7 @@ export async function findClassWithCourse(classId: string): Promise<{
   // Also fetch registration_fee and price for amount calculations
   const { data: classRecord, error: classError } = await supabase
     .from('classes')
-    .select('id, class_id, course_code, class_start_date, registration_fee, price')
+    .select('id, class_id, class_name, course_code, class_start_date, registration_fee, price')
     .eq('class_id', classId)
     .maybeSingle();
 
@@ -415,7 +423,7 @@ export async function getClassType(classId: string): Promise<'course' | 'program
 
 /**
  * Get the next invoice number from the transactions table
- * Returns the highest invoice_number + 1, or 1000 if no transactions exist
+ * Returns the highest invoice_number + 1, or 101 if no transactions exist
  */
 export async function getNextTransactionInvoiceNumber(): Promise<number> {
   const supabase = createSupabaseAdminClient();
@@ -432,9 +440,10 @@ export async function getNextTransactionInvoiceNumber(): Promise<number> {
     throw new Error(`Failed to get next invoice number: ${error.message}`);
   }
 
-  let candidate = data?.invoice_number != null ? data.invoice_number + 1 : 1000;
+  let candidate = data?.invoice_number != null ? Number(data.invoice_number) + 1 : 101;
 
-  // Skip numbers already taken (handles default 1000 when 1000 exists, gaps, races)
+  // Skip numbers already taken (handles gaps, races) — belt-and-suspenders
+  // alongside the DB unique constraint and createTransaction()'s own retry.
   for (let i = 0; i < 25; i++) {
     const { data: existing, error: checkError } = await supabase
       .from('transactions')
@@ -465,16 +474,18 @@ export async function createTransaction(data: {
   studentId: string;
   classId: string;
   classType: 'course' | 'program';
-  transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b';
+  transactionType: 'registration_fee' | 'tuition_a' | 'tuition_b' | 'custom' | 'pay_in_full';
   quantity: number;
   stripePaymentIntentId: string | null;
+  stripeInvoiceId?: string | null;
+  stripeHostedInvoiceUrl?: string | null;
   transactionStatus: 'pending' | 'paid' | 'cancelled' | 'refunded';
   paymentDate: string | null;
   dueDate: string | null;
   amountDue: number | null;
   amountPaid: number | null;
   invoiceNumber?: number | null;
-}): Promise<any> {
+}): Promise<Transaction> {
   const supabase = createSupabaseAdminClient();
   let invoiceNumber = data.invoiceNumber ?? null;
 
@@ -489,6 +500,8 @@ export async function createTransaction(data: {
         transaction_type: data.transactionType,
         quantity: data.quantity,
         stripe_payment_intent_id: data.stripePaymentIntentId,
+        stripe_invoice_id: data.stripeInvoiceId ?? null,
+        stripe_hosted_invoice_url: data.stripeHostedInvoiceUrl ?? null,
         quickbooks_invoice_link: null,
         quickbooks_receipt_link: null,
         transaction_status: data.transactionStatus,
@@ -502,7 +515,7 @@ export async function createTransaction(data: {
       .single();
 
     if (!insertError && transaction) {
-      return transaction;
+      return transaction as Transaction;
     }
 
     if (insertError) {
@@ -522,6 +535,182 @@ export async function createTransaction(data: {
   }
 
   throw new Error('Failed to create transaction: could not allocate unique invoice number');
+}
+
+/**
+ * Stripe rejects any Invoice `due_date` that isn't strictly in the future.
+ * Tuition due dates are normally computed relative to the class start date
+ * (e.g. 21 days before), but a student can register less than that many
+ * days out -- in that case the naive calculation lands in the past. Clamp
+ * to "now" so the invoice is still created (due immediately) instead of
+ * the whole registration failing.
+ */
+function clampDueDateToNotPast(d: Date): Date {
+  const now = new Date();
+  return d > now ? d : now;
+}
+
+/**
+ * Create the standard invoice schedule (registration fee + tuition rows) for an enrollment
+ */
+export async function createInvoiceSchedule(params: {
+  enrollmentId: string;
+  studentId: string;
+  classId: string;
+  courseType: 'course' | 'program' | null;
+  classStartDate: string | null;
+  registrationFee: number | null;
+  price: number | null;
+  stripePaymentIntentId: string;
+  stripeCustomerId?: string | null;
+  amountTotal: number;
+}): Promise<Transaction[]> {
+  const { enrollmentId, studentId, classId, courseType, classStartDate, registrationFee, price, stripePaymentIntentId, stripeCustomerId, amountTotal } = params;
+  const now = new Date().toISOString();
+
+  const supabase = createSupabaseAdminClient();
+  const { data: existingRows, error: existingError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('enrollment_id', enrollmentId);
+
+  if (existingError) {
+    throw new Error(`Failed to check existing invoice schedule: ${existingError.message}`);
+  }
+
+  const existing = (existingRows || []) as Transaction[];
+  const existingTypes = new Set(existing.map((t) => t.transaction_type));
+  const expectedTypes: Array<'registration_fee' | 'tuition_a' | 'tuition_b'> =
+    courseType === 'program'
+      ? ['registration_fee', 'tuition_a', 'tuition_b']
+      : ['registration_fee'];
+
+  const missingTypes = expectedTypes.filter((t) => !existingTypes.has(t));
+
+  if (missingTypes.length === 0) {
+    // Schedule already complete for this enrollment (retry of an already-processed event,
+    // or a repeat payment for an already-scheduled enrollment) — return as-is, create nothing.
+    return expectedTypes
+      .map((type) => existing.find((t) => t.transaction_type === type))
+      .filter((t): t is Transaction => t !== undefined);
+  }
+
+  let nextInvoiceNumber = await getNextTransactionInvoiceNumber();
+  const created: Transaction[] = [];
+
+  if (missingTypes.includes('registration_fee')) {
+    const regFee = await createTransaction({
+      enrollmentId, studentId, classId,
+      classType: courseType === 'program' ? 'program' : 'course',
+      transactionType: 'registration_fee', quantity: 1,
+      stripePaymentIntentId, transactionStatus: 'paid',
+      paymentDate: now, dueDate: now,
+      amountDue: registrationFee, amountPaid: amountTotal,
+      invoiceNumber: nextInvoiceNumber,
+    });
+    created.push(regFee);
+    nextInvoiceNumber++;
+  }
+
+  if (missingTypes.includes('tuition_a')) {
+    let tuitionADueDate: string | null = null;
+    if (classStartDate) {
+      const d = new Date(classStartDate);
+      d.setDate(d.getDate() - 21);
+      tuitionADueDate = clampDueDateToNotPast(d).toISOString();
+    }
+
+    let tuitionAStripeInvoiceId: string | null = null;
+    let tuitionAHostedInvoiceUrl: string | null = null;
+    if (stripeCustomerId && tuitionADueDate && price) {
+      const invoice = await createAndFinalizeStripeInvoice({
+        customerId: stripeCustomerId,
+        amountCents: Math.round(price * 0.5),
+        dueDate: tuitionADueDate,
+        description: 'First Tuition Payment',
+        metadata: { enrollment_id: enrollmentId, transaction_type: 'tuition_a' },
+      });
+      tuitionAStripeInvoiceId = invoice.stripeInvoiceId;
+      tuitionAHostedInvoiceUrl = invoice.hostedInvoiceUrl;
+    } else {
+      console.error('[createInvoiceSchedule] Creating tuition_a without a Stripe Invoice — missing customer/dueDate/price', { enrollmentId, stripeCustomerId, tuitionADueDate, price });
+    }
+
+    let tuitionA: Transaction;
+    try {
+      tuitionA = await createTransaction({
+        enrollmentId, studentId, classId,
+        classType: 'program', transactionType: 'tuition_a', quantity: 1,
+        stripePaymentIntentId: null,
+        stripeInvoiceId: tuitionAStripeInvoiceId, stripeHostedInvoiceUrl: tuitionAHostedInvoiceUrl,
+        transactionStatus: 'pending',
+        paymentDate: null, dueDate: tuitionADueDate,
+        amountDue: price !== null ? Math.round(price * 0.5) : null, amountPaid: null,
+        invoiceNumber: nextInvoiceNumber,
+      });
+    } catch (err) {
+      if (tuitionAStripeInvoiceId) {
+        await voidStripeInvoice(tuitionAStripeInvoiceId).catch((voidErr) =>
+          console.error('[createInvoiceSchedule] Failed to compensate-void orphaned tuition_a Stripe invoice', tuitionAStripeInvoiceId, voidErr)
+        );
+      }
+      throw err;
+    }
+    created.push(tuitionA);
+    nextInvoiceNumber++;
+  }
+
+  if (missingTypes.includes('tuition_b')) {
+    let tuitionBDueDate: string | null = null;
+    if (classStartDate) {
+      const d = new Date(classStartDate);
+      d.setDate(d.getDate() + 7);
+      tuitionBDueDate = clampDueDateToNotPast(d).toISOString();
+    }
+
+    let tuitionBStripeInvoiceId: string | null = null;
+    let tuitionBHostedInvoiceUrl: string | null = null;
+    if (stripeCustomerId && tuitionBDueDate && price) {
+      const invoice = await createAndFinalizeStripeInvoice({
+        customerId: stripeCustomerId,
+        amountCents: Math.round(price * 0.5),
+        dueDate: tuitionBDueDate,
+        description: 'Second Tuition Payment',
+        metadata: { enrollment_id: enrollmentId, transaction_type: 'tuition_b' },
+      });
+      tuitionBStripeInvoiceId = invoice.stripeInvoiceId;
+      tuitionBHostedInvoiceUrl = invoice.hostedInvoiceUrl;
+    } else {
+      console.error('[createInvoiceSchedule] Creating tuition_b without a Stripe Invoice — missing customer/dueDate/price', { enrollmentId, stripeCustomerId, tuitionBDueDate, price });
+    }
+
+    let tuitionB: Transaction;
+    try {
+      tuitionB = await createTransaction({
+        enrollmentId, studentId, classId,
+        classType: 'program', transactionType: 'tuition_b', quantity: 1,
+        stripePaymentIntentId: null,
+        stripeInvoiceId: tuitionBStripeInvoiceId, stripeHostedInvoiceUrl: tuitionBHostedInvoiceUrl,
+        transactionStatus: 'pending',
+        paymentDate: null, dueDate: tuitionBDueDate,
+        amountDue: price !== null ? Math.round(price * 0.5) : null, amountPaid: null,
+        invoiceNumber: nextInvoiceNumber,
+      });
+    } catch (err) {
+      if (tuitionBStripeInvoiceId) {
+        await voidStripeInvoice(tuitionBStripeInvoiceId).catch((voidErr) =>
+          console.error('[createInvoiceSchedule] Failed to compensate-void orphaned tuition_b Stripe invoice', tuitionBStripeInvoiceId, voidErr)
+        );
+      }
+      throw err;
+    }
+    created.push(tuitionB);
+    nextInvoiceNumber++;
+  }
+
+  return expectedTypes
+    .map((type) => [...existing, ...created].find((t) => t.transaction_type === type))
+    .filter((t): t is Transaction => t !== undefined);
 }
 
 /**
@@ -662,6 +851,10 @@ export interface InvoiceCalculation {
  * Simple in-memory cache for outstanding invoices queries
  * Cache key: enrollmentId
  * Cache value: { data: OutstandingInvoice[], timestamp: number }
+ *
+ * Do not use this cache (or this function) to back the tuition-reminder send
+ * endpoint (apps/webapp/app/api/admin/transactions/[id]/send-reminder) — that
+ * endpoint must always reflect the live due_date. See BEN-1186.
  */
 const outstandingInvoicesCache = new Map<
   string,

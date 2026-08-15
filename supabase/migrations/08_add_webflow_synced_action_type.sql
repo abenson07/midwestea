@@ -1,3 +1,4 @@
+-- Migration 08: Add webflow synced action type
 -- Add 'webflow_synced' action type to logs table
 -- This allows logging when classes are synced to Webflow CMS
 

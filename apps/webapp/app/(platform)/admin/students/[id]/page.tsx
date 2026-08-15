@@ -6,10 +6,11 @@ import Link from "next/link";
 import { getClassesByStudentId, type Class } from "@/lib/classes";
 import { getStudentById, getStudentEmailFromAuth, updateStudent, deleteStudent, type StudentWithEmail } from "@/lib/students";
 import { getPaymentsByStudentId, type PaymentWithDetails, getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
-import { getEnrollmentByStudentAndClass } from "@/lib/enrollments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { StudentClassPrerequisiteReview } from "@/components/ui/StudentClassPrerequisiteReview";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
 import type { Enrollment } from "@midwestea/types";
@@ -41,6 +42,14 @@ function StudentDetailContent() {
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // Void & Reissue modal state
+    const [isVoidReissueOpen, setIsVoidReissueOpen] = useState(false);
+    const [voidReissueGroup, setVoidReissueGroup] = useState<{ enrollmentId: string; className: string; payments: PaymentWithDetails[] } | null>(null);
+    const [replacementRows, setReplacementRows] = useState<{ key: string; amount: string; dueDate: string }[]>([]);
+    const [isSubmittingVoidReissue, setIsSubmittingVoidReissue] = useState(false);
+    const [voidReissueError, setVoidReissueError] = useState<string | null>(null);
+    const [isPayInFull, setIsPayInFull] = useState(false);
 
     // Enrollment detail sidebar state
     const [isEnrollmentSidebarOpen, setIsEnrollmentSidebarOpen] = useState(false);
@@ -130,6 +139,56 @@ function StudentDetailContent() {
         }
 
         return "Pending";
+    };
+
+    const renderPaymentDateCell = (item: PaymentWithDetails & { due_date?: string | null }) => {
+        if (item.paid_at) {
+            return formatDate(item.paid_at);
+        }
+        if (item.payment_status === 'cancelled' || item.payment_status === 'refunded') {
+            return (
+                <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 font-medium">
+                    {item.payment_status === 'cancelled' ? 'Cancelled' : 'Refunded'}
+                </span>
+            );
+        }
+        if (item.due_date) {
+            const dueDate = new Date(item.due_date);
+            if (dueDate < new Date()) {
+                return (
+                    <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
+                        Past due
+                    </span>
+                );
+            }
+        }
+        return (
+            <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">
+                Pending
+            </span>
+        );
+    };
+
+    const groupPaymentsByClass = (
+        items: PaymentWithDetails[]
+    ): { enrollmentId: string; className: string; payments: PaymentWithDetails[] }[] => {
+        const groups: { enrollmentId: string; className: string; payments: PaymentWithDetails[] }[] = [];
+        const indexByEnrollment = new Map<string, number>();
+
+        for (const payment of items) {
+            const enrollmentId = payment.enrollment_id || "unknown";
+            const className = payment.class_name || "Unknown Class";
+
+            let index = indexByEnrollment.get(enrollmentId);
+            if (index === undefined) {
+                index = groups.length;
+                indexByEnrollment.set(enrollmentId, index);
+                groups.push({ enrollmentId, className, payments: [] });
+            }
+            groups[index].payments.push(payment);
+        }
+
+        return groups;
     };
 
     const loadClasses = async () => {
@@ -285,15 +344,22 @@ function StudentDetailContent() {
         setIsEnrollmentSidebarOpen(true);
         setSelectedClass(classItem);
         
-        // Fetch enrollment
-        const { enrollment, error: enrollmentError } = await getEnrollmentByStudentAndClass(studentId, classItem.id);
-        
+        // Fetch enrollment (client-safe/RLS query — do not use the admin-client
+        // helper from lib/enrollments.ts here, it throws in the browser)
+        const supabase = await createSupabaseClient();
+        const { data: enrollment, error: enrollmentError } = await supabase
+            .from("enrollments")
+            .select("*")
+            .eq("student_id", studentId)
+            .eq("class_id", classItem.id)
+            .maybeSingle();
+
         if (enrollmentError) {
             console.error("Error fetching enrollment:", enrollmentError);
             setSelectedEnrollment(null);
             setEnrollmentTransactions([]);
         } else if (enrollment) {
-            setSelectedEnrollment(enrollment);
+            setSelectedEnrollment(enrollment as Enrollment);
             
             // Fetch transactions for this enrollment
             const { transactions, error: transactionsError } = await getTransactionsByEnrollment(enrollment.id);
@@ -311,13 +377,102 @@ function StudentDetailContent() {
         
         setLoadingEnrollment(false);
     };
-    
+
+    const handleInvoiceGroupClick = (enrollmentId: string) => {
+        const matchingClass = classes.find((c) => c.enrollment_id === enrollmentId);
+        if (matchingClass) {
+            handleClassClick(matchingClass);
+        }
+    };
+
     const handleCloseEnrollmentSidebar = () => {
         setIsEnrollmentSidebarOpen(false);
         setSelectedEnrollment(null);
         setSelectedClass(null);
         setEnrollmentTransactions([]);
     };
+
+    const openVoidReissue = (group: { enrollmentId: string; className: string; payments: PaymentWithDetails[] }) => {
+        setVoidReissueGroup(group);
+        setReplacementRows([{ key: crypto.randomUUID(), amount: "", dueDate: "" }]);
+        setVoidReissueError(null);
+        setIsPayInFull(false);
+        setIsVoidReissueOpen(true);
+    };
+
+    const closeVoidReissue = () => {
+        setIsVoidReissueOpen(false);
+        setVoidReissueGroup(null);
+        setReplacementRows([]);
+        setVoidReissueError(null);
+        setIsPayInFull(false);
+    };
+
+    const addReplacementRow = () => {
+        setReplacementRows((rows) => [...rows, { key: crypto.randomUUID(), amount: "", dueDate: "" }]);
+        setIsPayInFull(false);
+    };
+
+    const removeReplacementRow = (key: string) => {
+        setReplacementRows((rows) => rows.filter((r) => r.key !== key));
+        setIsPayInFull(false);
+    };
+
+    const updateReplacementRow = (key: string, field: "amount" | "dueDate", value: string) => {
+        setReplacementRows((rows) => rows.map((r) => (r.key === key ? { ...r, [field]: value } : r)));
+    };
+
+    const handleConfirmVoidReissue = async () => {
+        if (!voidReissueGroup) return;
+        for (const row of replacementRows) {
+            const amount = parseFloat(row.amount);
+            if (Number.isNaN(amount) || amount <= 0 || !row.dueDate) {
+                setVoidReissueError("Every replacement invoice needs a positive amount and a due date.");
+                return;
+            }
+        }
+
+        setIsSubmittingVoidReissue(true);
+        setVoidReissueError(null);
+        try {
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setVoidReissueError("Not authenticated");
+                return;
+            }
+            const response = await fetch(`/api/admin/enrollments/${voidReissueGroup.enrollmentId}/void-and-reissue`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    replacementInvoices: replacementRows.map((r) => ({
+                        amountCents: Math.round(parseFloat(r.amount) * 100),
+                        dueDate: new Date(r.dueDate).toISOString(),
+                    })),
+                    payInFull: isPayInFull,
+                }),
+            });
+            const result = await response.json();
+            if (!result.success) {
+                setVoidReissueError(result.error || "Failed to void and reissue");
+                return;
+            }
+            await loadPayments();
+            closeVoidReissue();
+        } catch (err: any) {
+            setVoidReissueError(err.message || "Failed to void and reissue");
+        } finally {
+            setIsSubmittingVoidReissue(false);
+        }
+    };
+
+    const originalTotal = (voidReissueGroup?.payments || [])
+        .filter((p) => p.payment_status === 'pending')
+        .reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+    const newTotal = replacementRows.reduce((sum, r) => sum + (Math.round((parseFloat(r.amount) || 0) * 100)), 0);
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -483,59 +638,6 @@ function StudentDetailContent() {
         },
     ];
 
-    const paymentColumns = [
-        {
-            header: "Amount",
-            accessorKey: "amount_cents" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => formatCurrency(item.amount_cents)
-        },
-        {
-            header: "Class",
-            accessorKey: "class_name" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => item.class_name || "—"
-        },
-        {
-            header: "Status",
-            accessorKey: "payment_status" as keyof PaymentWithDetails,
-            cell: (item: PaymentWithDetails) => item.payment_status || "—"
-        },
-        {
-            header: "Paid At",
-            accessorKey: "paid_at" as keyof PaymentWithDetails & { due_date?: string | null },
-            cell: (item: PaymentWithDetails & { due_date?: string | null }) => {
-                if (item.paid_at) {
-                    return formatDate(item.paid_at);
-                }
-                
-                // Check if overdue
-                if (item.due_date) {
-                    const dueDate = new Date(item.due_date);
-                    const now = new Date();
-                    if (dueDate < now) {
-                        return (
-                            <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 font-medium">
-                                Past due
-                            </span>
-                        );
-                    }
-                }
-                
-                // Show pending chip
-                return (
-                    <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 font-medium">
-                        Pending
-                    </span>
-                );
-            }
-        },
-        {
-            header: "Next Due Date",
-            accessorKey: "next_due_date" as keyof PaymentWithDetails & { next_due_date?: string | null },
-            cell: (item: PaymentWithDetails & { next_due_date?: string | null }) => 
-                formatDate(item.next_due_date)
-        },
-    ];
-
     if (loading) {
         return (
             <div className="space-y-6">
@@ -631,6 +733,21 @@ function StudentDetailContent() {
                 </div>
             </div>
 
+            {/* Prerequisites Section */}
+            {classes.length > 0 && (
+                <div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-4">Prerequisites</h2>
+                    <div className="space-y-4">
+                        {classes.map((classItem) => (
+                            <div key={classItem.enrollment_id} className="bg-white rounded-lg border border-gray-200 p-6">
+                                <h3 className="text-base font-medium text-gray-900 mb-4">{classItem.class_name}</h3>
+                                <StudentClassPrerequisiteReview studentId={studentId} classId={classItem.id} />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Classes Section */}
             <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Classes</h2>
@@ -642,15 +759,61 @@ function StudentDetailContent() {
                 />
             </div>
 
-            {/* Payments Section */}
+            {/* Invoices by Class Section */}
             <div>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Payments</h2>
-                <DataTable
-                    data={payments}
-                    columns={paymentColumns}
-                    isLoading={loadingPayments}
-                    emptyMessage="No payments found for this student."
-                />
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Invoices by Class</h2>
+                {loadingPayments ? (
+                    <p className="text-gray-500">Loading...</p>
+                ) : payments.length === 0 ? (
+                    <p className="text-gray-500">No payments found for this student.</p>
+                ) : (
+                    <div className="space-y-4">
+                        {groupPaymentsByClass(payments).map((group) => (
+                            <div
+                                key={group.enrollmentId}
+                                onClick={() => handleInvoiceGroupClick(group.enrollmentId)}
+                                className="bg-white rounded-lg border border-gray-200 p-6 cursor-pointer hover:border-gray-300"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <h3 className="text-base font-medium text-gray-900">{group.className}</h3>
+                                    {group.payments.some((p) => p.payment_status === 'pending') && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openVoidReissue(group);
+                                            }}
+                                            className="px-3 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                                        >
+                                            Void &amp; Reissue
+                                        </button>
+                                    )}
+                                </div>
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="text-left text-gray-500">
+                                            <th className="pb-2 font-medium">Amount</th>
+                                            <th className="pb-2 font-medium">Status</th>
+                                            <th className="pb-2 font-medium">Paid At / Due Date</th>
+                                            <th className="pb-2 font-medium">Next Due Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {group.payments.map((payment) => (
+                                            <tr key={payment.id} className="border-t border-gray-100">
+                                                <td className="py-2">{formatCurrency(payment.amount_cents)}</td>
+                                                <td className="py-2">{payment.payment_status || "—"}</td>
+                                                <td className="py-2">{renderPaymentDateCell(payment)}</td>
+                                                <td className="py-2">
+                                                    {formatDate((payment as PaymentWithDetails & { next_due_date?: string | null }).next_due_date)}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Activity Log Section */}
@@ -788,6 +951,90 @@ function StudentDetailContent() {
                 </div>
             )}
 
+            {/* Void & Reissue modal */}
+            {isVoidReissueOpen && voidReissueGroup && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-xl font-bold text-black mb-4">Void &amp; Reissue — {voidReissueGroup.className}</h2>
+                        <p className="text-sm text-gray-600 mb-4">
+                            This will void {voidReissueGroup.payments.filter((p) => p.payment_status === 'pending').length} open invoice(s)
+                            totaling {formatCurrency(originalTotal)}, and create the replacement invoices below.
+                        </p>
+                        <div className="space-y-3 mb-4">
+                            {replacementRows.map((row) => (
+                                <div key={row.key} className="flex gap-2 items-center">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        placeholder="Amount ($)"
+                                        value={row.amount}
+                                        onChange={(e) => updateReplacementRow(row.key, "amount", e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                    <input
+                                        type="date"
+                                        value={row.dueDate}
+                                        onChange={(e) => updateReplacementRow(row.key, "dueDate", e.target.value)}
+                                        className="flex-1 text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                    <button
+                                        onClick={() => removeReplacementRow(row.key)}
+                                        className="px-2 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-md"
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="flex items-center justify-between mb-4">
+                            <button
+                                onClick={addReplacementRow}
+                                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                            >
+                                + Add Invoice
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setReplacementRows([{
+                                        key: crypto.randomUUID(),
+                                        amount: (originalTotal / 100).toFixed(2),
+                                        dueDate: new Date().toISOString().split('T')[0],
+                                    }]);
+                                    setIsPayInFull(true);
+                                }}
+                                className="text-sm font-medium text-gray-700 hover:text-gray-900"
+                            >
+                                Pay in Full
+                            </button>
+                        </div>
+                        <div className="flex justify-between text-sm font-medium text-gray-900 mb-4 pt-3 border-t border-gray-200">
+                            <span>Original Total: {formatCurrency(originalTotal)}</span>
+                            <span>New Total: {formatCurrency(newTotal)}</span>
+                        </div>
+                        {voidReissueError && (
+                            <p className="text-sm text-red-600 mb-4">{voidReissueError}</p>
+                        )}
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={closeVoidReissue}
+                                disabled={isSubmittingVoidReissue}
+                                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmVoidReissue}
+                                disabled={isSubmittingVoidReissue}
+                                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                            >
+                                {isSubmittingVoidReissue ? "Processing..." : "Confirm Void & Reissue"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Enrollment Detail Sidebar */}
             <DetailSidebar
                 isOpen={isEnrollmentSidebarOpen}
@@ -830,50 +1077,7 @@ function StudentDetailContent() {
                         {/* Payments Section */}
                         <div className="pt-4 border-t border-gray-200">
                             <h3 className="text-sm font-semibold text-gray-900 mb-3">Payments</h3>
-                            {enrollmentTransactions.length === 0 ? (
-                                <p className="text-sm text-gray-500">No transactions found for this enrollment.</p>
-                            ) : (
-                                <div className="space-y-4">
-                                    {enrollmentTransactions.map((transaction) => {
-                                        const transactionTypeLabel = 
-                                            transaction.transaction_type === 'registration_fee' ? 'Registration Fee' :
-                                            transaction.transaction_type === 'tuition_a' ? 'Tuition A' :
-                                            transaction.transaction_type === 'tuition_b' ? 'Tuition B' :
-                                            transaction.transaction_type || 'Unknown';
-                                        
-                                        const isPaid = transaction.transaction_status === 'paid';
-                                        const dateLabel = isPaid ? 'Paid Date' : 'Due Date';
-                                        const dateValue = isPaid ? transaction.payment_date : transaction.due_date;
-                                        
-                                        return (
-                                            <div key={transaction.id} className="border border-gray-200 rounded-lg p-4">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <h4 className="text-sm font-medium text-gray-900">{transactionTypeLabel}</h4>
-                                                    <span className={`px-2 py-1 text-xs rounded-full ${
-                                                        isPaid 
-                                                            ? "bg-green-100 text-green-800" 
-                                                            : "bg-yellow-100 text-yellow-800"
-                                                    }`}>
-                                                        {isPaid ? "Paid" : "Pending"}
-                                                    </span>
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-gray-500">Amount Due</label>
-                                                        <p className="mt-1 text-sm text-gray-900">
-                                                            {transaction.amount_due ? formatCurrency(transaction.amount_due) : "—"}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-xs font-medium text-gray-500">{dateLabel}</label>
-                                                        <p className="mt-1 text-sm text-gray-900">{formatDate(dateValue)}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
+                            <EnrollmentPaymentDetail transactions={enrollmentTransactions} />
                         </div>
                     </div>
                 ) : selectedClass ? (

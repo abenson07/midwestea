@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify:separation": "npx --yes tsx@4 scripts/verify-prerequisite-payment-separation.ts"
   },
   "dependencies": {
     "@linear/sdk": "^86.0.0",

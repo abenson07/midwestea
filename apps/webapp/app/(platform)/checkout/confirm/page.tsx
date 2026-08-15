@@ -146,6 +146,12 @@ function CheckoutConfirmContent() {
         throw new Error('Payment URL not received from server');
       }
 
+      try {
+        sessionStorage.setItem('midwestea.pendingPrereqClassId', classData.class_id!);
+      } catch {
+        // Private-browsing or storage-disabled: the ?classID fallback still applies.
+      }
+
       // Redirect to Stripe payment link
       window.location.href = paymentUrl;
     } catch (err: any) {

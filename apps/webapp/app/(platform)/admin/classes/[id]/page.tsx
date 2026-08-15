@@ -5,14 +5,46 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { getClassById, updateClass, deleteClass, getPrograms, getCourses, getCourseById, type Class, type Course } from "@/lib/classes";
 import { getStudentsByClassId, getStudents, getStudentEmailFromAuth } from "@/lib/students";
+import { getTransactionsByEnrollment, type TransactionWithDetails } from "@/lib/payments";
 import { DataTable } from "@/components/ui/DataTable";
 import { DetailSidebar } from "@/components/ui/DetailSidebar";
+import { EnrollmentPaymentDetail } from "@/components/ui/EnrollmentPaymentDetail";
 import { LogDisplay } from "@/components/ui/LogDisplay";
+import { StudentClassPrerequisiteReview } from "@/components/ui/StudentClassPrerequisiteReview";
+import { ClassPrerequisiteMatrix } from "@/components/ui/ClassPrerequisiteMatrix";
+import { PrerequisiteStatusBadge } from "@/components/ui/PrerequisiteStatusBadge";
+import type { ClassMatrixPayload } from "@/lib/admin-prerequisites";
 import { UndoToast } from "@/components/ui/UndoToast";
 import { CreateClassModal, type ClassFormData } from "@/components/ui/CreateClassModal";
 import { ViewMarketingPageLink } from "@/components/ui/ViewMarketingPageLink";
+import { getClassPrerequisites } from "@/lib/prerequisites";
 import { formatCurrency, formatPhone } from "@midwestea/utils";
 import { createSupabaseClient } from "@midwestea/utils";
+import { getSession } from "@/lib/auth";
+import type { Enrollment, ClassPrerequisiteWithType } from "@midwestea/types";
+import { PREREQUISITE_INPUT_TYPE_LABELS } from "@midwestea/types";
+
+// Client-safe/RLS replacement for lib/enrollments.ts's getEnrollmentByStudentAndClass,
+// which uses the service-role admin client and throws when called from the browser
+// (no SUPABASE_SERVICE_ROLE_KEY client-side) — that throw gets swallowed internally,
+// silently returning enrollment: null, which breaks both the roster's payment-status
+// column and the remove-student refund-prompt logic below (BEN-1178/1181).
+async function fetchEnrollmentClientSafe(
+    studentId: string,
+    classId: string
+): Promise<{ enrollment: Enrollment | null; error: string | null }> {
+    const supabase = await createSupabaseClient();
+    const { data, error } = await supabase
+        .from("enrollments")
+        .select("*")
+        .eq("student_id", studentId)
+        .eq("class_id", classId)
+        .maybeSingle();
+    if (error) {
+        return { enrollment: null, error: error.message };
+    }
+    return { enrollment: (data as Enrollment) ?? null, error: null };
+}
 
 const formatClassDate = (dateString: string): { rendered: string; strategy: "date-only" | "timestamp"; parsedIso: string } => {
     // Date-only values should display as literal calendar dates, independent of viewer timezone.
@@ -35,11 +67,27 @@ const formatClassDate = (dateString: string): { rendered: string; strategy: "dat
     };
 };
 
+const calculateStudentPaymentStatus = (transactions: TransactionWithDetails[]): string => {
+    if (!transactions || transactions.length === 0) return "No invoices yet";
+    const now = new Date();
+    const isPastDue = (t: TransactionWithDetails) =>
+        t.transaction_status !== 'paid' && !!t.due_date && new Date(t.due_date) < now;
+    if (transactions.some(isPastDue)) return "Past due";
+    if (transactions.every((t) => t.transaction_status === 'paid')) return "All paid";
+    if (transactions.some((t) => t.transaction_status === 'paid')) return "Partially paid";
+    return "Pending";
+};
+
 // Student type for UI display
 type Student = {
     id: string;
     name: string;
     email: string;
+};
+
+type StudentWithBilling = Student & {
+    paymentStatus: string;
+    transactions: TransactionWithDetails[];
 };
 
 type PendingUndoRemoval = {
@@ -55,7 +103,12 @@ function ClassDetailContent() {
 
     const [classData, setClassData] = useState<Class | null>(null);
     const [originalClassData, setOriginalClassData] = useState<Class | null>(null);
+    const [classPrerequisites, setClassPrerequisites] = useState<ClassPrerequisiteWithType[]>([]);
+    const [loadingClassPrerequisites, setLoadingClassPrerequisites] = useState(true);
     const [students, setStudents] = useState<Student[]>([]);
+    const [studentsWithBilling, setStudentsWithBilling] = useState<StudentWithBilling[]>([]);
+    const [isInvoiceSidebarOpen, setIsInvoiceSidebarOpen] = useState(false);
+    const [selectedStudentBilling, setSelectedStudentBilling] = useState<StudentWithBilling | null>(null);
     const [loading, setLoading] = useState(true);
     const [loadingStudents, setLoadingStudents] = useState(true);
     const [error, setError] = useState("");
@@ -89,10 +142,31 @@ function ClassDetailContent() {
     const [pendingUndoRemoval, setPendingUndoRemoval] = useState<PendingUndoRemoval | null>(null);
     const [undoingRemoval, setUndoingRemoval] = useState(false);
 
+    // Remove-student refund modal state
+    const [removeStudentModal, setRemoveStudentModal] = useState<{
+        studentId: string;
+        studentName: string;
+        hasPaidTransactions: boolean;
+        paidTotal: number;
+    } | null>(null);
+    const [refundPercentageInput, setRefundPercentageInput] = useState<string>("");
+    const [isRemovingStudent, setIsRemovingStudent] = useState(false);
+
+    // Reused by the remove-student modal's read-only prerequisite context
+    // block (BEN-872) -- populated by ClassPrerequisiteMatrix (BEN-869) so
+    // no second request is issued.
+    const [matrixPayload, setMatrixPayload] = useState<ClassMatrixPayload | null>(null);
+
+    // Prerequisite review sidebar state (BEN-867)
+    const [prereqReviewCounts, setPrereqReviewCounts] = useState<Record<string, number>>({});
+    const [isPrereqSidebarOpen, setIsPrereqSidebarOpen] = useState(false);
+    const [prereqReviewStudent, setPrereqReviewStudent] = useState<Student | null>(null);
+
     useEffect(() => {
         if (classId) {
             loadClass();
             loadStudents();
+            loadClassPrerequisites();
         }
         loadPrograms();
         loadCourses();
@@ -169,6 +243,16 @@ function ClassDetailContent() {
         setLoading(false);
     };
 
+    const loadClassPrerequisites = async () => {
+        if (!classId) return;
+        setLoadingClassPrerequisites(true);
+        const { classPrerequisites: fetched, error: fetchError } = await getClassPrerequisites(classId);
+        if (!fetchError && fetched) {
+            setClassPrerequisites(fetched);
+        }
+        setLoadingClassPrerequisites(false);
+    };
+
     const loadStudents = async () => {
         if (!classId) return;
         setLoadingStudents(true);
@@ -190,6 +274,8 @@ function ClassDetailContent() {
                 }));
                 console.log("[ClassDetailContent] Transformed students for class:", transformedStudents);
                 setStudents(transformedStudents);
+                loadStudentsWithBilling(transformedStudents);
+                loadPrereqReviewCounts(transformedStudents);
             } else {
                 console.log("[ClassDetailContent] No students returned for class");
                 setStudents([]);
@@ -200,6 +286,69 @@ function ClassDetailContent() {
         } finally {
             setLoadingStudents(false);
         }
+    };
+
+    const loadStudentsWithBilling = async (roster: Student[]) => {
+        const withBilling = await Promise.all(
+            roster.map(async (student) => {
+                const { enrollment } = await fetchEnrollmentClientSafe(student.id, classId);
+                if (!enrollment) {
+                    return { ...student, paymentStatus: "No invoices yet", transactions: [] };
+                }
+                const { transactions } = await getTransactionsByEnrollment(enrollment.id);
+                return {
+                    ...student,
+                    paymentStatus: calculateStudentPaymentStatus(transactions || []),
+                    transactions: transactions || [],
+                };
+            })
+        );
+        setStudentsWithBilling(withBilling);
+    };
+
+    const loadPrereqReviewCounts = async (roster: Student[]) => {
+        if (!classId || roster.length === 0) return;
+        try {
+            const { session } = await getSession();
+            if (!session) return;
+
+            const entries = await Promise.all(
+                roster.map(async (student) => {
+                    try {
+                        const response = await fetch(
+                            `/api/admin/prerequisites/review?studentId=${encodeURIComponent(student.id)}&classId=${encodeURIComponent(classId)}`,
+                            { headers: { Authorization: `Bearer ${session.access_token}` } }
+                        );
+                        const result = await response.json();
+                        if (!response.ok || !result.success) return [student.id, 0] as const;
+                        const count = (result.evaluation.items as { is_required: boolean; status: string }[]).filter(
+                            (item) => item.is_required && item.status !== "satisfied" && item.status !== "not_required"
+                        ).length;
+                        return [student.id, count] as const;
+                    } catch {
+                        return [student.id, 0] as const;
+                    }
+                })
+            );
+
+            setPrereqReviewCounts(Object.fromEntries(entries));
+        } catch {
+            // Non-fatal: the Prerequisites column simply shows nothing meaningful.
+        }
+    };
+
+    const handlePrereqReviewClick = (student: Student) => {
+        setPrereqReviewStudent(student);
+        setIsPrereqSidebarOpen(true);
+    };
+
+    const handleViewInvoices = (student: StudentWithBilling) => {
+        setSelectedStudentBilling(student);
+        setIsInvoiceSidebarOpen(true);
+    };
+    const handleCloseInvoiceSidebar = () => {
+        setIsInvoiceSidebarOpen(false);
+        setSelectedStudentBilling(null);
     };
 
     const loadAllStudents = async () => {
@@ -329,12 +478,43 @@ function ClassDetailContent() {
         );
     }, [availableStudents, searchLower]);
 
-    const handleRemoveStudent = async (studentId: string) => {
-        if (!confirm("Are you sure you want to remove this student from the class?")) return;
-
+    const openRemoveStudentModal = async (studentId: string) => {
         const student = students.find((s) => s.id === studentId);
         const studentName = student?.name ?? "Student";
 
+        const { enrollment } = await fetchEnrollmentClientSafe(studentId, classId);
+        let paidTotal = 0;
+        if (enrollment) {
+            const { transactions } = await getTransactionsByEnrollment(enrollment.id);
+            paidTotal = (transactions || [])
+                .filter((t) => t.transaction_status === 'paid')
+                .reduce((sum, t) => sum + (t.amount_due || 0) * (t.quantity || 1), 0);
+        }
+
+        setRefundPercentageInput("");
+        setRemoveStudentModal({
+            studentId,
+            studentName,
+            hasPaidTransactions: paidTotal > 0,
+            paidTotal,
+        });
+    };
+
+    const handleConfirmRemoveStudent = async () => {
+        if (!removeStudentModal) return;
+        const { studentId, studentName, hasPaidTransactions } = removeStudentModal;
+
+        let refundPercentage: number | null = null;
+        if (hasPaidTransactions) {
+            const pct = parseFloat(refundPercentageInput);
+            if (Number.isNaN(pct) || pct < 0 || pct > 100) {
+                alert("Enter a refund percentage between 0 and 100.");
+                return;
+            }
+            refundPercentage = pct;
+        }
+
+        setIsRemovingStudent(true);
         try {
             const supabase = await createSupabaseClient();
             const { data: { session } } = await supabase.auth.getSession();
@@ -354,6 +534,7 @@ function ClassDetailContent() {
                 body: JSON.stringify({
                     student_id: studentId,
                     class_id: classId,
+                    refund_percentage: refundPercentage,
                 }),
             });
 
@@ -366,8 +547,11 @@ function ClassDetailContent() {
 
             await loadStudents();
             setPendingUndoRemoval({ studentId, studentName });
+            setRemoveStudentModal(null);
         } catch (err: any) {
             alert(`Failed to remove student: ${err.message}`);
+        } finally {
+            setIsRemovingStudent(false);
         }
     };
 
@@ -507,13 +691,55 @@ function ClassDetailContent() {
         { header: "Name", accessorKey: "name" as keyof Student, className: "font-medium" },
         { header: "Email", accessorKey: "email" as keyof Student },
         {
+            header: "Invoice Status",
+            accessorKey: "id" as keyof Student,
+            cell: (item: Student) => {
+                const withBilling = studentsWithBilling.find((s) => s.id === item.id);
+                const status = withBilling?.paymentStatus || "Loading...";
+                return (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (withBilling) handleViewInvoices(withBilling);
+                        }}
+                        className={`text-sm font-medium hover:underline ${
+                            status === "Past due" ? "text-red-600" :
+                            status === "All paid" ? "text-green-600" :
+                            status === "Partially paid" ? "text-blue-600" :
+                            "text-gray-600"
+                        }`}
+                    >
+                        {status}
+                    </button>
+                );
+            },
+        },
+        {
+            header: "Prerequisites",
+            accessorKey: "id" as keyof Student,
+            cell: (item: Student) => {
+                const count = prereqReviewCounts[item.id] ?? 0;
+                return (
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrereqReviewClick(item);
+                        }}
+                        className={`text-sm font-medium hover:underline ${count > 0 ? "text-amber-600" : "text-green-600"}`}
+                    >
+                        {count > 0 ? `${count} to review` : "All complete"}
+                    </button>
+                );
+            },
+        },
+        {
             header: "Actions",
             accessorKey: "id" as keyof Student,
             cell: (item: Student) => (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
-                        handleRemoveStudent(item.id);
+                        openRemoveStudentModal(item.id);
                     }}
                     className="text-red-600 hover:text-red-800 text-sm font-medium"
                 >
@@ -659,6 +885,35 @@ function ClassDetailContent() {
                 </div>
             </div>
 
+            {/* Prerequisites Section */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Prerequisites</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                    Copied from the template when this class was created. Editing the template does not change this list.
+                </p>
+                <DataTable
+                    data={classPrerequisites}
+                    isLoading={loadingClassPrerequisites}
+                    emptyMessage="No prerequisites on this class."
+                    columns={[
+                        {
+                            header: "Prerequisite",
+                            cell: (item: ClassPrerequisiteWithType) => item.prerequisite_type.name,
+                            className: "font-medium",
+                        },
+                        {
+                            header: "Input type",
+                            cell: (item: ClassPrerequisiteWithType) =>
+                                PREREQUISITE_INPUT_TYPE_LABELS[item.prerequisite_type.input_type],
+                        },
+                        {
+                            header: "Required",
+                            cell: (item: ClassPrerequisiteWithType) => (item.is_required ? "Yes" : "No"),
+                        },
+                    ]}
+                />
+            </div>
+
             {/* Students Section */}
             <div>
                 <div className="flex justify-between items-center mb-4">
@@ -686,8 +941,29 @@ function ClassDetailContent() {
                 )}
             </div>
 
+            {/* Prerequisite status by student (BEN-869) */}
+            <ClassPrerequisiteMatrix classId={classData.id} onPayloadChange={setMatrixPayload} />
+
             {/* Activity Log Section */}
             <LogDisplay referenceId={classData.id} referenceType="class" />
+
+            {/* Prerequisite Review Sidebar (BEN-867) */}
+            <DetailSidebar
+                isOpen={isPrereqSidebarOpen}
+                onClose={() => {
+                    setIsPrereqSidebarOpen(false);
+                    setPrereqReviewStudent(null);
+                }}
+                title={prereqReviewStudent ? `${prereqReviewStudent.name} · ${classData.class_name}` : ""}
+            >
+                {prereqReviewStudent && (
+                    <StudentClassPrerequisiteReview
+                        studentId={prereqReviewStudent.id}
+                        classId={classData.id}
+                        onChanged={() => loadPrereqReviewCounts(students)}
+                    />
+                )}
+            </DetailSidebar>
 
             {/* Add Student Sidebar */}
             <DetailSidebar
@@ -830,6 +1106,15 @@ function ClassDetailContent() {
                 </div>
             </DetailSidebar>
 
+            {/* Invoice Detail Sidebar */}
+            <DetailSidebar
+                isOpen={isInvoiceSidebarOpen}
+                onClose={handleCloseInvoiceSidebar}
+                title={selectedStudentBilling ? `${selectedStudentBilling.name} — Invoices` : "Invoices"}
+            >
+                <EnrollmentPaymentDetail transactions={selectedStudentBilling?.transactions || []} />
+            </DetailSidebar>
+
             {/* Edit Class Modal */}
             {isEditModalOpen && classData && (
                 <CreateClassModal
@@ -850,6 +1135,103 @@ function ClassDetailContent() {
                     onUndo={handleUndoRemoveStudent}
                     onExpire={() => setPendingUndoRemoval(null)}
                 />
+            )}
+
+            {/* Remove Student modal */}
+            {removeStudentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h2 className="text-xl font-bold text-black mb-4">Remove {removeStudentModal.studentName}</h2>
+                        <p className="text-gray-700 mb-4">
+                            Remove this student from the class? This can be undone immediately after.
+                        </p>
+
+                        {/* Read-only prerequisite context (BEN-872) -- advisory only, never
+                            preselects a refund percentage or changes this modal's behavior. */}
+                        {(() => {
+                            const row = matrixPayload?.rows.find((r) => r.student_id === removeStudentModal.studentId);
+                            const outstanding = row?.evaluation.outstanding ?? [];
+                            return (
+                                <div className="mb-4 space-y-1">
+                                    {outstanding.length === 0 ? (
+                                        <p className="text-sm text-gray-500">All class requirements are complete.</p>
+                                    ) : (
+                                        <div>
+                                            <p className="text-sm text-gray-700">Outstanding requirements:</p>
+                                            <ul className="mt-1 space-y-1">
+                                                {outstanding.map((item) => (
+                                                    <li
+                                                        key={item.class_prerequisite_id}
+                                                        className="text-sm text-gray-500 flex items-center gap-2"
+                                                    >
+                                                        {item.prerequisite_type.name}
+                                                        <PrerequisiteStatusBadge status={item.status} />
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        Requirement status is shown for context only. It does not affect removal or refund.
+                                    </p>
+                                </div>
+                            );
+                        })()}
+
+                        {removeStudentModal.hasPaidTransactions && (
+                            <div className="mb-4 space-y-3">
+                                <p className="text-sm text-gray-700">
+                                    This student has paid {formatCurrency(removeStudentModal.paidTotal)} for this class.
+                                </p>
+                                <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md p-3">
+                                    Refunds are handled case-by-case. As a general guide: a full refund is typical if the
+                                    student withdraws well before the class starts; a partial or no refund is typical
+                                    closer to or after the start date. Confirm with your manager if you're unsure.
+                                </p>
+                                <div className="flex gap-2">
+                                    {[100, 50, 0].map((preset) => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => setRefundPercentageInput(String(preset))}
+                                            className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
+                                        >
+                                            {preset}%
+                                        </button>
+                                    ))}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-500 mb-1">Refund Percentage</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={refundPercentageInput}
+                                        onChange={(e) => setRefundPercentageInput(e.target.value)}
+                                        className="w-full text-sm border border-gray-300 rounded-md px-2 py-1.5"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={() => setRemoveStudentModal(null)}
+                                disabled={isRemovingStudent}
+                                className="px-4 py-2 text-black border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmRemoveStudent}
+                                disabled={isRemovingStudent || (removeStudentModal.hasPaidTransactions && !refundPercentageInput)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                            >
+                                {isRemovingStudent ? "Removing..." : "Remove Student"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

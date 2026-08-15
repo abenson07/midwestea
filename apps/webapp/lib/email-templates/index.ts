@@ -67,6 +67,41 @@ export interface TuitionReminderTemplateData {
   amountDue: number; // Amount in cents
   invoiceNumber: number;
   dueDate: string | Date;
+  payUrl: string | null;
+}
+
+/**
+ * Data structure for the prerequisite rejection email template
+ */
+export interface PrerequisiteRejectedTemplateData {
+  studentName: string;
+  prerequisiteTypeName: string;
+  className: string;
+  rejectionReason: string;
+  resubmitUrl: string;
+  resubmitLabel: string;
+}
+
+/**
+ * Data structure for the prerequisite pending-review email template
+ * (BEN-865). `outstandingList` must already be a plain-text, comma-joined
+ * string -- renderTemplate escapes it like every other field, so passing
+ * markup here would render as literal tags.
+ */
+export interface PrerequisitePendingReviewTemplateData {
+  studentName: string;
+  className: string;
+  outstandingList: string;
+  actionUrl: string;
+}
+
+/**
+ * Data structure for the fully-enrolled email template (BEN-865).
+ */
+export interface FullyEnrolledTemplateData {
+  studentName: string;
+  className: string;
+  profileUrl: string;
 }
 
 // ============================================================================
@@ -80,12 +115,10 @@ export interface TuitionReminderTemplateData {
  * @returns Template HTML string
  */
 function loadTemplate(templateName: string): string {
-  // Use process.cwd() for Next.js compatibility
-  // Templates are in lib/email-templates/ relative to project root
+  // process.cwd() is already apps/webapp — `npm run dev` runs via the
+  // @midwestea/webapp workspace script, which cd's there before invoking `next dev`.
   const templatePath = path.join(
     process.cwd(),
-    'apps',
-    'webapp',
     'lib',
     'email-templates',
     `${templateName}.html`
@@ -357,6 +390,15 @@ export function renderTuitionReminderTemplate(
 ): string {
   let html = getTemplate('tuition-reminder');
 
+  // Built and substituted before renderTemplate's own pass, since that pass
+  // HTML-escapes every value it substitutes — fine for plain text fields,
+  // but it would mangle this button's markup. escapeHtml still runs on the
+  // URL itself here, which is the correct/safe way to put a URL in an href.
+  const payButtonHtml = data.payUrl
+    ? `<table role="presentation" style="width: 100%; border-collapse: collapse; margin: 0 0 30px 0;"><tr><td align="center"><a href="${escapeHtml(data.payUrl)}" style="display: inline-block; padding: 14px 32px; background-color: #ffb452; color: #191920; font-size: 16px; font-weight: 600; text-decoration: none; border-radius: 6px;">Pay Now</a></td></tr></table>`
+    : '';
+  html = html.replace('{{payButtonHtml}}', payButtonHtml);
+
   const templateData: Record<string, string> = {
     studentName: escapeHtml(data.studentName || 'Student'),
     programName: escapeHtml(data.programName),
@@ -376,6 +418,85 @@ export function getWaitlistConfirmationSubject(courseName: string): string {
 
 export function getTuitionReminderSubject(programName: string): string {
   return `Payment reminder — ${programName}`;
+}
+
+/**
+ * Render the prerequisite rejection email template.
+ *
+ * Passes every field straight to `renderTemplate`, which HTML-escapes each
+ * value itself -- `rejectionReason` is staff-entered free text and must
+ * never reach the template unescaped.
+ */
+export function renderPrerequisiteRejectedTemplate(
+  data: PrerequisiteRejectedTemplateData
+): string {
+  const html = getTemplate('prerequisite-rejected');
+
+  const templateData: Record<string, string> = {
+    studentName: data.studentName || 'Student',
+    prerequisiteTypeName: data.prerequisiteTypeName,
+    className: data.className,
+    rejectionReason: data.rejectionReason,
+    resubmitUrl: data.resubmitUrl,
+    resubmitLabel: data.resubmitLabel,
+    currentYear: String(new Date().getFullYear()),
+  };
+
+  return renderTemplate(html, templateData);
+}
+
+export function getPrerequisiteRejectedSubject(prerequisiteTypeName: string): string {
+  return `Action needed: ${prerequisiteTypeName}`;
+}
+
+/**
+ * Render the prerequisite pending-review email template (BEN-865).
+ *
+ * Branches purely on prerequisite state -- never on tier, program_type, or
+ * courseType. Passes every field straight to `renderTemplate`, which
+ * HTML-escapes each value itself.
+ */
+export function renderPrerequisitePendingReviewTemplate(
+  data: PrerequisitePendingReviewTemplateData
+): string {
+  const html = getTemplate('prerequisite-pending-review');
+
+  const templateData: Record<string, string> = {
+    studentName: data.studentName || 'Student',
+    className: data.className,
+    outstandingList: data.outstandingList,
+    actionUrl: data.actionUrl,
+    currentYear: String(new Date().getFullYear()),
+  };
+
+  return renderTemplate(html, templateData);
+}
+
+export function getPrerequisitePendingReviewSubject(className: string): string {
+  return `Next steps for ${className}`;
+}
+
+/**
+ * Render the fully-enrolled email template (BEN-865).
+ *
+ * Branches purely on prerequisite state -- never on tier, program_type, or
+ * courseType.
+ */
+export function renderFullyEnrolledTemplate(data: FullyEnrolledTemplateData): string {
+  const html = getTemplate('fully-enrolled');
+
+  const templateData: Record<string, string> = {
+    studentName: data.studentName || 'Student',
+    className: data.className,
+    profileUrl: data.profileUrl,
+    currentYear: String(new Date().getFullYear()),
+  };
+
+  return renderTemplate(html, templateData);
+}
+
+export function getFullyEnrolledSubject(className: string): string {
+  return `You're fully enrolled in ${className}`;
 }
 
 /** Supabase Auth OTP subject line (paste into Supabase dashboard) */

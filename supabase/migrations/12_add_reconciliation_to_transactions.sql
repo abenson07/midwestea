@@ -1,3 +1,4 @@
+-- Migration 12: Add reconciliation to transactions
 -- Add reconciliation columns to transactions table
 -- These columns track whether a transaction has been reconciled with its payout
 ALTER TABLE transactions

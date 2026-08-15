@@ -1,3 +1,4 @@
+-- Migration 04: Create admins table
 -- Create admins table for admin user management
 -- Admins are linked to auth.users via id (UUID FK)
 

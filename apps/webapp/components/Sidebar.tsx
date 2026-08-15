@@ -17,6 +17,7 @@ import {
   MapPin,
   FileText,
   ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getSession, signOut } from "@/lib/auth";
@@ -28,8 +29,10 @@ const navigation = [
   { name: "Students", href: "/admin/students", icon: GraduationCap },
   { name: "Instructors", href: "/admin/instructors", icon: FileText },
   { name: "Locations", href: "/admin/locations", icon: MapPin },
+  { name: "Prerequisites", href: "/admin/prerequisites", icon: ClipboardList },
   { name: "Transactions", href: "/admin/payments", icon: CreditCard },
   { name: "Approvals", href: "/admin/approvals", icon: CheckSquare },
+  { name: "Follow-up", href: "/admin/follow-up", icon: AlertTriangle },
   { name: "Recommend Courses", href: "/admin/recommend-courses", icon: ClipboardList },
 ];
 

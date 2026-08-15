@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "test:supabase": "tsx scripts/test-supabase-connection.ts",
+    "test:reminder-freshness": "tsx scripts/test-reminder-freshness.ts",
     "apply-migrations": "tsx scripts/apply-migrations.ts",
     "apply-migrations:api": "tsx scripts/apply-migrations-via-api.ts",
     "list-tables": "tsx scripts/list-tables.ts",

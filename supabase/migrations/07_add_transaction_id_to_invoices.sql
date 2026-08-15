@@ -1,3 +1,4 @@
+-- Migration 07: Add transaction ID to invoices
 -- Add transaction_id column to invoices_to_import table to track Stripe payment intent IDs
 ALTER TABLE invoices_to_import
   ADD COLUMN IF NOT EXISTS transaction_id TEXT;

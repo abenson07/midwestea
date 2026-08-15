@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getStripeClient } from '@/lib/stripe';
 import Stripe from 'stripe';
 import { createSupabaseAdminClient } from '@midwestea/utils';
@@ -10,21 +11,79 @@ import {
   createPayment,
   findClassWithCourse,
   getClassType,
-  createTransaction,
+  createInvoiceSchedule,
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
   updateStudentStripeCustomerId,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
+import { markTransactionPaidFromCheckout, markTransactionsPaidFromCollapsedCheckout } from '@/lib/invoice-payments';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
+import { markTransactionPaidByInvoiceId, payStripeInvoiceOutOfBand } from '@/lib/stripe-invoices';
 import {
   sendCourseEnrollmentEmail,
   sendProgramEnrollmentEmail,
+  sendPrerequisitePendingReviewEmail,
   type CourseEnrollmentTransaction,
   type ProgramEnrollmentTransaction,
 } from '@/lib/email';
+import { evaluateClassPrerequisites } from '@/lib/prerequisite-evaluation';
 
 export const runtime = 'nodejs';
+
+/**
+ * Sends the prerequisite_pending_review email for a fresh enrollment when
+ * its class has required prerequisites that are not all approved yet.
+ * Shared by both checkout.session.completed and payment_intent.succeeded
+ * send sites (BEN-865) so the branching logic exists in exactly one place.
+ * Never sends when the class has no prerequisite snapshot or is already
+ * fully satisfied -- the receipt email already told the student they're in.
+ */
+async function maybeSendPrerequisitePendingReview(
+  supabase: SupabaseClient,
+  student: { id: string },
+  enrollment: { id: string; class_id: string },
+  classRecord: { class_name: string | null; class_id: string | null }
+): Promise<void> {
+  const { evaluation, error: evaluationError } = await evaluateClassPrerequisites(
+    supabase,
+    student.id,
+    enrollment.class_id
+  );
+
+  if (evaluationError || !evaluation) {
+    console.error('[webhook] Failed to evaluate prerequisites for pending-review email:', evaluationError);
+    return;
+  }
+
+  if (evaluation.items.length === 0 || evaluation.allRequiredSatisfied) {
+    return;
+  }
+
+  const { data: existingLog } = await supabase
+    .from('email_logs')
+    .select('id')
+    .eq('enrollment_id', enrollment.id)
+    .eq('email_type', 'prerequisite_pending_review')
+    .eq('success', true)
+    .limit(1);
+
+  if (existingLog && existingLog.length > 0) {
+    return;
+  }
+
+  const emailResult = await sendPrerequisitePendingReviewEmail({
+    studentId: student.id,
+    enrollmentId: enrollment.id,
+    className: classRecord.class_name || 'your class',
+    classCode: classRecord.class_id,
+    outstandingNames: evaluation.outstanding.map((item) => item.prerequisite_type.name),
+  });
+
+  if (!emailResult.success) {
+    console.error('[webhook] Failed to send prerequisite pending-review email:', emailResult.error);
+  }
+}
 
 export async function POST(request: NextRequest) {  
   // Get the raw body as text - critical for Stripe signature verification
@@ -87,8 +146,63 @@ export async function POST(request: NextRequest) {
   if (event.type === 'checkout.session.completed') {
     try {
       const session = event.data.object as Stripe.Checkout.Session;
-      
+
       console.log('[webhook] Processing checkout.session.completed:', session.id);
+
+      if (session.metadata?.payment_purpose === 'existing_invoice') {
+        const transactionId = session.metadata.transaction_id;
+        if (!transactionId) {
+          return NextResponse.json({ error: 'Missing transaction_id in session metadata' }, { status: 400 });
+        }
+        let piId: string | null = null;
+        if (session.payment_intent) {
+          piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
+        }
+        const amountTotal = session.amount_total || 0;
+        const result = await markTransactionPaidFromCheckout(transactionId, piId || '', amountTotal);
+        return NextResponse.json({ success: true, transactionId, alreadyProcessed: result.alreadyProcessed });
+      }
+
+      if (session.metadata?.payment_purpose === 'pay_remaining') {
+        const transactionIdsRaw = session.metadata.transaction_ids;
+        if (!transactionIdsRaw) {
+          return NextResponse.json({ error: 'Missing transaction_ids in session metadata' }, { status: 400 });
+        }
+        const transactionIds = transactionIdsRaw.split(',').filter(Boolean);
+        let piId: string | null = null;
+        if (session.payment_intent) {
+          piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
+        }
+        const result = await markTransactionsPaidFromCollapsedCheckout(transactionIds, piId || '');
+
+        // Reconcile each underlying Stripe Invoice as paid out-of-band, since the
+        // actual charge went through this combined Checkout Session, not through
+        // any individual invoice's own hosted page. Log-and-continue on failure —
+        // the DB is already the source of truth and already marked paid; a failed
+        // Stripe reconciliation call is a bookkeeping mismatch to notice later,
+        // not a reason to fail this webhook response (which would just make
+        // Stripe retry an already-completed, already-idempotent operation).
+        const reconcileSupabase = createSupabaseAdminClient();
+        const { data: paidRows } = await reconcileSupabase
+          .from('transactions')
+          .select('stripe_invoice_id')
+          .in('id', transactionIds)
+          .not('stripe_invoice_id', 'is', null);
+
+        for (const row of paidRows ?? []) {
+          if (!row.stripe_invoice_id) continue;
+          await payStripeInvoiceOutOfBand(row.stripe_invoice_id).catch((err) =>
+            console.error('[webhook] Failed to reconcile Stripe invoice out-of-band:', row.stripe_invoice_id, err)
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          enrollmentId: session.metadata.enrollment_id,
+          paidCount: result.paidCount,
+          alreadyProcessedCount: result.alreadyProcessedCount,
+        });
+      }
 
       // Extract data from session
       const email = session.customer_email || session.customer_details?.email;
@@ -157,24 +271,8 @@ export async function POST(request: NextRequest) {
 
       console.log('[webhook] Extracted data:', { email, fullName, classId, paymentIntentId, productId });
 
-      // Safety check: Has this checkout session already been processed?
-      // Check by payment intent ID for idempotency (Stripe retries failed webhooks)
+      // Duplicate-delivery protection is now per-transaction-type inside createInvoiceSchedule() and per-email via the email_logs check below — see BEN-1158.
       const supabase = createSupabaseAdminClient();
-      const { data: existingTransaction } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('stripe_payment_intent_id', paymentIntentId)
-        .limit(1);
-      
-      if (existingTransaction && existingTransaction.length > 0) {
-        console.log('[webhook] Payment intent already processed, exiting safely:', paymentIntentId);
-        return NextResponse.json({
-          success: true,
-          message: 'Payment intent already processed (idempotency check)',
-          session_id: session.id,
-          payment_intent_id: paymentIntentId,
-        });
-      }
 
       // Extract customer ID and amount from session
       const customerId = typeof session.customer === 'string' 
@@ -210,121 +308,19 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Create transactions (invoice numbers deferred — see Plan 8.6 / invoice integration)
-      const now = new Date().toISOString();
-      const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
-
-      if (courseType === 'course') {
-        // For courses: Create 1 transaction (Registration Fee)
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-        console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
-      } else if (courseType === 'program') {
-        // For programs: Create 3 transactions in order:
-        // 1. Registration Fee (paid) - first invoice number
-        const regFeeTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(regFeeTransaction);
-        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
-
-        // 2. Tuition A (pending, due 3 weeks before class start)
-        let tuitionADueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() - 21); // 3 weeks before
-          tuitionADueDate = startDate.toISOString();
-        }
-
-        const tuitionATransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_a',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionADueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionATransaction);
-        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
-
-        // 3. Tuition B (pending, due 1 week after class start) - third invoice number
-        let tuitionBDueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() + 7); // 1 week after
-          tuitionBDueDate = startDate.toISOString();
-        }
-
-        const tuitionBTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_b',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionBDueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionBTransaction);
-        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
-      } else {
-        // Default to course if type cannot be determined
-        console.warn('[webhook] Could not determine class type, defaulting to course');
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-      }
+      const transactions = await createInvoiceSchedule({
+        enrollmentId: enrollment.id,
+        studentId: student.id,
+        classId: classRecord.id,
+        courseType,
+        classStartDate,
+        registrationFee,
+        price,
+        stripePaymentIntentId: paymentIntentId,
+        stripeCustomerId: customerId,
+        amountTotal,
+      });
+      console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
 
       // Step 6: Send enrollment confirmation email (async, non-blocking)
       // Check if email was already sent for this event (deduplication)
@@ -449,6 +445,28 @@ export async function POST(request: NextRequest) {
           event_id: eventId,
         });
       }
+
+      // Step 7: Send the prerequisite pending-review email (BEN-865), if the
+      // class has required prerequisites that aren't all approved yet.
+      // Fire-and-forget, after the receipt email above -- never blocks or
+      // conditions on it.
+      Promise.resolve().then(async () => {
+        try {
+          await maybeSendPrerequisitePendingReview(supabase, student, enrollment, classRecord);
+        } catch (err: any) {
+          console.error('[webhook] Error sending prerequisite pending-review email:', {
+            enrollment_id: enrollment.id,
+            error: err.message,
+            event_id: eventId,
+          });
+        }
+      }).catch((error) => {
+        console.error('[webhook] Unhandled error in prerequisite pending-review promise:', {
+          enrollment_id: enrollment.id,
+          error: error.message,
+          event_id: eventId,
+        });
+      });
 
       return NextResponse.json({
         success: true,
@@ -690,22 +708,8 @@ export async function POST(request: NextRequest) {
 
       console.log('[webhook] Extracted data:', { email, fullName, classId, paymentIntentId, productId });
 
-      // Safety check: Has this payment intent already been processed?
+      // Duplicate-delivery protection is now per-transaction-type inside createInvoiceSchedule() and per-email via the email_logs check below — see BEN-1158.
       const supabase = createSupabaseAdminClient();
-      const { data: existingTransaction } = await supabase
-        .from('transactions')
-        .select('id')
-        .eq('stripe_payment_intent_id', paymentIntentId)
-        .limit(1);
-      
-      if (existingTransaction && existingTransaction.length > 0) {
-        console.log('[webhook] Payment intent already processed, exiting safely:', paymentIntentId);
-        return NextResponse.json({
-          success: true,
-          message: 'Payment intent already processed (idempotency check)',
-          payment_intent_id: paymentIntentId,
-        });
-      }
 
       // Extract customer ID
       const customerId = typeof paymentIntent.customer === 'string' 
@@ -742,121 +746,19 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      // Step 4: Create transactions (invoice numbers deferred — see Plan 8.6 / invoice integration)
-      const now = new Date().toISOString();
-      const transactions: Awaited<ReturnType<typeof createTransaction>>[] = [];
-
-      if (courseType === 'course') {
-        // For courses: Create 1 transaction (Registration Fee)
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-        console.log('[webhook] Created course transaction:', transaction.id, 'invoice_number:', transaction.invoice_number);
-      } else if (courseType === 'program') {
-        // For programs: Create 3 transactions in order:
-        // 1. Registration Fee (paid) - first invoice number
-        const regFeeTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(regFeeTransaction);
-        console.log('[webhook] Created program registration fee transaction:', regFeeTransaction.id, 'invoice_number:', regFeeTransaction.invoice_number);
-
-        // 2. Tuition A (pending, due 3 weeks before class start)
-        let tuitionADueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() - 21); // 3 weeks before
-          tuitionADueDate = startDate.toISOString();
-        }
-
-        const tuitionATransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_a',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionADueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionATransaction);
-        console.log('[webhook] Created program tuition A transaction:', tuitionATransaction.id, 'invoice_number:', tuitionATransaction.invoice_number);
-
-        // 3. Tuition B (pending, due 1 week after class start) - third invoice number
-        let tuitionBDueDate: string | null = null;
-        if (classStartDate) {
-          const startDate = new Date(classStartDate);
-          startDate.setDate(startDate.getDate() + 7); // 1 week after
-          tuitionBDueDate = startDate.toISOString();
-        }
-
-        const tuitionBTransaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'program',
-          transactionType: 'tuition_b',
-          quantity: 0.5,
-          stripePaymentIntentId: null,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: tuitionBDueDate,
-          amountDue: price,
-          amountPaid: null,
-          invoiceNumber: null,
-        });
-        transactions.push(tuitionBTransaction);
-        console.log('[webhook] Created program tuition B transaction:', tuitionBTransaction.id, 'invoice_number:', tuitionBTransaction.invoice_number);
-      } else {
-        // Default to course if type cannot be determined
-        console.warn('[webhook] Could not determine class type, defaulting to course');
-        const transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: student.id,
-          classId: classRecord.id,
-          classType: 'course',
-          transactionType: 'registration_fee',
-          quantity: 1,
-          stripePaymentIntentId: paymentIntentId,
-          transactionStatus: 'paid',
-          paymentDate: now,
-          dueDate: now,
-          amountDue: registrationFee,
-          amountPaid: amountTotal,
-          invoiceNumber: null,
-        });
-        transactions.push(transaction);
-      }
+      const transactions = await createInvoiceSchedule({
+        enrollmentId: enrollment.id,
+        studentId: student.id,
+        classId: classRecord.id,
+        courseType,
+        classStartDate,
+        registrationFee,
+        price,
+        stripePaymentIntentId: paymentIntentId,
+        stripeCustomerId: customerId,
+        amountTotal,
+      });
+      console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
 
       // Step 6: Send enrollment confirmation email (async, non-blocking)
       const eventId = event.id;
@@ -981,6 +883,28 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Step 7: Send the prerequisite pending-review email (BEN-865), if the
+      // class has required prerequisites that aren't all approved yet.
+      // Fire-and-forget, after the receipt email above -- never blocks or
+      // conditions on it.
+      Promise.resolve().then(async () => {
+        try {
+          await maybeSendPrerequisitePendingReview(supabase, student, enrollment, classRecord);
+        } catch (err: any) {
+          console.error('[webhook] Error sending prerequisite pending-review email:', {
+            enrollment_id: enrollment.id,
+            error: err.message,
+            event_id: eventId,
+          });
+        }
+      }).catch((error) => {
+        console.error('[webhook] Unhandled error in prerequisite pending-review promise:', {
+          enrollment_id: enrollment.id,
+          error: error.message,
+          event_id: eventId,
+        });
+      });
+
       return NextResponse.json({
         success: true,
         student_id: student.id,
@@ -1012,10 +936,46 @@ export async function POST(request: NextRequest) {
   // Handle payment_intent.created event - IGNORED (only process succeeded)
   if (event.type === 'payment_intent.created') {
     console.log('[webhook] Ignoring payment_intent.created event (will process on payment_intent.succeeded)');
-    return NextResponse.json({ 
-      received: true, 
-      message: 'Event ignored - will process on payment_intent.succeeded' 
+    return NextResponse.json({
+      received: true,
+      message: 'Event ignored - will process on payment_intent.succeeded'
     });
+  }
+
+  // Handle invoice.paid event - fires when a tuition Stripe Invoice (tuition_a/tuition_b,
+  // or a void-and-reissue replacement) is paid via its hosted invoice page, or is marked
+  // paid out-of-band (e.g. by the pay-remaining collapsed-checkout reconciliation).
+  if (event.type === 'invoice.paid') {
+    try {
+      const invoice = event.data.object as Stripe.Invoice;
+      const stripeInvoiceId = invoice.id;
+      const amountPaidCents = invoice.amount_paid;
+      const paymentIntentId = typeof invoice.payment_intent === 'string'
+        ? invoice.payment_intent
+        : invoice.payment_intent?.id ?? null;
+
+      console.log('[webhook] Processing invoice.paid:', stripeInvoiceId);
+
+      const result = await markTransactionPaidByInvoiceId(stripeInvoiceId, {
+        paymentIntentId,
+        amountPaidCents,
+      });
+
+      if (!result.matched) {
+        console.warn('[webhook] invoice.paid for unknown stripe_invoice_id — no matching transaction:', stripeInvoiceId);
+      }
+
+      return NextResponse.json({ received: true, matched: result.matched, alreadyProcessed: result.alreadyProcessed });
+    } catch (error: any) {
+      console.error('[webhook] Error processing invoice.paid:', {
+        error: error.message,
+        invoice_id: (event.data.object as Stripe.Invoice).id,
+      });
+      return NextResponse.json(
+        { error: 'Failed to process invoice.paid', details: error.message },
+        { status: 500 }
+      );
+    }
   }
 
   // Return success for other event types (we only handle payment_intent.succeeded)  console.log('[webhook] Received unhandled event type:', event.type);

@@ -101,37 +101,17 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
       return { student: null, error: null };
     }
 
-    // Transform student to include name from full_name field and email from students table
+    // Transform student to include name from full_name field
     const name = data.full_name || "Unknown Student";
 
-    // Fetch email from auth via API route
-    let email: string | null = null;
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const emailResponse = await fetch(`/api/students/${id}/email`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (emailResponse.ok) {
-          const emailResult = await emailResponse.json();
-          if (emailResult.success) {
-            email = emailResult.email;
-          }
-        }
-      }
-    } catch (emailError) {
-      console.warn("[getStudentById] Failed to fetch email:", emailError);
-      // Don't fail the whole request if email fetch fails
-    }
-
+    // Email lives on auth.users, not the students table, and isn't fetchable
+    // here for every caller (the lookup route is admin-gated). Callers that
+    // need it source it themselves: self via session, admin via
+    // getStudentEmailFromAuth.
     const studentWithEmail: StudentWithEmail = {
       ...data,
       name,
-      email,
+      email: null,
     };
 
     return { student: studentWithEmail, error: null };
