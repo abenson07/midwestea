@@ -38,11 +38,16 @@ function matchesSearch(row: StudentRow, search: string): boolean {
   );
 }
 
+export type StudentsDemoProps = {
+  /** When omitted, the roster stays on demo mocks (`/admin-preview`). */
+  rows?: StudentRow[];
+};
+
 /**
  * Students roster: name, email, classes, payment status, and first enrolled.
  * Current filters to enrolled students; Past due to enrolled students with a past-due invoice.
  */
-export function StudentsDemo() {
+export function StudentsDemo({ rows = STUDENT_ROWS }: StudentsDemoProps) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
@@ -55,8 +60,8 @@ export function StudentsDemo() {
   }
 
   const filtered = useMemo(
-    () => STUDENT_ROWS.filter((row) => matchesStudentsView(row, view) && matchesSearch(row, search)),
-    [view, search],
+    () => rows.filter((row) => matchesStudentsView(row, view) && matchesSearch(row, search)),
+    [rows, view, search],
   );
 
   const emptyLabel =

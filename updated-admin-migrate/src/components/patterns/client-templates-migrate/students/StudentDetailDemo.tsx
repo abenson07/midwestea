@@ -16,11 +16,14 @@ import { StudentSettingsPage } from "./StudentSettingsPage";
 import { StudentInvoicesPage } from "./StudentInvoicesPage";
 import { StudentMessageModal } from "./StudentMessageModal";
 import { studentById } from "./studentData";
+import type { StudentRecord } from "./types";
 
 type StudentDetailView = "overview" | "settings" | "invoices";
 
 export type StudentDetailDemoProps = {
   studentId: string;
+  /** When omitted, the profile stays on demo mocks (`/admin-preview`). */
+  student?: StudentRecord;
 };
 
 function viewFromPath(pathname: string, studentRoot: string): StudentDetailView {
@@ -40,12 +43,12 @@ function hrefForView(studentRoot: string, view: StudentDetailView): string {
 /**
  * Student profile — overview by default. Edit on personal details opens Settings.
  */
-export function StudentDetailDemo({ studentId }: StudentDetailDemoProps) {
+export function StudentDetailDemo({ studentId, student: studentProp }: StudentDetailDemoProps) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
   const studentRoot = `${basePath}/students/${studentId}`;
-  const student = studentById(studentId);
+  const student = studentProp ?? studentById(studentId);
   const view = viewFromPath(pathname ?? "", studentRoot);
   const [messageOpen, setMessageOpen] = useState(false);
 

@@ -3,22 +3,38 @@ import { createStagingAdminClient } from "@/lib/staging/adminClient";
 
 export const runtime = "nodejs";
 
+async function countRows(
+  supabase: ReturnType<typeof createStagingAdminClient>,
+  table: "students" | "enrollments" | "classes" | "transactions",
+) {
+  const { count, error } = await supabase.from(table).select("id", { count: "exact", head: true });
+  if (error) {
+    throw new Error(`${table}: ${error.message}`);
+  }
+  return count ?? 0;
+}
+
 /**
  * GET /api/new-admin-migrate/health
- * Confirms the fork can reach staging. Returns a student count only — no rows.
+ * Confirms the fork can reach staging. Returns counts only — no rows.
  */
 export async function GET() {
   try {
     const supabase = createStagingAdminClient();
-    const { count, error } = await supabase
-      .from("students")
-      .select("id", { count: "exact", head: true });
+    const [studentCount, enrollmentCount, classCount, transactionCount] = await Promise.all([
+      countRows(supabase, "students"),
+      countRows(supabase, "enrollments"),
+      countRows(supabase, "classes"),
+      countRows(supabase, "transactions"),
+    ]);
 
-    if (error) {
-      return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ ok: true, studentCount: count ?? 0 });
+    return NextResponse.json({
+      ok: true,
+      studentCount,
+      enrollmentCount,
+      classCount,
+      transactionCount,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to reach staging";
     return NextResponse.json({ ok: false, error: message }, { status: 500 });

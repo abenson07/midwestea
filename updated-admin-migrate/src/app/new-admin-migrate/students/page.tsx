@@ -1,5 +1,5 @@
-import { StudentsDemo } from "@/components/patterns/client-templates-migrate/students";
+import { StudentsMigrate } from "./StudentsMigrate";
 
 export default function StudentsRoute() {
-  return <StudentsDemo />;
+  return <StudentsMigrate />;
 }
