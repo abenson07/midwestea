@@ -61,67 +61,89 @@ export function ClassSettingsPage({ classDetail }: ClassSettingsPageProps) {
           <Card padding={4}>
             <VStack gap={4}>
               <SettingsRow
-                label="Class title"
-                description="Shown in the admin and on the website"
+                label="Registration Fee"
                 control={
                   <input
                     style={rowInputStyle}
-                    value={draft.title}
-                    onChange={(e) => patch({ title: e.target.value })}
+                    value={draft.registrationFee}
+                    onChange={(e) => patch({ registrationFee: e.target.value })}
                   />
                 }
               />
               <Divider />
               <SettingsRow
-                label="Instructor"
+                label="Tuition Fee"
                 control={
                   <input
                     style={rowInputStyle}
-                    value={draft.instructor}
-                    onChange={(e) => patch({ instructor: e.target.value })}
+                    value={draft.tuitionFee}
+                    onChange={(e) => patch({ tuitionFee: e.target.value })}
                   />
                 }
               />
               <Divider />
               <SettingsRow
-                label="Location"
+                label="Class Size"
                 control={
                   <input
                     style={rowInputStyle}
-                    value={draft.location}
-                    onChange={(e) => patch({ location: e.target.value })}
+                    value={draft.classSize}
+                    onChange={(e) => patch({ classSize: e.target.value })}
                   />
                 }
               />
               <Divider />
-              <VStack gap={1.5}>
-                <VStack gap={0.5}>
-                  <Text weight="medium" display="block">
-                    Description
-                  </Text>
-                  <Text size="sm" color="secondary" display="block">
-                    Public summary of the class
-                  </Text>
-                </VStack>
-                <textarea
-                  value={draft.description}
-                  onChange={(e) => patch({ description: e.target.value })}
-                  style={{
-                    boxSizing: "border-box",
-                    width: "100%",
-                    aspectRatio: "16 / 3",
-                    resize: "none",
-                    padding: 12,
-                    borderRadius: "var(--linear-radius-md)",
-                    border: "var(--linear-border-width) solid var(--linear-color-hairline)",
-                    background: "var(--linear-color-canvas)",
-                    color: "var(--linear-color-ink)",
-                    fontSize: 13,
-                    fontFamily: "inherit",
-                    lineHeight: 1.45,
-                  }}
-                />
-              </VStack>
+              <SettingsRow
+                label="Class Type"
+                control={
+                  <select
+                    style={{ ...rowInputStyle, textAlign: "left" }}
+                    value={draft.classFormat}
+                    aria-label="Class type"
+                    onChange={(e) =>
+                      patch({ classFormat: e.target.value as ClassDetail["classFormat"] })
+                    }
+                  >
+                    <option value="Online">Online</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="In-person">In-person</option>
+                  </select>
+                }
+              />
+              <Divider />
+              <SettingsRow
+                label="Prerequisites"
+                description={
+                  draft.prerequisites.length
+                    ? `${draft.prerequisites.length} required`
+                    : "None"
+                }
+                control={
+                  <input
+                    style={rowInputStyle}
+                    value={draft.prerequisites.join(", ")}
+                    onChange={(e) =>
+                      patch({
+                        prerequisites: e.target.value
+                          .split(",")
+                          .map((item) => item.trim())
+                          .filter(Boolean),
+                      })
+                    }
+                  />
+                }
+              />
+              <Divider />
+              <SettingsRow
+                label="Dates"
+                control={
+                  <input
+                    style={rowInputStyle}
+                    value={draft.date}
+                    onChange={(e) => patch({ date: e.target.value })}
+                  />
+                }
+              />
             </VStack>
           </Card>
         </VStack>

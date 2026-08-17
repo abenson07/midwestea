@@ -28,7 +28,7 @@ function ClassMetaItem({ icon, children }: { icon: ReactNode; children: ReactNod
   );
 }
 
-/** Top bounding box for the class detail page — mirrors `EventInfoBox`. */
+/** Class overview header — title, summary, and schedule, no card chrome. */
 export function ClassInfoBox({ classDetail, onEditDetails }: ClassInfoBoxProps) {
   return (
     <header
@@ -38,11 +38,6 @@ export function ClassInfoBox({ classDetail, onEditDetails }: ClassInfoBoxProps) 
         display: "flex",
         flexDirection: "column",
         gap: 16,
-        padding: 20,
-        background: "var(--linear-color-panel)",
-        border: "var(--linear-border-width) solid var(--linear-color-panel-border)",
-        borderRadius: "var(--linear-radius-md)",
-        boxShadow: "var(--linear-shadow-panel)",
       }}
     >
       <div

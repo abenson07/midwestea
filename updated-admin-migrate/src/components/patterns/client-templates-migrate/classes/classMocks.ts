@@ -23,6 +23,31 @@ export type ClassRosterRow = {
   status: "Enrolled" | "Waitlisted";
 };
 
+export type ClassDueInvoice = {
+  id: string;
+  student: string;
+  invoiceNumber: string;
+  amount: string;
+  dueDate: string;
+};
+
+export type ClassPrerequisiteSubmission = {
+  id: string;
+  student: string;
+  type: string;
+  issuedOn: string;
+  issuer: string;
+};
+
+export type ClassActivityKind = "enroll" | "publish" | "create" | "prereq" | "update";
+
+export type ClassActivityItem = {
+  id: string;
+  kind: ClassActivityKind;
+  text: string;
+  date: string;
+};
+
 export const CLASS_DETAILS: Record<string, ClassDetail> = {
   "open-class-a": {
     id: "open-class-a",
@@ -96,6 +121,157 @@ export function classDetailFor(classId: string): ClassDetail {
   );
 }
 
+export const CLASS_DUE_INVOICES: Record<string, ClassDueInvoice[]> = {
+  "open-class-a": [
+    {
+      id: "inv-a1",
+      student: "Priya Anand",
+      invoiceNumber: "INV-1042",
+      amount: "$450.00",
+      dueDate: "Sep 1, 2026",
+    },
+    {
+      id: "inv-a2",
+      student: "Lena Brandt",
+      invoiceNumber: "INV-1043",
+      amount: "$450.00",
+      dueDate: "Sep 1, 2026",
+    },
+    {
+      id: "inv-a3",
+      student: "Owen Castillo",
+      invoiceNumber: "INV-1044",
+      amount: "$450.00",
+      dueDate: "Sep 8, 2026",
+    },
+    {
+      id: "inv-a4",
+      student: "Sam Reyes",
+      invoiceNumber: "INV-1048",
+      amount: "$25.00",
+      dueDate: "Aug 20, 2026",
+    },
+  ],
+  "open-class-b": [
+    {
+      id: "inv-b1",
+      student: "Ines Novak",
+      invoiceNumber: "INV-1101",
+      amount: "$600.00",
+      dueDate: "Oct 1, 2026",
+    },
+    {
+      id: "inv-b2",
+      student: "Tariq Osei",
+      invoiceNumber: "INV-1102",
+      amount: "$25.00",
+      dueDate: "Sep 15, 2026",
+    },
+  ],
+};
+
+export const CLASS_PREREQUISITE_QUEUE: Record<string, ClassPrerequisiteSubmission[]> = {
+  "open-class-a": [
+    {
+      id: "prereq-a1",
+      student: "Priya Anand",
+      type: "CPR Certificate",
+      issuedOn: "Mar 12, 2026",
+      issuer: "American Heart Association",
+    },
+    {
+      id: "prereq-a2",
+      student: "Lena Brandt",
+      type: "High school graduation",
+      issuedOn: "Jun 4, 2022",
+      issuer: "Lincoln High School",
+    },
+    {
+      id: "prereq-a3",
+      student: "Owen Castillo",
+      type: "CPR Certificate",
+      issuedOn: "Jan 28, 2026",
+      issuer: "Red Cross",
+    },
+  ],
+  "open-class-b": [
+    {
+      id: "prereq-b1",
+      student: "Ines Novak",
+      type: "Current BLS Certification",
+      issuedOn: "Nov 2, 2025",
+      issuer: "American Heart Association",
+    },
+  ],
+};
+
 export function classRosterFor(classId: string): ClassRosterRow[] {
   return CLASS_ROSTERS[classId] ?? [];
+}
+
+export function classDueInvoicesFor(classId: string): ClassDueInvoice[] {
+  return CLASS_DUE_INVOICES[classId] ?? [];
+}
+
+export function classPrerequisiteQueueFor(classId: string): ClassPrerequisiteSubmission[] {
+  return CLASS_PREREQUISITE_QUEUE[classId] ?? [];
+}
+
+export const CLASS_ACTIVITY: Record<string, ClassActivityItem[]> = {
+  "open-class-a": [
+    {
+      id: "act-a1",
+      kind: "enroll",
+      text: "Priya Anand enrolled",
+      date: "Aug 14",
+    },
+    {
+      id: "act-a2",
+      kind: "enroll",
+      text: "Lena Brandt enrolled",
+      date: "Aug 12",
+    },
+    {
+      id: "act-a3",
+      kind: "publish",
+      text: "Dana Whitfield published the class",
+      date: "Aug 10",
+    },
+    {
+      id: "act-a4",
+      kind: "prereq",
+      text: "Owen Castillo submitted CPR Certificate",
+      date: "Aug 9",
+    },
+    {
+      id: "act-a5",
+      kind: "create",
+      text: "Dana Whitfield created the class",
+      date: "Aug 1",
+    },
+  ],
+  "open-class-b": [
+    {
+      id: "act-b1",
+      kind: "enroll",
+      text: "Ines Novak enrolled",
+      date: "Aug 15",
+    },
+    {
+      id: "act-b2",
+      kind: "update",
+      text: "Marcus Cole set type to Online",
+      date: "Aug 8",
+    },
+    {
+      id: "act-b3",
+      kind: "create",
+      text: "Marcus Cole created the class",
+      date: "Aug 1",
+    },
+  ],
+};
+
+export function classActivityFor(classId: string): ClassActivityItem[] {
+  return CLASS_ACTIVITY[classId] ?? [];
 }

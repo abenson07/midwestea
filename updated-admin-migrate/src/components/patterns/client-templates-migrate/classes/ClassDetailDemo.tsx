@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Mail } from "lucide-react";
 import type { SponsorshipWithParent } from "hooks";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
 import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
 import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
+import { Button } from "@/components/patterns/primitives/Button";
 import { OutlinedPanel } from "@/components/patterns/client-templates/shared";
 import {
   InvoicingSponsorshipsPage,
@@ -15,6 +17,7 @@ import {
 } from "@/components/patterns/client-templates-migrate/invoicing";
 import { ClassOverviewPage } from "./ClassOverviewPage";
 import { ClassSettingsPage } from "./ClassSettingsPage";
+import { ClassMessageAllModal } from "./ClassMessageAllModal";
 import { classDetailFor, classRosterFor } from "./classMocks";
 
 type ClassDetailView = "overview" | "students" | "settings";
@@ -41,6 +44,7 @@ export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
 
   const [view, setView] = useState<ClassDetailView>("overview");
   const [selected, setSelected] = useState<SponsorshipWithParent | null>(null);
+  const [messageOpen, setMessageOpen] = useState(false);
 
   function changeView(next: ClassDetailView) {
     setView(next);
@@ -89,6 +93,14 @@ export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
                       { label: "Classes", onClick: () => router.push("/admin-preview/classes") },
                       { label: classDetail.title, onClick: () => changeView("overview") },
                     ],
+              endContent: (
+                <Button
+                  label="Message all students"
+                  variant="secondary"
+                  icon={<Mail size={14} strokeWidth={1.75} />}
+                  onClick={() => setMessageOpen(true)}
+                />
+              ),
             }}
             controls={
               <ViewTabs aria-label="Class views">
@@ -114,6 +126,7 @@ export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
       >
         {body}
       </FoundationLayout>
+      <ClassMessageAllModal isOpen={messageOpen} onClose={() => setMessageOpen(false)} />
     </div>
   );
 }

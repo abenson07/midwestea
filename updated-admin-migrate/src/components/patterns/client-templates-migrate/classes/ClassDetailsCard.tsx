@@ -1,47 +1,48 @@
 "use client";
 
 import { Text } from "@/components/patterns/primitives/Text";
+import { ClassSidebarSection } from "./ClassSidebarSection";
 import type { ClassDetail } from "./classMocks";
 
 export type ClassDetailsCardProps = {
   classDetail: ClassDetail;
 };
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+function PropertyRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Text size="sm" color="secondary">
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        minHeight: 28,
+      }}
+    >
+      <Text size="sm" color="secondary" style={{ width: 108, flexShrink: 0 }}>
         {label}
       </Text>
-      <Text weight="medium">{value}</Text>
+      <Text size="sm" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+        {value}
+      </Text>
     </div>
   );
 }
 
-/** Left-rail properties list summarizing fees, size, format, prerequisites count, and schedule — no card chrome, mirrors Linear's issue "Properties" sidebar. */
+/** Properties card — field on the left, value on the right. */
 export function ClassDetailsCard({ classDetail }: ClassDetailsCardProps) {
   return (
-    <section
-      data-slot="class-details-card"
-      style={{
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}
-    >
-      <Text weight="semibold">Class Details</Text>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <DetailRow label="Registration Fee" value={classDetail.registrationFee} />
-        <DetailRow label="Tuition Fee" value={classDetail.tuitionFee} />
-        <DetailRow label="Class Size" value={classDetail.classSize} />
-        <DetailRow label="Class Type" value={classDetail.classFormat} />
-        <DetailRow
-          label="Prerequisites"
-          value={classDetail.prerequisites.length ? `${classDetail.prerequisites.length} required` : "None"}
+    <ClassSidebarSection title="Properties">
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        <PropertyRow
+          label="Status"
+          value={classDetail.publishStatus === "published" ? "Published" : "Draft"}
         />
-        <DetailRow label="Dates" value={classDetail.date} />
+        <PropertyRow label="Registration" value={classDetail.registrationFee} />
+        <PropertyRow label="Tuition" value={classDetail.tuitionFee} />
+        <PropertyRow label="Class size" value={classDetail.classSize} />
+        <PropertyRow label="Type" value={classDetail.classFormat} />
+        <PropertyRow label="Dates" value={classDetail.date} />
       </div>
-    </section>
+    </ClassSidebarSection>
   );
 }

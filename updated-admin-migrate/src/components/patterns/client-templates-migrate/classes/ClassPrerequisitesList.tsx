@@ -2,19 +2,16 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { Text } from "@/components/patterns/primitives/Text";
+import { ClassSidebarSection } from "./ClassSidebarSection";
 
 export type ClassPrerequisitesListProps = {
   items: string[];
 };
 
-/** Right-rail properties-style list of prerequisite items — no card chrome, mirrors `ClassDetailsCard`. */
+/** Required items as an activity-style list. */
 export function ClassPrerequisitesList({ items }: ClassPrerequisitesListProps) {
   return (
-    <section
-      data-slot="class-prerequisites-list"
-      style={{ display: "flex", flexDirection: "column", gap: 16 }}
-    >
-      <Text weight="semibold">Prerequisites</Text>
+    <ClassSidebarSection title="Prerequisites">
       {items.length ? (
         <ul
           style={{
@@ -27,13 +24,26 @@ export function ClassPrerequisitesList({ items }: ClassPrerequisitesListProps) {
           }}
         >
           {items.map((item) => (
-            <li key={item} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <li
+              key={item}
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+              }}
+            >
               <CheckCircle2
                 size={14}
                 strokeWidth={1.75}
-                style={{ color: "var(--linear-color-ink-subtle)", flexShrink: 0 }}
+                style={{
+                  color: "var(--linear-color-ink-subtle)",
+                  flexShrink: 0,
+                  marginTop: 2,
+                }}
               />
-              <Text size="sm">{item}</Text>
+              <Text size="sm" color="secondary">
+                {item}
+              </Text>
             </li>
           ))}
         </ul>
@@ -42,6 +52,6 @@ export function ClassPrerequisitesList({ items }: ClassPrerequisitesListProps) {
           No prerequisites yet.
         </Text>
       )}
-    </section>
+    </ClassSidebarSection>
   );
 }
