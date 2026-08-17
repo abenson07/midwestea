@@ -23,6 +23,23 @@ export type ClassRosterRow = {
   status: "Enrolled" | "Waitlisted";
 };
 
+export type ClassPaymentLineStatus = "Paid" | "Open" | "Overdue";
+
+export type ClassPaymentLine = {
+  amount: string;
+  status: ClassPaymentLineStatus;
+  dueDate: string;
+  paidDate?: string;
+  daysPastDue?: number;
+};
+
+export type ClassStudentPayment = {
+  studentId: string;
+  registration: ClassPaymentLine;
+  invoiceA: ClassPaymentLine;
+  invoiceB: ClassPaymentLine;
+};
+
 export type ClassDueInvoice = {
   id: string;
   student: string;
@@ -274,4 +291,48 @@ export const CLASS_ACTIVITY: Record<string, ClassActivityItem[]> = {
 
 export function classActivityFor(classId: string): ClassActivityItem[] {
   return CLASS_ACTIVITY[classId] ?? [];
+}
+
+/** Registration + two tuition-half invoices (Invoice A / Invoice B) per student. */
+export const CLASS_STUDENT_PAYMENTS: Record<string, ClassStudentPayment> = {
+  r1: {
+    studentId: "r1",
+    registration: { amount: "$25.00", status: "Paid", dueDate: "Aug 14, 2026", paidDate: "Aug 14, 2026" },
+    invoiceA: { amount: "$225.00", status: "Paid", dueDate: "Sep 8, 2026", paidDate: "Sep 2, 2026" },
+    invoiceB: { amount: "$225.00", status: "Paid", dueDate: "Sep 20, 2026", paidDate: "Sep 18, 2026" },
+  },
+  r2: {
+    studentId: "r2",
+    registration: { amount: "$25.00", status: "Paid", dueDate: "Aug 12, 2026", paidDate: "Aug 12, 2026" },
+    invoiceA: { amount: "$225.00", status: "Paid", dueDate: "Sep 8, 2026", paidDate: "Sep 6, 2026" },
+    invoiceB: { amount: "$225.00", status: "Open", dueDate: "Sep 20, 2026" },
+  },
+  r3: {
+    studentId: "r3",
+    registration: { amount: "$25.00", status: "Paid", dueDate: "Aug 9, 2026", paidDate: "Aug 10, 2026" },
+    invoiceA: { amount: "$225.00", status: "Overdue", dueDate: "Aug 1, 2026", daysPastDue: 15 },
+    invoiceB: { amount: "$225.00", status: "Open", dueDate: "Sep 20, 2026" },
+  },
+  r5: {
+    studentId: "r5",
+    registration: { amount: "$25.00", status: "Open", dueDate: "Aug 20, 2026" },
+    invoiceA: { amount: "$225.00", status: "Open", dueDate: "Sep 8, 2026" },
+    invoiceB: { amount: "$225.00", status: "Open", dueDate: "Sep 20, 2026" },
+  },
+  r7: {
+    studentId: "r7",
+    registration: { amount: "$25.00", status: "Paid", dueDate: "Aug 15, 2026", paidDate: "Aug 15, 2026" },
+    invoiceA: { amount: "$300.00", status: "Paid", dueDate: "Oct 13, 2026", paidDate: "Oct 10, 2026" },
+    invoiceB: { amount: "$300.00", status: "Open", dueDate: "Oct 25, 2026" },
+  },
+  r8: {
+    studentId: "r8",
+    registration: { amount: "$25.00", status: "Open", dueDate: "Sep 15, 2026" },
+    invoiceA: { amount: "$300.00", status: "Open", dueDate: "Oct 13, 2026" },
+    invoiceB: { amount: "$300.00", status: "Open", dueDate: "Oct 25, 2026" },
+  },
+};
+
+export function classStudentPaymentFor(studentId: string): ClassStudentPayment | null {
+  return CLASS_STUDENT_PAYMENTS[studentId] ?? null;
 }

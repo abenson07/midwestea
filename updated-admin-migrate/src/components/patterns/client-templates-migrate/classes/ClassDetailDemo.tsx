@@ -1,96 +1,72 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Mail } from "lucide-react";
-import type { SponsorshipWithParent } from "hooks";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
 import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
 import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
 import { Button } from "@/components/patterns/primitives/Button";
-import { OutlinedPanel } from "@/components/patterns/client-templates/shared";
-import {
-  InvoicingSponsorshipsPage,
-  SponsorshipDetailPanel,
-} from "@/components/patterns/client-templates-migrate/invoicing";
+import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
 import { ClassOverviewPage } from "./ClassOverviewPage";
 import { ClassSettingsPage } from "./ClassSettingsPage";
 import { ClassMessageAllModal } from "./ClassMessageAllModal";
 import { classDetailFor, classRosterFor } from "./classMocks";
 
-type ClassDetailView = "overview" | "students" | "settings";
-
-const VIEW_LABELS: Record<Exclude<ClassDetailView, "overview">, string> = {
-  students: "Students",
-  settings: "Settings",
-};
+type ClassDetailView = "overview" | "settings";
 
 export type ClassDetailDemoProps = {
   classId: string;
 };
 
+function viewFromPath(pathname: string, classRoot: string): ClassDetailView {
+  if (pathname === `${classRoot}/settings` || pathname.startsWith(`${classRoot}/settings/`)) {
+    return "settings";
+  }
+  return "overview";
+}
+
+function hrefForView(classRoot: string, view: ClassDetailView): string {
+  return view === "overview" ? classRoot : `${classRoot}/${view}`;
+}
+
 /**
- * Class detail — Overview / Students / Settings, mirroring EventDetailDemo's
- * shell. Students embeds the same Sponsorships table as the standalone
- * Students page (unfiltered for now — will scope to this class later),
- * not the standalone page's full toolbar/tabs chrome.
+ * Class detail — overview by default. Edit on class details opens Settings;
+ * Settings uses the controls strip for “Back to Class”.
  */
 export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const basePath = useAdminBasePath();
+  const classRoot = `${basePath}/${classId}`;
   const classDetail = classDetailFor(classId);
   const roster = classRosterFor(classId);
 
-  const [view, setView] = useState<ClassDetailView>("overview");
-  const [selected, setSelected] = useState<SponsorshipWithParent | null>(null);
+  const view = viewFromPath(pathname ?? "", classRoot);
   const [messageOpen, setMessageOpen] = useState(false);
 
   function changeView(next: ClassDetailView) {
-    setView(next);
-    setSelected(null);
+    router.push(hrefForView(classRoot, next));
   }
 
-  const topbarTitle = view === "overview" ? classDetail.title : VIEW_LABELS[view];
-
-  const body =
-    view === "students" ? (
-      <div style={{ height: "100%", minHeight: 0 }}>
-        <InvoicingSponsorshipsPage
-          search=""
-          statusFilter={[]}
-          parentTypeFilter={[]}
-          onSelectSponsorship={setSelected}
-        />
-      </div>
-    ) : view === "settings" ? (
-      <ClassSettingsPage classDetail={classDetail} />
-    ) : (
-      <ClassOverviewPage classDetail={classDetail} roster={roster} />
-    );
+  const topbarTitle = view === "overview" ? classDetail.title : "Settings";
 
   return (
     <div style={{ height: "100%" }}>
       <FoundationLayout
         navigation={<LinearSidebar />}
         contentMaxWidth={view === "overview" ? 1200 : undefined}
-        isSideContentVisible={selected != null}
-        sideContent={
-          selected ? (
-            <OutlinedPanel onClose={() => setSelected(null)}>
-              <SponsorshipDetailPanel sponsorship={selected} />
-            </OutlinedPanel>
-          ) : null
-        }
         header={
           <CanvasHeader
             topbar={{
               title: topbarTitle,
               breadcrumbs:
                 view === "overview"
-                  ? [{ label: "Classes", onClick: () => router.push("/admin-preview/classes") }]
+                  ? [{ label: "Classes", onClick: () => router.push(`${basePath}/classes`) }]
                   : [
-                      { label: "Classes", onClick: () => router.push("/admin-preview/classes") },
+                      { label: "Classes", onClick: () => router.push(`${basePath}/classes`) },
                       { label: classDetail.title, onClick: () => changeView("overview") },
                     ],
               endContent: (
@@ -102,29 +78,28 @@ export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
                 />
               ),
             }}
+            isControlsVisible={view === "settings"}
             controls={
-              <ViewTabs aria-label="Class views">
-                <ViewTab
-                  label="Overview"
-                  selected={view === "overview"}
-                  onClick={() => changeView("overview")}
-                />
-                <ViewTab
-                  label="Students"
-                  selected={view === "students"}
-                  onClick={() => changeView("students")}
-                />
-                <ViewTab
-                  label="Settings"
-                  selected={view === "settings"}
-                  onClick={() => changeView("settings")}
-                />
-              </ViewTabs>
+              view === "settings" ? (
+                <ViewTabs aria-label="Class settings">
+                  <ViewTab label="Back to Class" onClick={() => changeView("overview")} />
+                </ViewTabs>
+              ) : undefined
             }
           />
         }
       >
-        {body}
+        {view === "settings" ? (
+          <ClassSettingsPage classDetail={classDetail} />
+        ) : (
+          <div style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
+            <ClassOverviewPage
+              classDetail={classDetail}
+              roster={roster}
+              onEditDetails={() => changeView("settings")}
+            />
+          </div>
+        )}
       </FoundationLayout>
       <ClassMessageAllModal isOpen={messageOpen} onClose={() => setMessageOpen(false)} />
     </div>

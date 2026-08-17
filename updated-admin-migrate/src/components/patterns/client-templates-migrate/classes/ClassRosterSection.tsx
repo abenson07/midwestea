@@ -25,44 +25,75 @@ const ROLE_OPTIONS = [
   { value: "Instructor", label: "Instructor" },
 ];
 
-const columns: TableColumn<ClassRosterRow>[] = [
-  {
-    key: "name",
-    header: "Name",
-    width: proportional(1, { minWidth: 160 }),
-    renderCell: (row) => (
-      <RowClickCell>
-        <Avatar name={row.name} size="sm" />
-        <span style={{ marginInlineStart: 8 }}>{row.name}</span>
-      </RowClickCell>
-    ),
-  },
-  {
-    key: "email",
-    header: "Email",
-    width: pixel(200),
-    renderCell: (row) => (
-      <RowClickCell>
-        <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.email}</span>
-      </RowClickCell>
-    ),
-  },
-  {
-    key: "role",
-    header: "Role",
-    width: pixel(140),
-    renderCell: (row) => <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.role}</span>,
-  },
-];
+function buildColumns(
+  onSelectStudent?: (id: string) => void,
+  selectedStudentId?: string | null,
+): TableColumn<ClassRosterRow>[] {
+  function selectIfStudent(row: ClassRosterRow) {
+    return row.role === "Student" ? () => onSelectStudent?.(row.id) : undefined;
+  }
+
+  return [
+    {
+      key: "name",
+      header: "Name",
+      width: proportional(1, { minWidth: 160 }),
+      renderCell: (row) => (
+        <RowClickCell onClick={selectIfStudent(row)}>
+          <Avatar name={row.name} size="sm" />
+          <span
+            style={{
+              marginInlineStart: 8,
+              fontWeight: row.id === selectedStudentId ? 600 : undefined,
+            }}
+          >
+            {row.name}
+          </span>
+        </RowClickCell>
+      ),
+    },
+    {
+      key: "email",
+      header: "Email",
+      width: pixel(200),
+      renderCell: (row) => (
+        <RowClickCell onClick={selectIfStudent(row)}>
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.email}</span>
+        </RowClickCell>
+      ),
+    },
+    {
+      key: "role",
+      header: "Role",
+      width: pixel(140),
+      renderCell: (row) => (
+        <RowClickCell onClick={selectIfStudent(row)}>
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.role}</span>
+        </RowClickCell>
+      ),
+    },
+  ];
+}
 
 export type ClassRosterSectionProps = {
   rows: ClassRosterRow[];
+  selectedStudentId?: string | null;
+  onSelectStudent?: (id: string) => void;
 };
 
-export function ClassRosterSection({ rows }: ClassRosterSectionProps) {
+export function ClassRosterSection({
+  rows,
+  selectedStudentId,
+  onSelectStudent,
+}: ClassRosterSectionProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
+
+  const columns = useMemo(
+    () => buildColumns(onSelectStudent, selectedStudentId),
+    [onSelectStudent, selectedStudentId],
+  );
 
   const filteredRows = useMemo(() => {
     const query = search.trim().toLowerCase();
