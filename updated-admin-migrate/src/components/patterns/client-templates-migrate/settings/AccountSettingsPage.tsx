@@ -374,7 +374,7 @@ export function AccountSettingsPage() {
                     <Divider />
                     <SettingsRow
                       label="Preview features in development"
-                      description="Show committees, inbox, and action items in your view. These aren't finished — only your browser is affected."
+                      description="Show committees, inbox, and overview in your view. These aren't finished — only your browser is affected."
                       control={
                         <Switch
                           label="Preview features in development"

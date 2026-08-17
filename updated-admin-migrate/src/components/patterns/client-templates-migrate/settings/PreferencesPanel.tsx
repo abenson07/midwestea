@@ -1,29 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Card } from "@/components/patterns/primitives/Card";
 import { Heading, Text } from "@/components/patterns/primitives/Text";
-import { Switch } from "@/components/patterns/primitives/Switch";
 import { VStack } from "@/components/patterns/primitives/Stack";
+import { useThemeMode, type ThemeMode } from "@/components/patterns/foundation/ThemeContext";
+import {
+  HOME_VIEW_OPTIONS,
+  isHomeViewId,
+  readHomeView,
+  writeHomeView,
+  type HomeViewId,
+} from "@/lib/preferences/homeView";
 import { SettingsRow } from "./SettingsRow";
 
+const selectStyle: CSSProperties = {
+  boxSizing: "border-box",
+  width: 220,
+  height: 30,
+  paddingInline: 8,
+  borderRadius: 6,
+  border: "var(--linear-border-width) solid var(--linear-color-hairline)",
+  background: "var(--linear-color-canvas)",
+  color: "var(--linear-color-ink)",
+  fontSize: 13,
+  fontFamily: "inherit",
+};
+
 function Divider() {
-  return (
-    <div
-      style={{ height: 1, background: "var(--color-border)", marginInline: -16 }}
-    />
-  );
+  return <div style={{ height: 1, background: "var(--color-border)", marginInline: -16 }} />;
 }
 
 /**
- * Preferences settings panel — General + Interface and theme sections,
- * matching the reference screenshot. The one fully-built panel for this
- * pass; every other nav item renders `SettingsPlaceholderPanel`.
+ * Preferences — theme and default home view.
  */
 export function PreferencesPanel() {
-  const [convertEmoticons, setConvertEmoticons] = useState(true);
-  const [pointerCursors, setPointerCursors] = useState(false);
-  const [underlineLinks, setUnderlineLinks] = useState(false);
+  const { mode, setMode } = useThemeMode();
+  const [homeView, setHomeView] = useState<HomeViewId>(() =>
+    typeof window === "undefined" ? "overview" : readHomeView(),
+  );
+
+  function handleHomeViewChange(next: HomeViewId) {
+    setHomeView(next);
+    writeHomeView(next);
+  }
 
   return (
     <VStack gap={6}>
@@ -37,92 +57,37 @@ export function PreferencesPanel() {
           <VStack gap={4}>
             <SettingsRow
               label="Default home view"
-              description="Select which view to display when launching Linear"
-              control={<Text color="secondary">Linear Agent (default)</Text>}
-            />
-            <Divider />
-            <SettingsRow
-              label="Display names"
-              description="Select how names are displayed in the Linear interface"
-              control={<Text color="secondary">Username</Text>}
-            />
-            <Divider />
-            <SettingsRow
-              label="First day of the week"
-              description="Used for date pickers"
-              control={<Text color="secondary">Sunday</Text>}
-            />
-            <Divider />
-            <SettingsRow
-              label="Convert text emoticons into emojis"
-              description="Strings like :) will be converted to 🙂"
+              description="Select which view to display when launching the admin"
               control={
-                <Switch
-                  label="Convert text emoticons into emojis"
-                  isLabelHidden
-                  value={convertEmoticons}
-                  onChange={setConvertEmoticons}
-                />
-              }
-            />
-            <Divider />
-            <SettingsRow
-              label="Send comments on..."
-              description="Choose which key press is used to submit comments"
-              control={<Text color="secondary">⌘+Enter</Text>}
-            />
-          </VStack>
-        </Card>
-      </VStack>
-
-      <VStack gap={3}>
-        <Text type="label" color="secondary">
-          Interface and theme
-        </Text>
-        <Card padding={4}>
-          <VStack gap={4}>
-            <SettingsRow
-              label="App sidebar"
-              description="Customize sidebar item visibility, ordering, and badge style"
-              control={<Text color="secondary">Customize</Text>}
-            />
-            <Divider />
-            <SettingsRow
-              label="Font size"
-              description="Adjust the size of text across the app"
-              control={<Text color="secondary">Default</Text>}
-            />
-            <Divider />
-            <SettingsRow
-              label="Use pointer cursors"
-              description="Change the cursor to a pointer when hovering over any interactive elements"
-              control={
-                <Switch
-                  label="Use pointer cursors"
-                  isLabelHidden
-                  value={pointerCursors}
-                  onChange={setPointerCursors}
-                />
-              }
-            />
-            <Divider />
-            <SettingsRow
-              label="Underline links"
-              description="Always underline links in text content"
-              control={
-                <Switch
-                  label="Underline links"
-                  isLabelHidden
-                  value={underlineLinks}
-                  onChange={setUnderlineLinks}
-                />
+                <select
+                  style={selectStyle}
+                  value={homeView}
+                  onChange={(event) => {
+                    if (isHomeViewId(event.target.value)) handleHomeViewChange(event.target.value);
+                  }}
+                >
+                  {HOME_VIEW_OPTIONS.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               }
             />
             <Divider />
             <SettingsRow
               label="Interface theme"
-              description="Select or customize your interface color scheme"
-              control={<Text color="secondary">Classic Dark</Text>}
+              description="Select your interface color scheme"
+              control={
+                <select
+                  style={selectStyle}
+                  value={mode}
+                  onChange={(event) => setMode(event.target.value as ThemeMode)}
+                >
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              }
             />
           </VStack>
         </Card>

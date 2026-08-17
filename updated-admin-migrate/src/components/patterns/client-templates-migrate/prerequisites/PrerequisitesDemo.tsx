@@ -1,225 +1,219 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
-import { ClipboardCheck, Plus, X } from "lucide-react";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { Card } from "@/components/patterns/primitives/Card";
-import { Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
+import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
+import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
+import { RowClickCell } from "@/components/patterns/client-templates/shared";
 import { Button } from "@/components/patterns/primitives/Button";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
+import { formatCalendarDate } from "@/lib/dates";
+import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { ArchivePrerequisiteModal } from "./ArchivePrerequisiteModal";
+import { PrerequisiteFormModal, type PrerequisiteFormValues } from "./PrerequisiteFormModal";
+import { INITIAL_PREREQUISITES } from "./prerequisiteData";
+import {
+  expirationLabel,
+  inputTypeLabel,
+  type PrerequisiteRow,
+} from "./types";
 
-type FileType = "pdf" | "image" | "document" | "any";
+function buildColumns(options: {
+  onEdit: (row: PrerequisiteRow) => void;
+  onArchive: (row: PrerequisiteRow) => void;
+  onRestore: (row: PrerequisiteRow) => void;
+}): TableColumn<PrerequisiteRow>[] {
+  const { onEdit, onArchive, onRestore } = options;
 
-type PrerequisiteRow = {
-  id: string;
-  name: string;
-  description: string;
-  fileType: FileType;
-};
-
-const FILE_TYPE_OPTIONS: { value: FileType; label: string }[] = [
-  { value: "pdf", label: "PDF" },
-  { value: "image", label: "Image" },
-  { value: "document", label: "Document" },
-  { value: "any", label: "Any file" },
-];
-
-const FILE_TYPE_LABEL: Record<FileType, string> = Object.fromEntries(
-  FILE_TYPE_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<FileType, string>;
-
-const INITIAL_ROWS: PrerequisiteRow[] = [
-  {
-    id: "cpr-bls",
-    name: "CPR / BLS Certification",
-    description: "Current Basic Life Support card required before class start.",
-    fileType: "pdf",
-  },
-  {
-    id: "diploma",
-    name: "High School Diploma or GED",
-    description: "Proof of completion required at enrollment.",
-    fileType: "document",
-  },
-  {
-    id: "background-check",
-    name: "Background Check Clearance",
-    description: "State and federal background check, cleared within the last year.",
-    fileType: "pdf",
-  },
-  {
-    id: "immunizations",
-    name: "Immunization Records",
-    description: "Up-to-date immunization records, including Hepatitis B and TB screening.",
-    fileType: "image",
-  },
-];
-
-const fieldStyle: CSSProperties = {
-  boxSizing: "border-box",
-  width: "100%",
-  padding: "6px 8px",
-  borderRadius: 6,
-  border: "var(--linear-border-width) solid var(--linear-color-hairline)",
-  background: "var(--linear-color-canvas)",
-  color: "var(--linear-color-ink)",
-  fontSize: 13,
-  fontFamily: "inherit",
-};
-
-const selectStyle: CSSProperties = {
-  ...fieldStyle,
-  width: 140,
-  textAlign: "left",
-};
+  return [
+    {
+      key: "name",
+      header: "Name",
+      width: proportional(1.4, { minWidth: 180 }),
+      renderCell: (row) => (
+        <RowClickCell onClick={row.archived ? undefined : () => onEdit(row)}>
+          <span style={{ color: "var(--linear-color-ink)" }}>{row.name}</span>
+        </RowClickCell>
+      ),
+    },
+    {
+      key: "inputType",
+      header: "Input type",
+      width: pixel(130),
+      renderCell: (row) => (
+        <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+          {inputTypeLabel(row.inputType)}
+        </span>
+      ),
+    },
+    {
+      key: "required",
+      header: "Required",
+      width: pixel(100),
+      renderCell: (row) => (
+        <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+          {row.requiredByDefault ? "Yes" : "No"}
+        </span>
+      ),
+    },
+    {
+      key: "expiration",
+      header: "Expiration",
+      width: pixel(180),
+      renderCell: (row) => (
+        <span style={{ color: "var(--linear-color-ink-subtle)" }}>{expirationLabel(row)}</span>
+      ),
+    },
+    {
+      key: "created",
+      header: "Created",
+      width: pixel(120),
+      renderCell: (row) => (
+        <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+          {formatCalendarDate(row.createdOn)}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      width: pixel(148),
+      renderCell: (row) => (
+        <div
+          style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {row.archived ? (
+            <Button label="Restore" variant="ghost" size="sm" onClick={() => onRestore(row)} />
+          ) : (
+            <>
+              <Button label="Edit" variant="ghost" size="sm" onClick={() => onEdit(row)} />
+              <Button label="Archive" variant="ghost" size="sm" onClick={() => onArchive(row)} />
+            </>
+          )}
+        </div>
+      ),
+    },
+  ];
+}
 
 /**
- * Copied structurally from Committee Settings' "Volunteer asks" card group —
- * placeholder rows (name / description / file type) until Prerequisites gets
- * a real catalog behind it.
+ * Global prerequisite catalog — one inset table grouped Active / Archived.
  */
 export function PrerequisitesDemo() {
-  const [rows, setRows] = useState<PrerequisiteRow[]>(INITIAL_ROWS);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [rows, setRows] = useState<PrerequisiteRow[]>(INITIAL_PREREQUISITES);
+  const [search, setSearch] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<PrerequisiteRow | null>(null);
+  const [archiving, setArchiving] = useState<PrerequisiteRow | null>(null);
 
-  function patchRow(id: string, patch: Partial<PrerequisiteRow>) {
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  const filtered = useMemo(() => {
+    if (!search) return rows;
+    const q = search.toLowerCase();
+    return rows.filter((row) => row.name.toLowerCase().includes(q));
+  }, [rows, search]);
+
+  function openCreate() {
+    setEditing(null);
+    setFormOpen(true);
   }
 
-  function addRow() {
-    const row: PrerequisiteRow = {
+  function openEdit(row: PrerequisiteRow) {
+    setEditing(row);
+    setFormOpen(true);
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditing(null);
+  }
+
+  function handleSubmit(values: PrerequisiteFormValues) {
+    if (editing) {
+      setRows((prev) =>
+        prev.map((row) => (row.id === editing.id ? { ...row, ...values } : row)),
+      );
+      toast.success(`${values.name} saved — demo mode, saved locally only`);
+      return;
+    }
+
+    const created: PrerequisiteRow = {
+      ...values,
       id: `prereq-${Date.now()}`,
-      name: "New prerequisite",
-      description: "",
-      fileType: "any",
+      createdOn: new Date().toISOString().slice(0, 10),
+      archived: false,
     };
-    setRows((prev) => [...prev, row]);
-    setEditingId(row.id);
+    setRows((prev) => [created, ...prev]);
+    toast.success(`${created.name} added — demo mode, saved locally only`);
   }
 
-  function removeRow(id: string) {
-    setRows((prev) => prev.filter((row) => row.id !== id));
-    setEditingId((current) => (current === id ? null : current));
+  function confirmArchive() {
+    if (!archiving) return;
+    const name = archiving.name;
+    setRows((prev) =>
+      prev.map((row) => (row.id === archiving.id ? { ...row, archived: true } : row)),
+    );
+    setArchiving(null);
+    toast.success(`${name} archived — it stays on classes that already use it`);
   }
+
+  function restore(row: PrerequisiteRow) {
+    setRows((prev) =>
+      prev.map((item) => (item.id === row.id ? { ...item, archived: false } : item)),
+    );
+    toast.success(`${row.name} restored to Active`);
+  }
+
+  const columns = useMemo(
+    () =>
+      buildColumns({
+        onEdit: openEdit,
+        onArchive: setArchiving,
+        onRestore: restore,
+      }),
+    [],
+  );
 
   return (
-    <div style={{ height: "100%" }}>
-      <FoundationLayout
-        navigation={<LinearSidebar />}
-        header={
-          <CanvasHeader
-            topbar={{ title: "Prerequisites", icon: <ClipboardCheck size={16} strokeWidth={1.75} /> }}
+    <>
+      <SettingsInsetList
+        title="Prerequisites"
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search prerequisites…"
+        action={
+          <Button
+            label="Add prerequisite"
+            variant="primary"
+            icon={<Plus size={14} strokeWidth={1.75} />}
+            onClick={openCreate}
           />
         }
+        isEmpty={filtered.length === 0}
+        emptyLabel="No prerequisites yet. Add one to get started."
       >
-        <div style={{ maxWidth: 760, marginInline: "auto", padding: "48px 24px 64px" }}>
-          <VStack gap={3}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Text type="label" color="secondary">
-                Prerequisites
-              </Text>
-              <IconButton
-                label="Add prerequisite"
-                variant="ghost"
-                size="sm"
-                icon={<Plus size={14} strokeWidth={2} />}
-                onClick={addRow}
-              />
-            </div>
+        <GroupedTable
+          data={filtered}
+          columns={columns}
+          getRowKey={(row) => row.id}
+          groupBy={(row) => (row.archived ? "Archived" : "Active")}
+          groupOrder={["Active", "Archived"]}
+          listChrome={false}
+        />
+      </SettingsInsetList>
 
-            {rows.length === 0 ? (
-              <Text size="sm" color="secondary">
-                No prerequisites yet.
-              </Text>
-            ) : (
-              rows.map((row) => {
-                const editing = editingId === row.id;
-                return (
-                  <Card key={row.id} padding={4}>
-                    {editing ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <input
-                          style={{ ...fieldStyle, fontWeight: 510 }}
-                          value={row.name}
-                          onChange={(e) => patchRow(row.id, { name: e.target.value })}
-                          placeholder="Name"
-                        />
-                        <textarea
-                          style={{ ...fieldStyle, resize: "vertical", minHeight: 56 }}
-                          value={row.description}
-                          onChange={(e) => patchRow(row.id, { description: e.target.value })}
-                          placeholder="Description"
-                          rows={2}
-                        />
-                        <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                          <Text size="sm" color="secondary">
-                            File type
-                          </Text>
-                          <select
-                            style={selectStyle}
-                            value={row.fileType}
-                            onChange={(e) => patchRow(row.id, { fileType: e.target.value as FileType })}
-                          >
-                            {FILE_TYPE_OPTIONS.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                          <Button
-                            label="Done"
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setEditingId(null)}
-                          />
-                          <IconButton
-                            label="Remove prerequisite"
-                            variant="ghost"
-                            size="sm"
-                            icon={<X size={14} strokeWidth={1.75} />}
-                            onClick={() => removeRow(row.id)}
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(row.id)}
-                        style={{
-                          all: "unset",
-                          boxSizing: "border-box",
-                          display: "flex",
-                          gap: 16,
-                          width: "100%",
-                          cursor: "pointer",
-                          alignItems: "flex-start",
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <Text weight="semibold" display="block">
-                            {row.name || "Untitled prerequisite"}
-                          </Text>
-                          <Text size="sm" color="secondary" display="block" style={{ marginTop: 4 }}>
-                            {row.description || "No description"}
-                          </Text>
-                        </div>
-                        <Text weight="medium" style={{ flexShrink: 0 }}>
-                          {FILE_TYPE_LABEL[row.fileType]}
-                        </Text>
-                      </button>
-                    )}
-                  </Card>
-                );
-              })
-            )}
-          </VStack>
-        </div>
-      </FoundationLayout>
-    </div>
+      <PrerequisiteFormModal
+        isOpen={formOpen}
+        editing={editing}
+        onClose={closeForm}
+        onSubmit={handleSubmit}
+      />
+      <ArchivePrerequisiteModal
+        isOpen={archiving != null}
+        name={archiving?.name ?? ""}
+        onCancel={() => setArchiving(null)}
+        onConfirm={confirmArchive}
+      />
+    </>
   );
 }

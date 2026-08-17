@@ -1,23 +1,41 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { linearTokenVars } from "@/theme/linearTokens";
+import { THEME_STORAGE_KEY } from "@/theme/themeInit";
 
 export type ThemeMode = "light" | "dark";
 
 type ThemeContextValue = {
   mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
   toggle: () => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const STORAGE_KEY = "admin-preview-theme-mode";
-
 function readStoredMode(defaultMode: ThemeMode): ThemeMode {
   if (typeof window === "undefined") return defaultMode;
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
   return stored === "light" || stored === "dark" ? stored : defaultMode;
+}
+
+function writeStoredMode(mode: ThemeMode) {
+  window.localStorage.setItem(THEME_STORAGE_KEY, mode);
+}
+
+function applyDomMode(mode: ThemeMode) {
+  document.documentElement.style.colorScheme = mode;
+  document.documentElement.dataset.theme = mode;
 }
 
 export type ThemeProviderProps = {
@@ -27,27 +45,46 @@ export type ThemeProviderProps = {
 
 /** Applies `color-scheme` so the kit's `light-dark()` tokens follow it. */
 export function ThemeProvider({ children, defaultMode = "dark" }: ThemeProviderProps) {
-  const [mode, setMode] = useState<ThemeMode>(defaultMode);
+  const [mode, setModeState] = useState<ThemeMode>(defaultMode);
+  const [hydrated, setHydrated] = useState(false);
 
-  useEffect(() => {
-    setMode(readStoredMode(defaultMode));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setMode = useCallback((next: ThemeMode) => {
+    writeStoredMode(next);
+    applyDomMode(next);
+    setModeState(next);
+  }, []);
+
+  const toggle = useCallback(() => {
+    setModeState((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      writeStoredMode(next);
+      applyDomMode(next);
+      return next;
+    });
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, mode);
-  }, [mode]);
+    const next = readStoredMode(defaultMode);
+    setModeState(next);
+    applyDomMode(next);
+    setHydrated(true);
+  }, [defaultMode]);
 
-  const toggle = () => setMode((current) => (current === "dark" ? "light" : "dark"));
+  const value = useMemo(
+    () => ({ mode: hydrated ? mode : defaultMode, setMode, toggle }),
+    [hydrated, mode, defaultMode, setMode, toggle],
+  );
 
   return (
-    <ThemeContext.Provider value={{ mode, toggle }}>
+    <ThemeContext.Provider value={value}>
       <div
         style={
           {
             ...linearTokenVars,
             height: "100%",
-            colorScheme: mode,
+            // Inherit the blocking-script value on first paint so SSR's
+            // default "dark" does not flash over a stored light mode.
+            colorScheme: hydrated ? mode : "inherit",
           } as CSSProperties
         }
       >

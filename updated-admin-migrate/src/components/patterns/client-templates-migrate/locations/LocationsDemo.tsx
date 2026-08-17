@@ -1,92 +1,58 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MapPin } from "lucide-react";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
+import { Plus } from "lucide-react";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
 import { RowClickCell } from "@/components/patterns/client-templates/shared";
-import { Text } from "@/components/patterns/primitives/Text";
+import { Button } from "@/components/patterns/primitives/Button";
+import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { LocationDetailPanel } from "./LocationDetailPanel";
+import { AddLocationModal } from "./AddLocationModal";
+import { INITIAL_LOCATION_ROWS, hasMapsUrl, locationFieldDisplay } from "./locationData";
+import type { LocationRow } from "./types";
 
-type LocationStatus = "active" | "inactive";
+/** 12-column table. Table takes all 12 until a row is selected, then it shifts to 9 + 3. */
+const LOCATIONS_GRID = { columns: 12, left: 9, right: 3, gap: 24 } as const;
 
-type LocationRow = {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  capacity: number;
-  status: LocationStatus;
-};
+const mapsLinkStyle = {
+  color: "var(--linear-color-accent)",
+  fontSize: 13,
+  fontWeight: 500,
+  textDecoration: "none",
+} as const;
 
-const LOCATION_ROWS: LocationRow[] = [
-  { id: "loc-1", name: "Main Campus", address: "123 Main St", city: "Springfield", capacity: 40, status: "active" },
-  { id: "loc-2", name: "Downtown Annex", address: "45 Oak Ave", city: "Springfield", capacity: 24, status: "active" },
-  {
-    id: "loc-3",
-    name: "Westside Training Center",
-    address: "900 Industrial Pkwy",
-    city: "Springfield",
-    capacity: 60,
-    status: "active",
-  },
-  { id: "loc-4", name: "Mobile Unit", address: "—", city: "—", capacity: 12, status: "inactive" },
-];
-
-const STATUS_OPTIONS = [
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-];
-
-const STATUS_COLOR: Record<LocationStatus, string> = {
-  active: "#27a644",
-  inactive: "#8a8f98",
-};
-
-function StatusPill({ status }: { status: LocationStatus }) {
-  const color = STATUS_COLOR[status];
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        height: 22,
-        paddingInline: 8,
-        borderRadius: 999,
-        background: `${color}1A`,
-        color,
-        fontSize: 12,
-        fontWeight: 500,
-        textTransform: "capitalize",
-      }}
-    >
-      {status}
-    </span>
-  );
-}
-
-function buildColumns(): TableColumn<LocationRow>[] {
+function buildColumns(
+  selectedId: string | null,
+  onSelect: (id: string) => void,
+): TableColumn<LocationRow>[] {
   return [
     {
       key: "name",
       header: "Name",
-      width: proportional(1, { minWidth: 180 }),
+      width: proportional(1, { minWidth: 160 }),
       renderCell: (row) => (
-        <RowClickCell>
-          <span style={{ color: "var(--linear-color-ink)" }}>{row.name}</span>
+        <RowClickCell onClick={() => onSelect(row.id)}>
+          <span
+            style={{
+              color: "var(--linear-color-ink)",
+              fontWeight: row.id === selectedId ? 600 : undefined,
+            }}
+          >
+            {row.name}
+          </span>
         </RowClickCell>
       ),
     },
     {
-      key: "address",
-      header: "Address",
-      width: proportional(1, { minWidth: 200 }),
+      key: "street",
+      header: "Street",
+      width: proportional(1, { minWidth: 180 }),
       renderCell: (row) => (
-        <RowClickCell>
-          <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.address}</span>
+        <RowClickCell onClick={() => onSelect(row.id)}>
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+            {locationFieldDisplay(row.street)}
+          </span>
         </RowClickCell>
       ),
     },
@@ -95,90 +61,148 @@ function buildColumns(): TableColumn<LocationRow>[] {
       header: "City",
       width: pixel(140),
       renderCell: (row) => (
-        <RowClickCell>
-          <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.city}</span>
+        <RowClickCell onClick={() => onSelect(row.id)}>
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+            {locationFieldDisplay(row.city)}
+          </span>
         </RowClickCell>
       ),
     },
     {
-      key: "capacity",
-      header: "Capacity",
+      key: "state",
+      header: "State",
+      width: pixel(80),
+      renderCell: (row) => (
+        <RowClickCell onClick={() => onSelect(row.id)}>
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+            {locationFieldDisplay(row.state)}
+          </span>
+        </RowClickCell>
+      ),
+    },
+    {
+      key: "zip",
+      header: "Zip",
+      width: pixel(90),
+      renderCell: (row) => (
+        <RowClickCell onClick={() => onSelect(row.id)}>
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>
+            {locationFieldDisplay(row.zip)}
+          </span>
+        </RowClickCell>
+      ),
+    },
+    {
+      key: "mapsUrl",
+      header: "Maps URL",
       width: pixel(100),
-      renderCell: (row) => (
-        <RowClickCell>
-          <span style={{ color: "var(--linear-color-ink)" }}>{row.capacity}</span>
-        </RowClickCell>
-      ),
-    },
-    {
-      key: "status",
-      header: "Status",
-      width: pixel(120),
-      renderCell: (row) => (
-        <RowClickCell>
-          <StatusPill status={row.status} />
-        </RowClickCell>
-      ),
+      renderCell: (row) =>
+        hasMapsUrl(row.mapsUrl) ? (
+          <a
+            href={row.mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(event) => event.stopPropagation()}
+            style={mapsLinkStyle}
+          >
+            Link
+          </a>
+        ) : (
+          <span style={{ color: "var(--linear-color-ink-subtle)" }}>—</span>
+        ),
     },
   ];
 }
 
-/**
- * Copied structurally from Staff's Invoices table (no view tabs) — placeholder
- * rows until Locations gets a real data source.
- */
 export function LocationsDemo() {
+  const [rows, setRows] = useState<LocationRow[]>(INITIAL_LOCATION_ROWS);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const columns = useMemo(() => buildColumns(), []);
 
-  const filtered = useMemo(
-    () =>
-      LOCATION_ROWS.filter((row) => {
-        if (statusFilter.length && !statusFilter.includes(row.status)) return false;
-        if (search) {
-          const q = search.toLowerCase();
-          if (!row.name.toLowerCase().includes(q) && !row.city.toLowerCase().includes(q)) return false;
-        }
-        return true;
-      }),
-    [search, statusFilter],
-  );
+  const selected = rows.find((row) => row.id === selectedId) ?? null;
+  const columns = useMemo(() => buildColumns(selectedId, setSelectedId), [selectedId]);
+  const filtered = useMemo(() => {
+    if (!search) return rows;
+    const q = search.toLowerCase();
+    return rows.filter(
+      (row) =>
+        row.name.toLowerCase().includes(q) ||
+        row.city.toLowerCase().includes(q) ||
+        row.street.toLowerCase().includes(q),
+    );
+  }, [rows, search]);
+
+  function saveLocation(next: LocationRow) {
+    setRows((prev) => prev.map((row) => (row.id === next.id ? next : row)));
+  }
+
+  function createLocation(data: Omit<LocationRow, "id">) {
+    const created: LocationRow = { ...data, id: `loc-${Date.now()}` };
+    setRows((prev) => [created, ...prev]);
+    setSelectedId(created.id);
+  }
 
   return (
-    <div style={{ height: "100%" }}>
-      <FoundationLayout
-        navigation={<LinearSidebar />}
-        header={
-          <CanvasHeader
-            topbar={{ title: "Locations", icon: <MapPin size={16} strokeWidth={1.75} /> }}
-            controls={
-              <ListToolbar
-                searchValue={search}
-                onSearchChange={setSearch}
-                searchPlaceholder="Search locations…"
-                filterGroups={[
-                  {
-                    label: "Status",
-                    options: STATUS_OPTIONS,
-                    selected: statusFilter,
-                    onChange: setStatusFilter,
-                  },
-                ]}
-              />
-            }
+    <>
+      <SettingsInsetList
+        title="Locations"
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search locations…"
+        action={
+          <Button
+            label="Add location"
+            variant="primary"
+            icon={<Plus size={14} strokeWidth={1.75} />}
+            onClick={() => setIsCreateOpen(true)}
           />
         }
+        isEmpty={filtered.length === 0}
+        emptyLabel="No locations yet. Add one to get started."
       >
-        <div style={{ height: "100%", minHeight: 0, boxSizing: "border-box", padding: "0 8px" }}>
-          <GroupedTable data={filtered} columns={columns} getRowKey={(row) => row.id} listChrome />
-          {filtered.length === 0 ? (
-            <div style={{ padding: 24 }}>
-              <Text color="secondary">No locations match the current filters.</Text>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: selected
+              ? `repeat(${LOCATIONS_GRID.left}, minmax(0, 1fr)) minmax(280px, 1fr)`
+              : `repeat(${LOCATIONS_GRID.columns}, minmax(0, 1fr))`,
+            gap: selected ? LOCATIONS_GRID.gap : 0,
+            alignItems: "start",
+          }}
+        >
+          <div
+            style={{
+              gridColumn: `span ${selected ? LOCATIONS_GRID.left : LOCATIONS_GRID.columns}`,
+              minWidth: 0,
+            }}
+          >
+            <GroupedTable
+              data={filtered}
+              columns={columns}
+              getRowKey={(row) => row.id}
+              isRowSelected={(row) => row.id === selectedId}
+              listChrome={false}
+            />
+          </div>
+          {selected ? (
+            <div style={{ gridColumn: `span ${LOCATIONS_GRID.right}`, minWidth: 0 }}>
+              <LocationDetailPanel
+                key={selected.id}
+                location={selected}
+                onSave={saveLocation}
+                onClose={() => setSelectedId(null)}
+              />
             </div>
           ) : null}
         </div>
-      </FoundationLayout>
-    </div>
+      </SettingsInsetList>
+
+      <AddLocationModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreate={createLocation}
+      />
+    </>
   );
 }

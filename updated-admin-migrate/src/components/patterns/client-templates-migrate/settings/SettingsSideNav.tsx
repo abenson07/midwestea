@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, Search } from "lucide-react";
 import {
   MenuItem,
   SidebarHeader,
@@ -8,7 +8,8 @@ import {
   SidebarSection,
 } from "@/components/patterns/foundation/sidebar";
 import "@/components/patterns/foundation/sidebar/sidebar.css";
-import { settingsNavSections } from "@/data/mocks/settings-nav";
+import { settingsNavSections, settingsTechnicalNavSection } from "@/data/mocks/settings-nav";
+import { catalogTemplatesOfKind } from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
 
 export type SettingsSideNavProps = {
   selectedNavId: string;
@@ -17,15 +18,16 @@ export type SettingsSideNavProps = {
 };
 
 /**
- * Settings sidebar — same Foundation sidebar primitives as `LinearSidebar`
- * (MenuItem/SidebarSection), so it matches pixel-for-pixel instead of
- * drifting the way Astryx's default-styled `SideNav` did.
+ * Settings sidebar — same Foundation sidebar primitives as `LinearSidebar`.
  */
 export function SettingsSideNav({
   selectedNavId,
   onNavSelect,
   onBack,
 }: SettingsSideNavProps) {
+  const programs = catalogTemplatesOfKind("Program");
+  const courses = catalogTemplatesOfKind("Course");
+
   return (
     <div
       style={{
@@ -86,6 +88,51 @@ export function SettingsSideNav({
             })}
           </SidebarSection>
         ))}
+
+        <SidebarSection title="Program Templates">
+          {programs.map((template) => (
+            <MenuItem
+              key={template.id}
+              label={template.name}
+              icon={<GraduationCap size={16} strokeWidth={1.75} />}
+              selected={selectedNavId === `programs/${template.id}`}
+              onClick={() => onNavSelect(`programs/${template.id}`)}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="Course Templates">
+          {courses.map((template) => (
+            <MenuItem
+              key={template.id}
+              label={template.name}
+              icon={<BookOpen size={16} strokeWidth={1.75} />}
+              selected={selectedNavId === `courses/${template.id}`}
+              onClick={() => onNavSelect(`courses/${template.id}`)}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title={settingsTechnicalNavSection.title}>
+          {settingsTechnicalNavSection.items.map((item) => {
+            const ItemIcon = item.icon;
+            return (
+              <MenuItem
+                key={item.id}
+                label={item.label}
+                icon={
+                  ItemIcon ? (
+                    <ItemIcon size={16} strokeWidth={1.75} />
+                  ) : (
+                    <span />
+                  )
+                }
+                selected={selectedNavId === item.id}
+                onClick={() => onNavSelect(item.id)}
+              />
+            );
+          })}
+        </SidebarSection>
       </SidebarScrollArea>
     </div>
   );

@@ -6,37 +6,27 @@ import { toast } from "sonner";
 import {
   Box,
   BookOpen,
-  Building2,
   Bug,
   CalendarDays,
-  ClipboardCheck,
-  CreditCard,
-  FileStack,
   FileText,
   GraduationCap,
   HelpCircle,
   Inbox,
   LayoutDashboard,
   LayoutGrid,
-  ListChecks,
   Mail,
-  MapPin,
   Megaphone,
   FlaskConical,
   Moon,
   MoreHorizontal,
   Plus,
-  QrCode,
   Search,
   Settings,
   Star,
   Stethoscope,
   Sun,
   Trash2,
-  UserCog,
   UserRound,
-  Users,
-  Users2,
   Wallet,
 } from "lucide-react";
 import {
@@ -93,80 +83,12 @@ const group1Items: DemoItem[] = [
     wip: true,
   },
   {
-    id: "action-items",
-    label: "Action Items",
-    icon: <ListChecks size={16} strokeWidth={1.75} />,
-    path: "/action-items",
-    wip: true,
-  },
-  {
     id: "inbox",
     label: "Inbox",
     icon: <Inbox size={16} strokeWidth={1.75} />,
     path: "/inbox",
     wip: true,
   },
-];
-
-const classItems: DemoItem[] = [
-  {
-    id: "open-class-a",
-    label: "Open Class A",
-    icon: <Box size={16} strokeWidth={1.75} />,
-    path: "/open-class-a",
-    wip: true,
-  },
-  {
-    id: "open-class-b",
-    label: "Open Class B",
-    icon: <Box size={16} strokeWidth={1.75} />,
-    path: "/open-class-b",
-    wip: true,
-  },
-];
-
-const classTypeItems: DemoItem[] = [
-  {
-    id: "bls",
-    label: "BLS",
-    icon: <Stethoscope size={16} strokeWidth={1.75} />,
-    path: "/bls",
-    wip: true,
-  },
-  {
-    id: "acls",
-    label: "ACLS",
-    icon: <Stethoscope size={16} strokeWidth={1.75} />,
-    path: "/acls",
-    wip: true,
-  },
-  {
-    id: "ped",
-    label: "PED",
-    icon: <Stethoscope size={16} strokeWidth={1.75} />,
-    path: "/ped",
-    wip: true,
-  },
-  {
-    id: "oxy",
-    label: "OXY",
-    icon: <Stethoscope size={16} strokeWidth={1.75} />,
-    path: "/oxy",
-    wip: true,
-  },
-];
-
-const allClassesItems: DemoItem[] = [
-  {
-    id: "all-classes",
-    label: "All Classes",
-    icon: <LayoutGrid size={16} strokeWidth={1.75} />,
-    path: "/classes",
-    wip: true,
-  },
-];
-
-const group3Items: DemoItem[] = [
   {
     id: "students",
     label: "Students",
@@ -176,14 +98,10 @@ const group3Items: DemoItem[] = [
   },
   {
     id: "payments",
-    label: "Payments",
+    label: "Transactions",
     icon: <Wallet size={16} strokeWidth={1.75} />,
-    path: "/payments",
-    wip: true,
+    path: "/transactions",
   },
-];
-
-const group3MoreItems: DemoItem[] = [
   {
     id: "programs",
     label: "Programs",
@@ -198,84 +116,140 @@ const group3MoreItems: DemoItem[] = [
     path: "/courses",
     wip: true,
   },
+];
+
+const classItems: DemoItem[] = [
   {
-    id: "locations",
-    label: "Locations",
-    icon: <MapPin size={16} strokeWidth={1.75} />,
-    path: "/locations",
+    id: "open-class-a",
+    label: "PARA-004",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/open-class-a",
     wip: true,
   },
   {
-    id: "staff",
-    label: "Staff",
-    icon: <UserCog size={16} strokeWidth={1.75} />,
-    path: "/staff",
+    id: "open-class-b",
+    label: "EMT-003",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/open-class-b",
     wip: true,
   },
   {
-    id: "prerequisites",
-    label: "Prerequisites",
-    icon: <ClipboardCheck size={16} strokeWidth={1.75} />,
-    path: "/prerequisites",
+    id: "emt-002",
+    label: "EMT-002",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/class/emt-002",
+    wip: true,
+  },
+  {
+    id: "aemt-001",
+    label: "AEMT-001",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/class/aemt-001",
+    wip: true,
+  },
+  {
+    id: "atcc-001",
+    label: "ATCC-001",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/class/atcc-001",
+    wip: true,
+  },
+  {
+    id: "para-002",
+    label: "PARA-002",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/class/para-002",
+    wip: true,
+  },
+  {
+    id: "para-003",
+    label: "PARA-003",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/class/para-003",
     wip: true,
   },
 ];
 
-const group2Items: DemoItem[] = [
+const classTypeItems: DemoItem[] = [
   {
-    id: "events",
-    label: "Events",
-    icon: <CalendarDays size={16} strokeWidth={1.75} />,
-    path: "/events",
-  },
-  {
-    id: "committees",
-    label: "Committees",
-    icon: <Users2 size={16} strokeWidth={1.75} />,
-    path: "/committees",
+    id: "acls",
+    label: "ACLS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/acls",
     wip: true,
   },
   {
-    id: "leaflets",
-    label: "Leaflets",
-    icon: <FileText size={16} strokeWidth={1.75} />,
-    path: "/leaflets",
+    id: "avert",
+    label: "AVERT",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/class/avert",
+    wip: true,
   },
   {
-    id: "invoices",
-    label: "Invoicing",
-    icon: <CreditCard size={16} strokeWidth={1.75} />,
-    path: "/invoices",
+    id: "bls",
+    label: "BLS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/bls",
+    wip: true,
+  },
+  {
+    id: "cabs",
+    label: "CABS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/class/cabs",
+    wip: true,
+  },
+  {
+    id: "cpr",
+    label: "CPR",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/class/cpr",
+    wip: true,
+  },
+  {
+    id: "epi",
+    label: "EPI",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/class/epi",
+    wip: true,
+  },
+  {
+    id: "oxy",
+    label: "OXY",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/oxy",
+    wip: true,
+  },
+  {
+    id: "ped",
+    label: "PALS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/ped",
+    wip: true,
+  },
+  {
+    id: "path",
+    label: "PATH",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/class/path",
+    wip: true,
+  },
+  {
+    id: "peds",
+    label: "PEDS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/class/peds",
+    wip: true,
   },
 ];
 
-const moreItems: DemoItem[] = [
+const allClassesItems: DemoItem[] = [
   {
-    id: "qr-codes",
-    label: "QR Codes",
-    icon: <QrCode size={16} strokeWidth={1.75} />,
-    path: "/qr-codes",
-  },
-];
-
-const databaseItems: DemoItem[] = [
-  {
-    id: "people",
-    label: "People",
-    icon: <Users size={16} strokeWidth={1.75} />,
-    path: "/people",
-  },
-  {
-    id: "businesses",
-    label: "Businesses",
-    icon: <Building2 size={16} strokeWidth={1.75} />,
-    path: "/businesses",
-  },
-  {
-    id: "content",
-    label: "Content",
-    icon: <FileStack size={16} strokeWidth={1.75} />,
-    path: "/content",
+    id: "all-classes",
+    label: "All Classes",
+    icon: <LayoutGrid size={16} strokeWidth={1.75} />,
+    path: "/classes",
+    wip: true,
   },
 ];
 
@@ -475,26 +449,17 @@ function LinearSidebarBase({
   const displayName = currentPerson?.full_name || "Kyle Brower";
   const initials = initialsFromName(displayName);
   // admin-preview is a frozen pattern library, not shipped as-is — only /admin
-  // needs its WIP items (committees/inbox/action-items) hidden until opted in.
+  // needs its WIP items (committees/inbox/overview) hidden until opted in.
   const showWipItems = !isMigrate || wipFeaturesEnabled;
   const visibleGroup1Items = showWipItems
     ? group1Items
     : group1Items.filter((item) => !item.wip);
-  const visibleGroup2Items = showWipItems
-    ? group2Items
-    : group2Items.filter((item) => !item.wip);
   const visibleClassItems = showWipItems
     ? classItems
     : classItems.filter((item) => !item.wip);
   const visibleClassTypeItems = showWipItems
     ? classTypeItems
     : classTypeItems.filter((item) => !item.wip);
-  const visibleGroup3Items = showWipItems
-    ? group3Items
-    : group3Items.filter((item) => !item.wip);
-  const visibleGroup3MoreItems = showWipItems
-    ? group3MoreItems
-    : group3MoreItems.filter((item) => !item.wip);
   const visibleAllClassesItems = showWipItems
     ? allClassesItems
     : allClassesItems.filter((item) => !item.wip);
@@ -521,26 +486,19 @@ function LinearSidebarBase({
   const activeHref = useMemo(() => {
     const allHrefs = [
       ...visibleGroup1Items.map((item) => hrefFor(item.path)),
-      ...visibleGroup2Items.map((item) => hrefFor(item.path)),
       ...visibleClassItems.map((item) => hrefFor(item.path)),
       ...visibleClassTypeItems.map((item) => hrefFor(item.path)),
       ...visibleAllClassesItems.map((item) => hrefFor(item.path)),
-      ...visibleGroup3Items.map((item) => hrefFor(item.path)),
-      ...visibleGroup3MoreItems.map((item) => hrefFor(item.path)),
-      ...databaseItems.map((item) => hrefFor(item.path)),
       ...favorites.map((favorite) => favorite.route),
     ];
     return getBestMatchingHref(currentRoute, allHrefs);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hrefFor/basePath change together; visible*/databaseItems are stable module-level data
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hrefFor/basePath change together; visible* items are stable module-level data
   }, [
     currentRoute,
     visibleGroup1Items,
-    visibleGroup2Items,
     visibleClassItems,
     visibleClassTypeItems,
     visibleAllClassesItems,
-    visibleGroup3Items,
-    visibleGroup3MoreItems,
     favorites,
     basePath,
   ]);
@@ -549,31 +507,15 @@ function LinearSidebarBase({
     return hrefFor(path) === activeHref;
   }
 
-  // Not part of the primary nav's activeHref matching (they live behind "More"),
-  // so match directly off the current path instead.
-  function isMorePathSelected(path: string): boolean {
-    return currentRoute.startsWith(hrefFor(path));
-  }
-
-  // "More" is just a drawer to reach these — it never shows as active itself.
-  // Whichever item is currently open gets promoted into the main nav list
-  // (next to Invoicing) for as long as the user stays on that route; it drops
-  // back into the "More" drawer as soon as they navigate elsewhere.
-  const activeMoreItem = moreItems.find((item) => isMorePathSelected(item.path));
-
-  // Top-level nav label for the active route (e.g. "Businesses") — the desktop /admin
+  // Top-level nav label for the active route (e.g. "Students") — the desktop /admin
   // pages don't render an <h1>, so this is the most reliable "what section is the user in"
   // signal available to the bug-report modal.
   const activeSectionLabel = useMemo(() => {
     const allItems = [
       ...visibleGroup1Items,
-      ...visibleGroup2Items,
       ...visibleClassItems,
       ...visibleClassTypeItems,
       ...visibleAllClassesItems,
-      ...visibleGroup3Items,
-      ...visibleGroup3MoreItems,
-      ...databaseItems,
     ];
     const match = allItems.find((item) => hrefFor(item.path) === activeHref);
     if (match) return match.label;
@@ -583,12 +525,9 @@ function LinearSidebarBase({
   }, [
     activeHref,
     visibleGroup1Items,
-    visibleGroup2Items,
     visibleClassItems,
     visibleClassTypeItems,
     visibleAllClassesItems,
-    visibleGroup3Items,
-    visibleGroup3MoreItems,
     favorites,
     basePath,
   ]);
@@ -738,40 +677,6 @@ function LinearSidebarBase({
           ) : null}
         </SidebarSection>
 
-        <SidebarSection title="Manage">
-          {visibleGroup3Items.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
-            />
-          ))}
-          {visibleGroup3MoreItems.length > 0 ? (
-            <Dropdown
-              label="More"
-              trigger={
-                <MenuItem
-                  label="More"
-                  icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
-                  selected={visibleGroup3MoreItems.some((item) => isSelected(item.path))}
-                />
-              }
-            >
-              {visibleGroup3MoreItems.map((item) => (
-                <DropdownItem
-                  key={item.id}
-                  label={item.label}
-                  icon={item.icon}
-                  selected={isSelected(item.path)}
-                  onSelect={() => router.push(hrefFor(item.path))}
-                />
-              ))}
-            </Dropdown>
-          ) : null}
-        </SidebarSection>
-
         {favorites.length > 0 ? (
           <SidebarSection title="Favorites">
             {favorites.map((favorite) => (
@@ -795,55 +700,6 @@ function LinearSidebarBase({
             ))}
           </SidebarSection>
         ) : null}
-
-        <SidebarSection title="Templates">
-          {visibleGroup2Items.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
-            />
-          ))}
-          {activeMoreItem ? (
-            <MenuItem
-              key={activeMoreItem.id}
-              label={activeMoreItem.label}
-              icon={activeMoreItem.icon}
-              selected
-              onClick={() => router.push(hrefFor(activeMoreItem.path))}
-            />
-          ) : null}
-          <Dropdown
-            label="More"
-            trigger={
-              <MenuItem
-                label="More"
-                icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
-              />
-            }
-          >
-            {moreItems.map((item) => (
-              <DropdownItem
-                key={item.id}
-                label={item.label}
-                icon={item.icon}
-                selected={item.id === activeMoreItem?.id}
-                onSelect={() => router.push(hrefFor(item.path))}
-              />
-            ))}
-          </Dropdown>
-          {databaseItems.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
-            />
-          ))}
-        </SidebarSection>
       </SidebarScrollArea>
 
       {isMigrate && demoEnabled ? (

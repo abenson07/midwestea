@@ -1,5 +1,5 @@
-import { PrerequisitesDemo } from "@/components/patterns/client-templates-migrate/prerequisites";
+import { redirect } from "next/navigation";
 
-export default function PrerequisitesRoute() {
-  return <PrerequisitesDemo />;
+export default function PrerequisitesRedirect() {
+  redirect("/admin-preview/settings/prerequisites");
 }

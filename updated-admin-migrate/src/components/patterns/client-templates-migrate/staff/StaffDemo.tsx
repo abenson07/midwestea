@@ -1,132 +1,115 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { useStripeInvoices } from "hooks";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { ViewTab } from "@/components/patterns/foundation/ViewTab";
-import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
 import { Button } from "@/components/patterns/primitives/Button";
-import { OutlinedPanel } from "@/components/patterns/client-templates/shared";
-import type { StripeInvoiceTableRow } from "@/components/billing/InvoicesListTable";
-import {
-  InvoicingInvoicesPage,
-  InvoiceDetailPanel,
-  CreateInvoiceModal,
-} from "@/components/patterns/client-templates-migrate/invoicing";
+import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { AddStaffPersonModal } from "./AddStaffPersonModal";
+import { addStaffPerson, getStaffRows, updateStaffPerson } from "./staffData";
+import { StaffDetailPanel } from "./StaffDetailPanel";
+import { StaffTable } from "./StaffTable";
+import { addStaffLabel, matchesStaffView, type StaffRow, type StaffView } from "./types";
 
-type StaffView = "all" | "trainers" | "admin";
+const STAFF_GRID = { columns: 12, left: 11, right: 1, gap: 24 } as const;
 
-const STATUS_OPTIONS = [
-  { value: "paid", label: "Paid" },
-  { value: "unpaid", label: "Unpaid" },
-  { value: "past_due", label: "Past due" },
-];
+function matchesSearch(row: StaffRow, search: string): boolean {
+  if (!search) return true;
+  const q = search.toLowerCase();
+  return row.name.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+}
 
-const CATEGORY_OPTIONS = [
-  { value: "event", label: "Event" },
-  { value: "leaflet", label: "Leaflet" },
-];
+export type StaffDemoProps = {
+  view: StaffView;
+};
 
 /**
- * Copied as-is from Invoicing's Invoices tab — placeholder body for Staff
- * until it gets real staff data. All/Trainers/Admin tabs render the same
- * table for now; per-tab filtering comes later.
+ * Staff roster for Trainers or Admins — rendered inside the settings shell.
  */
-export function StaffDemo() {
-  const { refetch } = useStripeInvoices();
-  const [view, setView] = useState<StaffView>("all");
+export function StaffDemo({ view }: StaffDemoProps) {
+  const [rows, setRows] = useState<StaffRow[]>(() => getStaffRows());
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
-  const [selected, setSelected] = useState<StripeInvoiceTableRow | null>(null);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isAddOpen, setIsAddOpen] = useState(false);
+
+  const selected = rows.find((row) => row.id === selectedId) ?? null;
+  const title = view === "trainers" ? "Trainers" : "Admins";
+
+  const filtered = useMemo(
+    () => rows.filter((row) => matchesStaffView(row, view) && matchesSearch(row, search)),
+    [rows, view, search],
+  );
+
+  function handleAdd(input: Parameters<typeof addStaffPerson>[0]) {
+    const created = addStaffPerson(input);
+    setRows(getStaffRows());
+    setSelectedId(created.id);
+  }
+
+  function savePerson(next: StaffRow) {
+    updateStaffPerson(next);
+    setRows(getStaffRows());
+  }
+
+  const emptyLabel =
+    view === "trainers"
+      ? "No trainers match the current search."
+      : "No admins match the current search.";
 
   return (
-    <div style={{ height: "100%" }}>
-      <FoundationLayout
-        navigation={<LinearSidebar />}
-        isSideContentVisible={selected != null}
-        sideContent={
-          selected ? (
-            <OutlinedPanel onClose={() => setSelected(null)}>
-              <InvoiceDetailPanel invoice={selected} />
-            </OutlinedPanel>
-          ) : null
-        }
-        header={
-          <CanvasHeader
-            topbar={{
-              title: "Staff",
-              endContent: (
-                <Button
-                  label="New Invoice"
-                  variant="secondary"
-                  icon={<Plus size={14} strokeWidth={1.75} />}
-                  onClick={() => setIsCreateOpen(true)}
-                />
-              ),
-            }}
-            controls={
-              <ViewTabs
-                aria-label="Staff views"
-                endContent={
-                  <ListToolbar
-                    searchValue={search}
-                    onSearchChange={setSearch}
-                    searchPlaceholder="Search invoices…"
-                    filterGroups={[
-                      {
-                        label: "Status",
-                        options: STATUS_OPTIONS,
-                        selected: statusFilter,
-                        onChange: setStatusFilter,
-                      },
-                      {
-                        label: "Category",
-                        options: CATEGORY_OPTIONS,
-                        selected: categoryFilter,
-                        onChange: setCategoryFilter,
-                      },
-                    ]}
-                  />
-                }
-              >
-                <ViewTab label="All" selected={view === "all"} onClick={() => setView("all")} />
-                <ViewTab
-                  label="Trainers"
-                  selected={view === "trainers"}
-                  onClick={() => setView("trainers")}
-                />
-                <ViewTab
-                  label="Admin"
-                  selected={view === "admin"}
-                  onClick={() => setView("admin")}
-                />
-              </ViewTabs>
-            }
+    <>
+      <SettingsInsetList
+        title={title}
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by name or email"
+        action={
+          <Button
+            label={addStaffLabel(view)}
+            variant="primary"
+            icon={<Plus size={14} strokeWidth={1.75} />}
+            onClick={() => setIsAddOpen(true)}
           />
         }
+        isEmpty={filtered.length === 0}
+        emptyLabel={emptyLabel}
       >
-        <InvoicingInvoicesPage
-          search={search}
-          statusFilter={statusFilter}
-          categoryFilter={categoryFilter}
-          onSelectInvoice={setSelected}
-        />
-      </FoundationLayout>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: selected
+              ? `repeat(${STAFF_GRID.left}, minmax(0, 1fr)) minmax(280px, 1fr)`
+              : `repeat(${STAFF_GRID.columns}, minmax(0, 1fr))`,
+            gap: selected ? STAFF_GRID.gap : 0,
+            alignItems: "start",
+          }}
+        >
+          <div
+            style={{
+              gridColumn: `span ${selected ? STAFF_GRID.left : STAFF_GRID.columns}`,
+              minWidth: 0,
+            }}
+          >
+            <StaffTable data={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+          </div>
+          {selected ? (
+            <div style={{ gridColumn: `span ${STAFF_GRID.right}`, minWidth: 0 }}>
+              <StaffDetailPanel
+                key={selected.id}
+                person={selected}
+                onSave={savePerson}
+                onClose={() => setSelectedId(null)}
+              />
+            </div>
+          ) : null}
+        </div>
+      </SettingsInsetList>
 
-      <CreateInvoiceModal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        onCreated={async () => {
-          setIsCreateOpen(false);
-          await refetch();
-        }}
+      <AddStaffPersonModal
+        isOpen={isAddOpen}
+        view={view}
+        onClose={() => setIsAddOpen(false)}
+        onAdd={handleAdd}
       />
-    </div>
+    </>
   );
 }

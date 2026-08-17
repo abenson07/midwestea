@@ -1,5 +1,5 @@
-import { LocationsDemo } from "@/components/patterns/client-templates-migrate/locations";
+import { redirect } from "next/navigation";
 
-export default function LocationsRoute() {
-  return <LocationsDemo />;
+export default function LocationsRedirect() {
+  redirect("/admin-preview/settings/locations");
 }
