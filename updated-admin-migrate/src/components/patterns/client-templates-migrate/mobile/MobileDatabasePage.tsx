@@ -137,7 +137,7 @@ export function MobileDatabasePage() {
                     : "var(--linear-border-width) solid var(--linear-color-hairline)",
                   background: selected ? "var(--linear-color-accent)" : "transparent",
                   color: selected
-                    ? "var(--linear-color-accent-ink, #fff)"
+                    ? "var(--linear-color-accent-ink)"
                     : "var(--linear-color-ink-subtle)",
                   fontSize: 13,
                   fontWeight: 500,

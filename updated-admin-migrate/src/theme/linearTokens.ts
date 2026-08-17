@@ -85,10 +85,10 @@ export const linearTokens = {
       light: "lch(0 0 0 / 0.08)",
       dark: "lch(22 2.5 272.695)",
     },
-    accent: "#38c768",
-    accentHover: "#52ff8b",
-    accentFocus: "#38c264",
-    onAccent: "#ffffff",
+    accent: "#ffb452",
+    accentHover: "#f2a141",
+    accentFocus: "#f2a141",
+    onAccent: "#191920",
     success: "#27a644",
     /** Sidebar nav item — idle label/icon */
     sidebarItemIdle: {
@@ -228,6 +228,9 @@ export const linearTokenVars = {
     linearTokens.color.panelBorder.dark,
   ),
   "--linear-color-accent": linearTokens.color.accent,
+  "--linear-color-accent-hover": linearTokens.color.accentHover,
+  "--linear-color-on-accent": linearTokens.color.onAccent,
+  "--linear-color-accent-ink": linearTokens.color.onAccent,
   "--linear-color-sidebar-item-idle": lightDark(
     linearTokens.color.sidebarItemIdle.light,
     linearTokens.color.sidebarItemIdle.dark,

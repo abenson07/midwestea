@@ -1,6 +1,5 @@
-import { Wallet } from "lucide-react";
-import { BlankPlaceholder } from "@/components/patterns/client-templates-migrate/shared";
+import { redirect } from "next/navigation";
 
-export default function PaymentsRoute() {
-  return <BlankPlaceholder title="Payments" icon={<Wallet size={16} strokeWidth={1.75} />} />;
+export default function PaymentsRedirect() {
+  redirect("/admin-preview/transactions");
 }

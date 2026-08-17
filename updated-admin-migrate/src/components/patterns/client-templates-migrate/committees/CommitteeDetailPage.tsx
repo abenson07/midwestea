@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import type { CSSProperties } from "react";
-import { useRouter } from "next/navigation";
 import { ClipboardList, Plus, Users2 } from "lucide-react";
 import { ClassContentPage } from "@/components/patterns/client-templates/shared";
 import { ContentListRow } from "@/components/patterns/client-templates-migrate/content/ContentListRow";
@@ -80,7 +79,6 @@ export function CommitteeDetailPage({
   onSelectMember,
   onSelectMeeting,
 }: CommitteeDetailPageProps) {
-  const router = useRouter();
   const { enabled: demoMode } = useDemoModeOptional();
   const { enabled: demo, guard, sendDemoEmail } = useDemoGuard();
   const [selectedInterest, setSelectedInterest] = useState<CommitteeInterests | null>(null);
@@ -200,7 +198,9 @@ export function CommitteeDetailPage({
               ]
                 .filter(Boolean)
                 .join(" · ")}
-              onClick={() => router.push("/admin-preview/action-items")}
+              onClick={() => {
+                if (item.committee_meeting_id) onSelectMeeting?.(item.committee_meeting_id);
+              }}
             />
           ))}
         </div>

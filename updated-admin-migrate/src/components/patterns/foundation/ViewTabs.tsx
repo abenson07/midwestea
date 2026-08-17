@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 
 export type ViewTabsProps = {
-  children: ReactNode;
+  children?: ReactNode;
   /** Trailing slot (e.g. filter icon) — pinned to the end of the row. */
   endContent?: ReactNode;
   "aria-label"?: string;
@@ -11,6 +11,7 @@ export type ViewTabsProps = {
 
 /**
  * Horizontal row of Linear view tabs (Active / Planned / …).
+ * `endContent` stays right-aligned even when there are no tabs.
  */
 export function ViewTabs({
   children,
@@ -22,26 +23,29 @@ export function ViewTabs({
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: endContent ? "space-between" : "flex-start",
+        justifyContent:
+          children != null && endContent ? "space-between" : endContent ? "flex-end" : "flex-start",
         gap: 8,
         width: "100%",
         minHeight: 44,
         boxSizing: "border-box",
       }}
     >
-      <div
-        role="tablist"
-        aria-label={ariaLabel}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          minWidth: 0,
-          flexWrap: "wrap",
-        }}
-      >
-        {children}
-      </div>
+      {children != null ? (
+        <div
+          role="tablist"
+          aria-label={ariaLabel}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            minWidth: 0,
+            flexWrap: "wrap",
+          }}
+        >
+          {children}
+        </div>
+      ) : null}
       {endContent ? (
         <div
           style={{

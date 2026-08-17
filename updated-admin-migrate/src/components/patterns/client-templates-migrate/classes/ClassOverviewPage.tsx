@@ -9,14 +9,19 @@ import { ClassActivityCard } from "./ClassActivityCard";
 import { ClassDueInvoicesSection } from "./ClassDueInvoicesSection";
 import { ClassRosterSection } from "./ClassRosterSection";
 import { ClassStudentPaymentsCard } from "./ClassStudentPaymentsCard";
+import { ClassRevenueCard } from "./ClassRevenueCard";
+import { catalogKindForClass } from "../catalog/catalogMocks";
+import { isClassClosed } from "./classTableColumns";
 import {
-  classActivityFor,
   classDueInvoicesFor,
   classPrerequisiteQueueFor,
-  classStudentPaymentFor,
+  classRevenueFor,
+  type ClassActivityItem,
   type ClassDetail,
   type ClassRosterRow,
+  type StudentToRemove,
 } from "./classMocks";
+import { useTransactions } from "../payments/useTransactions";
 
 /** 24-column overview. Tweak `left` / `right` (must sum to `columns`). */
 const OVERVIEW_GRID = {
@@ -29,21 +34,38 @@ const OVERVIEW_GRID = {
 export type ClassOverviewPageProps = {
   classDetail: ClassDetail;
   roster: ClassRosterRow[];
+  activity: ClassActivityItem[];
   onEditDetails?: () => void;
+  onAddPrerequisite?: (name: string) => void;
+  onRemoveStudent?: (student: StudentToRemove) => void;
 };
 
 export function ClassOverviewPage({
   classDetail,
   roster,
+  activity,
   onEditDetails,
+  onAddPrerequisite,
+  onRemoveStudent,
 }: ClassOverviewPageProps) {
-  const invoices = classDueInvoicesFor(classDetail.id);
+  const { transactions } = useTransactions();
+  const closed = isClassClosed(classDetail);
+  const isCourse = catalogKindForClass(classDetail) === "Course";
+  const showBanners = !closed && !isCourse;
+  const canEdit = !closed;
+  const revenue = classRevenueFor(classDetail.id);
+  const invoices = classDueInvoicesFor(classDetail.id, transactions);
   const submissions = classPrerequisiteQueueFor(classDetail.id);
-  const activity = classActivityFor(classDetail.id);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
 
+  const canSelectStudent = !closed;
   const selectedStudent = roster.find((row) => row.id === selectedStudentId) ?? null;
-  const selectedPayment = selectedStudent ? classStudentPaymentFor(selectedStudent.id) : null;
+
+  function handleReviewPrerequisite(studentId: string) {
+    const submission = submissions.find((row) => row.studentId === studentId);
+    if (submission) setReviewSubmissionId(submission.id);
+  }
 
   useEffect(() => {
     if (!selectedStudentId) return;
@@ -99,20 +121,41 @@ export function ClassOverviewPage({
         }}
       >
         <ClassInfoBox classDetail={classDetail} />
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: OVERVIEW_GRID.gap,
-          }}
-        >
-          <ClassPrerequisitesQueue key={classDetail.id} submissions={submissions} />
-          <ClassDueInvoicesSection invoices={invoices} />
-        </div>
+        {showBanners ? (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: OVERVIEW_GRID.gap,
+            }}
+          >
+            <ClassPrerequisitesQueue
+              key={classDetail.id}
+              classId={classDetail.id}
+              submissions={submissions}
+              reviewSubmissionId={reviewSubmissionId}
+              onReviewClose={() => setReviewSubmissionId(null)}
+            />
+            <ClassDueInvoicesSection classId={classDetail.id} invoices={invoices} />
+          </div>
+        ) : !closed ? (
+          <ClassPrerequisitesQueue
+            key={classDetail.id}
+            classId={classDetail.id}
+            submissions={submissions}
+            reviewSubmissionId={reviewSubmissionId}
+            onReviewClose={() => setReviewSubmissionId(null)}
+            hideBanner
+          />
+        ) : null}
         <ClassRosterSection
           rows={roster}
-          selectedStudentId={selectedStudentId}
-          onSelectStudent={setSelectedStudentId}
+          classId={classDetail.id}
+          selectedStudentId={canSelectStudent ? selectedStudentId : null}
+          onSelectStudent={canSelectStudent ? setSelectedStudentId : undefined}
+          onReviewPrerequisite={handleReviewPrerequisite}
+          showCertificates={closed}
+          showPrerequisites={!closed}
         />
       </div>
       <div
@@ -124,19 +167,36 @@ export function ClassOverviewPage({
           gap: OVERVIEW_GRID.gap,
           minWidth: 0,
           minHeight: 0,
-          overflow: "hidden",
+          overflowY: "auto",
+          paddingBottom: 40,
         }}
       >
-        {selectedStudent && selectedPayment ? (
+        {canSelectStudent && selectedStudent ? (
           <ClassStudentPaymentsCard
+            classId={classDetail.id}
+            className={classDetail.title}
             student={selectedStudent}
-            payment={selectedPayment}
+            requiredPrerequisites={classDetail.prerequisites}
             onClose={() => setSelectedStudentId(null)}
+            onRemove={(row) => onRemoveStudent?.(row)}
+            onReviewPrerequisite={(submissionId) => setReviewSubmissionId(submissionId)}
           />
         ) : (
           <>
-            <ClassDetailsCard classDetail={classDetail} onEditDetails={onEditDetails} />
-            <ClassPrerequisitesList key={classDetail.id} items={classDetail.prerequisites} />
+            <ClassDetailsCard
+              classDetail={classDetail}
+              onEditDetails={canEdit ? onEditDetails : undefined}
+            />
+            {closed && revenue ? <ClassRevenueCard revenue={revenue} variant="total" /> : null}
+            {isCourse && !closed && revenue ? (
+              <ClassRevenueCard revenue={revenue} variant="active" />
+            ) : null}
+            <ClassPrerequisitesList
+              key={classDetail.id}
+              items={classDetail.prerequisites}
+              editable={canEdit}
+              onAdd={onAddPrerequisite}
+            />
             <ClassActivityCard items={activity} />
           </>
         )}

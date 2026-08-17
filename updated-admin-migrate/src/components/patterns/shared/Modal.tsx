@@ -12,10 +12,20 @@ export type ModalProps = {
   children: ReactNode;
   footer?: ReactNode;
   width?: number;
+  /** When set, the modal fills the viewport minus this many px on every side instead of sizing to `width`. */
+  fullScreenInset?: number;
 };
 
 /** Centered overlay dialog — Linear-token styled, following `OutlinedPanel`'s close conventions. */
-export function Modal({ isOpen, onClose, title, children, footer, width = 420 }: ModalProps) {
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  footer,
+  width = 420,
+  fullScreenInset,
+}: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,10 +62,12 @@ export function Modal({ isOpen, onClose, title, children, footer, width = 420 }:
         aria-label={title}
         style={{
           boxSizing: "border-box",
-          width,
-          maxWidth: "calc(100vw - 32px)",
-          maxHeight: "calc(100vh - 64px)",
-          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+          ...(fullScreenInset != null
+            ? { position: "fixed", inset: fullScreenInset, width: "auto", height: "auto" }
+            : { width, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100vh - 64px)" }),
           background: "var(--linear-color-canvas)",
           border: "var(--linear-border-width) solid var(--linear-color-hairline)",
           borderRadius: "var(--linear-radius-md)",
@@ -69,6 +81,7 @@ export function Modal({ isOpen, onClose, title, children, footer, width = 420 }:
             alignItems: "center",
             justifyContent: "space-between",
             marginBottom: 16,
+            flexShrink: 0,
           }}
         >
           <Text weight="medium">{title}</Text>
@@ -80,7 +93,7 @@ export function Modal({ isOpen, onClose, title, children, footer, width = 420 }:
             onClick={onClose}
           />
         </div>
-        {children}
+        <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>{children}</div>
         {footer ? (
           <div
             style={{
@@ -88,6 +101,7 @@ export function Modal({ isOpen, onClose, title, children, footer, width = 420 }:
               justifyContent: "flex-end",
               gap: 8,
               marginTop: 16,
+              flexShrink: 0,
             }}
           >
             {footer}

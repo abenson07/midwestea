@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Pencil } from "lucide-react";
 import { Text } from "@/components/patterns/primitives/Text";
 import { IconButton } from "@/components/patterns/shared/IconButton";
@@ -11,7 +12,7 @@ export type CatalogDetailsCardProps = {
   onEditDetails?: () => void;
 };
 
-function PropertyRow({ label, value }: { label: string; value: string }) {
+function PropertyRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div
       style={{
@@ -24,15 +25,26 @@ function PropertyRow({ label, value }: { label: string; value: string }) {
       <Text size="sm" color="secondary" style={{ width: 148, flexShrink: 0 }}>
         {label}
       </Text>
-      <Text size="sm" style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
-        {value}
-      </Text>
+      <div
+        style={{
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          fontSize: 13,
+          lineHeight: "20px",
+          color: "var(--linear-color-ink)",
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
 /** Template details card — field on the left, value on the right. */
 export function CatalogDetailsCard({ template, onEditDetails }: CatalogDetailsCardProps) {
+  const links = template.externalLinks ?? [];
+
   return (
     <ClassSidebarSection
       title={`${template.kind} Details`}
@@ -49,13 +61,34 @@ export function CatalogDetailsCard({ template, onEditDetails }: CatalogDetailsCa
       }
     >
       <div style={{ display: "flex", flexDirection: "column" }}>
-        <PropertyRow label="Code" value={template.code} />
-        <PropertyRow label="Type" value={template.kind} />
-        <PropertyRow label="Default class format" value={template.defaultClassFormat} />
-        <PropertyRow label="Price" value={template.price} />
-        <PropertyRow label="Registration fee" value={template.registrationFee} />
-        <PropertyRow label="Certification length" value={template.certificationLength} />
-        <PropertyRow label="Registration limit" value={template.registrationLimit} />
+        <PropertyRow label="Code">{template.code}</PropertyRow>
+        <PropertyRow label="Type">{template.kind}</PropertyRow>
+        <PropertyRow label="Default class format">{template.defaultClassFormat}</PropertyRow>
+        <PropertyRow label="Price">{template.price}</PropertyRow>
+        <PropertyRow label="Registration fee">{template.registrationFee}</PropertyRow>
+        <PropertyRow label="Certification length">{template.certificationLength}</PropertyRow>
+        <PropertyRow label="Registration limit">{template.registrationLimit}</PropertyRow>
+        {links.length ? (
+          <PropertyRow label="External links">
+            {links.map((link, index) => (
+              <span key={link.id}>
+                {index > 0 ? ", " : null}
+                {link.url ? (
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "inherit", textDecoration: "none" }}
+                  >
+                    {link.name || link.url}
+                  </a>
+                ) : (
+                  link.name
+                )}
+              </span>
+            ))}
+          </PropertyRow>
+        ) : null}
       </div>
     </ClassSidebarSection>
   );

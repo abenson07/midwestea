@@ -89,7 +89,7 @@ export function DemoModeConfirmModal({ isOpen, target, onCancel, onConfirm }: De
               lineHeight: "20px",
               fontWeight: 500,
               textAlign: "center",
-              color: "#ffffff",
+              color: "var(--linear-color-on-accent)",
               background: "var(--linear-color-accent)",
               opacity: ready ? 1 : 0.7,
             }}

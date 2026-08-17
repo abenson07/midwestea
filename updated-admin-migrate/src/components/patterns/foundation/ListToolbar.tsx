@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ListFilter, Search } from "lucide-react";
-import { Dropdown, DropdownItem, DropdownSeparator } from "@/components/patterns/shared/dropdown";
+import { Dropdown, DropdownItem, DropdownSeparator, DropdownSubmenu } from "@/components/patterns/shared/dropdown";
 import { IconButton } from "@/components/patterns/shared/IconButton";
 
 export type ListToolbarFilterOption = {
@@ -15,6 +15,8 @@ export type ListToolbarFilterGroup = {
   options: ListToolbarFilterOption[];
   selected: string[];
   onChange: (values: string[]) => void;
+  /** Render as a `{label} >` flyout instead of a flat list. */
+  submenu?: boolean;
 };
 
 export type ListToolbarProps = {
@@ -98,7 +100,7 @@ export function ListToolbar({
           alignment="end"
           open={isFilterOpen}
           onOpenChange={setIsFilterOpen}
-          width={200}
+          width={filterGroups.some((group) => group.submenu) ? 160 : 240}
           trigger={
             <IconButton
               label="Filter"
@@ -108,19 +110,22 @@ export function ListToolbar({
             />
           }
         >
-          {filterGroups.map((group, groupIndex) => (
-            <div key={group.label}>
-              {groupIndex > 0 ? <DropdownSeparator /> : null}
-              {group.options.map((option) => (
-                <DropdownItem
-                  key={option.value}
-                  label={option.label}
-                  selected={group.selected.includes(option.value)}
-                  onSelect={() => group.onChange(toggleValue(group.selected, option.value))}
-                />
-              ))}
-            </div>
-          ))}
+          {filterGroups.map((group, groupIndex) => {
+            const items = group.options.map((option) => (
+              <DropdownItem
+                key={option.value}
+                label={option.label}
+                selected={group.selected.includes(option.value)}
+                onSelect={() => group.onChange(toggleValue(group.selected, option.value))}
+              />
+            ));
+            return (
+              <div key={group.label}>
+                {groupIndex > 0 ? <DropdownSeparator /> : null}
+                {group.submenu ? <DropdownSubmenu label={group.label}>{items}</DropdownSubmenu> : items}
+              </div>
+            );
+          })}
         </Dropdown>
       ) : null}
     </div>

@@ -5,6 +5,7 @@ import { Card } from "@/components/patterns/primitives/Card";
 import { Heading, Text } from "@/components/patterns/primitives/Text";
 import { VStack } from "@/components/patterns/primitives/Stack";
 import { useThemeMode, type ThemeMode } from "@/components/patterns/foundation/ThemeContext";
+import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
 import {
   HOME_VIEW_OPTIONS,
   isHomeViewId,
@@ -36,9 +37,15 @@ function Divider() {
  */
 export function PreferencesPanel() {
   const { mode, setMode } = useThemeMode();
-  const [homeView, setHomeView] = useState<HomeViewId>(() =>
-    typeof window === "undefined" ? "overview" : readHomeView(),
-  );
+  const basePath = useAdminBasePath();
+  const homeViewOptions =
+    basePath === "/new-admin-migrate"
+      ? HOME_VIEW_OPTIONS.filter((option) => option.id !== "inbox")
+      : HOME_VIEW_OPTIONS;
+  const [homeView, setHomeView] = useState<HomeViewId>(() => {
+    const stored = typeof window === "undefined" ? "overview" : readHomeView();
+    return stored === "inbox" && basePath === "/new-admin-migrate" ? "overview" : stored;
+  });
 
   function handleHomeViewChange(next: HomeViewId) {
     setHomeView(next);
@@ -66,7 +73,7 @@ export function PreferencesPanel() {
                     if (isHomeViewId(event.target.value)) handleHomeViewChange(event.target.value);
                   }}
                 >
-                  {HOME_VIEW_OPTIONS.map((option) => (
+                  {homeViewOptions.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
                     </option>

@@ -35,6 +35,8 @@ export type GroupedTableProps<T extends Record<string, unknown>> = {
   collapsedGroups?: Set<string>;
   onCollapsedGroupsChange?: (next: Set<string>) => void;
   hasHover?: boolean;
+  /** Marks a row with the persistent active/selected background (same token as hover). */
+  isRowSelected?: (item: T) => boolean;
   /** Show the column header row. @default true */
   showHeader?: boolean;
   /**
@@ -48,6 +50,11 @@ export type GroupedTableProps<T extends Record<string, unknown>> = {
    * @default "page"
    */
   appearance?: "page" | "nested";
+  /**
+   * Last row with a top border. Columns with `sumValue` show a total;
+   * the first non-sum column shows the label (default "Total").
+   */
+  sumFooter?: boolean | { label?: string };
 };
 
 /**
@@ -69,6 +76,8 @@ export function GroupedTable<T extends Record<string, unknown>>({
   showHeader = true,
   appearance = "page",
   listChrome,
+  isRowSelected,
+  sumFooter = false,
 }: GroupedTableProps<T>) {
   const resolvedListChrome = listChrome ?? appearance === "page";
   const [uncontrolledCollapsed, setUncontrolledCollapsed] = useState(
@@ -111,6 +120,7 @@ export function GroupedTable<T extends Record<string, unknown>>({
   }, [data, groupBy, groupOrder]);
 
   const gridTemplateColumns = useMemo(() => columnsToGridTemplate(columns), [columns]);
+  const footerLabel = sumFooter === false ? null : sumFooter === true ? "Total" : (sumFooter.label ?? "Total");
 
   const renderRow = useCallback(
     (item: T) => (
@@ -118,16 +128,21 @@ export function GroupedTable<T extends Record<string, unknown>>({
         key={getRowKey(item)}
         className="grouped-table-row"
         data-hover={hasHover ? "true" : undefined}
+        data-selected={isRowSelected?.(item) ? "true" : undefined}
         style={{ display: "grid", gridTemplateColumns }}
       >
         {columns.map((column) => (
-          <div key={column.key} className="grouped-table-cell">
+          <div
+            key={column.key}
+            className="grouped-table-cell"
+            data-align={column.align === "end" ? "end" : undefined}
+          >
             {column.renderCell(item)}
           </div>
         ))}
       </div>
     ),
-    [columns, getRowKey, gridTemplateColumns, hasHover],
+    [columns, getRowKey, gridTemplateColumns, hasHover, isRowSelected],
   );
 
   return (
@@ -148,7 +163,11 @@ export function GroupedTable<T extends Record<string, unknown>>({
           style={{ display: "grid", gridTemplateColumns }}
         >
           {columns.map((column) => (
-            <div key={column.key} className="grouped-table-header-cell">
+            <div
+              key={column.key}
+              className="grouped-table-header-cell"
+              data-align={column.align === "end" ? "end" : undefined}
+            >
               {column.header}
             </div>
           ))}
@@ -193,6 +212,33 @@ export function GroupedTable<T extends Record<string, unknown>>({
             );
           })
         : data.map(renderRow)}
+
+      {footerLabel != null ? (
+        <div
+          className="grouped-table-row grouped-table-footer-row"
+          style={{ display: "grid", gridTemplateColumns }}
+        >
+          {columns.map((column, index) => {
+            const alignEnd = column.align === "end";
+            let content: ReactNode = null;
+            if (column.sumValue) {
+              const total = data.reduce((sum, row) => sum + (column.sumValue?.(row) ?? 0), 0);
+              content = column.formatSum ? column.formatSum(total) : total;
+            } else if (index === columns.findIndex((col) => !col.sumValue)) {
+              content = footerLabel;
+            }
+            return (
+              <div
+                key={column.key}
+                className="grouped-table-cell"
+                data-align={alignEnd ? "end" : undefined}
+              >
+                {content}
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 }

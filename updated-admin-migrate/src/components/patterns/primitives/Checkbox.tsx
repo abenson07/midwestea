@@ -45,7 +45,7 @@ export function Checkbox({
           transition: "background 0.15s ease, border-color 0.15s ease",
         }}
       >
-        {value ? <Check size={12} strokeWidth={3} color="#ffffff" /> : null}
+        {value ? <Check size={12} strokeWidth={3} color="var(--linear-color-on-accent)" /> : null}
       </button>
       {!isLabelHidden ? (
         <span style={{ fontSize: 13, color: "var(--linear-color-ink)" }}>{label}</span>

@@ -6,9 +6,17 @@ export type TextInputProps = {
   onChange: (next: string) => void;
   multiline?: boolean;
   rows?: number;
+  autoComplete?: string;
 };
 
-export function TextInput({ label, value, onChange, multiline = false, rows = 4 }: TextInputProps) {
+export function TextInput({
+  label,
+  value,
+  onChange,
+  multiline = false,
+  rows = 4,
+  autoComplete,
+}: TextInputProps) {
   const sharedStyle = {
     boxSizing: "border-box" as const,
     width: "100%",
@@ -35,6 +43,7 @@ export function TextInput({ label, value, onChange, multiline = false, rows = 4 
         <input
           type="text"
           value={value}
+          autoComplete={autoComplete}
           onChange={(event) => onChange(event.target.value)}
           style={{ ...sharedStyle, height: 32 }}
         />

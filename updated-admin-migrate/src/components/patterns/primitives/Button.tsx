@@ -42,9 +42,11 @@ export function Button({
         alignItems: "center",
         justifyContent: "center",
         gap: 6,
+        flexShrink: 0,
         width: width ?? (isIconOnly ? height : undefined),
         height,
         paddingInline: isIconOnly ? 0 : 12,
+        whiteSpace: "nowrap",
         borderRadius: 6,
         fontSize: 13,
         lineHeight: "20px",
@@ -55,7 +57,7 @@ export function Button({
           : isGhost
             ? "transparent"
             : "var(--linear-color-icon-button-secondary)",
-        color: isPrimary ? "#ffffff" : "var(--linear-color-ink)",
+        color: isPrimary ? "var(--linear-color-on-accent)" : "var(--linear-color-ink)",
         border: isGhost
           ? "none"
           : "var(--linear-border-width) solid var(--linear-color-hairline)",

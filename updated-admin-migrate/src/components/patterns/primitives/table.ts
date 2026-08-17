@@ -19,7 +19,13 @@ export type TableColumn<T> = {
   key: string;
   header: string;
   width: TableColumnWidth;
+  /** Horizontal alignment for the header, body, and footer cells. @default "start" */
+  align?: "start" | "end";
   renderCell: (row: T) => ReactNode;
+  /** When set, this column is totaled in the table's sum footer. */
+  sumValue?: (row: T) => number;
+  /** Formats the footer total. Defaults to the raw number. */
+  formatSum?: (total: number) => ReactNode;
 };
 
 export function columnsToGridTemplate<T>(columns: TableColumn<T>[]): string {

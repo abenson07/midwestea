@@ -451,9 +451,11 @@ function LinearSidebarBase({
   // admin-preview is a frozen pattern library, not shipped as-is — only /admin
   // needs its WIP items (committees/inbox/overview) hidden until opted in.
   const showWipItems = !isMigrate || wipFeaturesEnabled;
-  const visibleGroup1Items = showWipItems
+  const hideInbox = basePath === "/new-admin-migrate";
+  const visibleGroup1Items = (showWipItems
     ? group1Items
-    : group1Items.filter((item) => !item.wip);
+    : group1Items.filter((item) => !item.wip)
+  ).filter((item) => !hideInbox || item.id !== "inbox");
   const visibleClassItems = showWipItems
     ? classItems
     : classItems.filter((item) => !item.wip);

@@ -10,15 +10,20 @@ import { ClassAddPrerequisiteModal } from "./ClassAddPrerequisiteModal";
 
 export type ClassPrerequisitesListProps = {
   items: string[];
+  editable?: boolean;
+  onAdd?: (name: string) => void;
 };
 
 /** Required items as an activity-style list, with add from the header. */
-export function ClassPrerequisitesList({ items: initialItems }: ClassPrerequisitesListProps) {
-  const [items, setItems] = useState(initialItems);
+export function ClassPrerequisitesList({
+  items,
+  editable = true,
+  onAdd,
+}: ClassPrerequisitesListProps) {
   const [addOpen, setAddOpen] = useState(false);
 
   function handleAdd(name: string) {
-    setItems((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    onAdd?.(name);
     toast.success(`Added ${name} — demo mode, saved locally only`);
   }
 
@@ -27,13 +32,15 @@ export function ClassPrerequisitesList({ items: initialItems }: ClassPrerequisit
       <ClassSidebarSection
         title="Prerequisites"
         action={
-          <IconButton
-            label="Add prerequisite"
-            variant="ghost"
-            size="sm"
-            icon={<Plus size={14} strokeWidth={2} />}
-            onClick={() => setAddOpen(true)}
-          />
+          editable ? (
+            <IconButton
+              label="Add prerequisite"
+              variant="ghost"
+              size="sm"
+              icon={<Plus size={14} strokeWidth={2} />}
+              onClick={() => setAddOpen(true)}
+            />
+          ) : null
         }
       >
         {items.length ? (
@@ -77,11 +84,13 @@ export function ClassPrerequisitesList({ items: initialItems }: ClassPrerequisit
           </Text>
         )}
       </ClassSidebarSection>
-      <ClassAddPrerequisiteModal
-        isOpen={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdd={handleAdd}
-      />
+      {editable ? (
+        <ClassAddPrerequisiteModal
+          isOpen={addOpen}
+          onClose={() => setAddOpen(false)}
+          onAdd={handleAdd}
+        />
+      ) : null}
     </>
   );
 }

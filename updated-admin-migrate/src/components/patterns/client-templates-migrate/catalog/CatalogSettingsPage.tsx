@@ -1,12 +1,17 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/patterns/primitives/Card";
 import { Heading, Text } from "@/components/patterns/primitives/Text";
 import { VStack } from "@/components/patterns/primitives/Stack";
 import { Button } from "@/components/patterns/primitives/Button";
 import { SettingsRow } from "@/components/patterns/client-templates-migrate/settings/SettingsRow";
+import {
+  SettingsCardList,
+  settingsCardFieldStyle,
+} from "@/components/patterns/client-templates-migrate/settings/SettingsCardList";
+import type { ClassExternalLink } from "../classes/classMocks";
 import {
   CATALOG_CLASS_TYPES,
   isCatalogClassOnline,
@@ -47,6 +52,18 @@ export type CatalogSettingsPageProps = {
 export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPageProps) {
   const [draft, setDraft] = useState(template);
   const [saving, setSaving] = useState(false);
+  const [editingPrereqId, setEditingPrereqId] = useState<string | null>(null);
+  const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraft(template);
+  }, [template]);
+
+  const prereqItems = draft.prerequisites.map((name, index) => ({
+    id: `prereq-${index}`,
+    name,
+  }));
+  const links = draft.externalLinks ?? [];
 
   function patch(next: Partial<CatalogTemplate>) {
     setDraft((prev) => ({ ...prev, ...next }));
@@ -198,6 +215,96 @@ export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPagePro
             </VStack>
           </Card>
         </VStack>
+
+        <SettingsCardList
+          label="Prerequisites"
+          addLabel="Add prerequisite"
+          emptyLabel="No prerequisites yet."
+          items={prereqItems}
+          editingId={editingPrereqId}
+          onEditingIdChange={setEditingPrereqId}
+          onAdd={() => {
+            const name = "New prerequisite";
+            patch({ prerequisites: [...draft.prerequisites, name] });
+            setEditingPrereqId(`prereq-${draft.prerequisites.length}`);
+          }}
+          onRemove={(id) => {
+            const index = prereqItems.findIndex((item) => item.id === id);
+            if (index < 0) return;
+            patch({
+              prerequisites: draft.prerequisites.filter((_, i) => i !== index),
+            });
+            setEditingPrereqId(null);
+          }}
+          getTitle={(item) => item.name}
+          renderEditor={(item) => {
+            const index = prereqItems.findIndex((row) => row.id === item.id);
+            return (
+              <input
+                style={{ ...settingsCardFieldStyle, fontWeight: 510 }}
+                value={item.name}
+                onChange={(e) => {
+                  const next = [...draft.prerequisites];
+                  next[index] = e.target.value;
+                  patch({ prerequisites: next });
+                }}
+                placeholder="Name"
+              />
+            );
+          }}
+        />
+
+        <SettingsCardList
+          label="External links"
+          addLabel="Add link"
+          emptyLabel="No external links yet."
+          items={links}
+          editingId={editingLinkId}
+          onEditingIdChange={setEditingLinkId}
+          onAdd={() => {
+            const link: ClassExternalLink = {
+              id: `link-${Date.now()}`,
+              name: "New link",
+              url: "",
+            };
+            patch({ externalLinks: [...links, link] });
+            setEditingLinkId(link.id);
+          }}
+          onRemove={(id) => {
+            patch({ externalLinks: links.filter((link) => link.id !== id) });
+            setEditingLinkId(null);
+          }}
+          getTitle={(item) => item.name}
+          getSubtitle={(item) => item.url}
+          renderEditor={(item) => (
+            <>
+              <input
+                style={{ ...settingsCardFieldStyle, fontWeight: 510 }}
+                value={item.name}
+                onChange={(e) =>
+                  patch({
+                    externalLinks: links.map((link) =>
+                      link.id === item.id ? { ...link, name: e.target.value } : link,
+                    ),
+                  })
+                }
+                placeholder="Name"
+              />
+              <input
+                style={settingsCardFieldStyle}
+                value={item.url}
+                onChange={(e) =>
+                  patch({
+                    externalLinks: links.map((link) =>
+                      link.id === item.id ? { ...link, url: e.target.value } : link,
+                    ),
+                  })
+                }
+                placeholder="https://"
+              />
+            </>
+          )}
+        />
 
         <div>
           <Button

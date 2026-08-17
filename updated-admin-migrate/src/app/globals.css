@@ -72,26 +72,26 @@
   --color-mercury-muted: #707393;
   --color-mercury-border-hairline: #fbfcfd;
   --color-mercury-line: color-mix(in srgb, #b4b7c8 28%, #ffffff 72%);
-  --color-mercury-primary: #9fe870;
-  --color-mercury-primary-hover: #054d28;
+  --color-mercury-primary: #ffb452;
+  --color-mercury-primary-hover: #f2a141;
   --color-mercury-palette-muted: #b4b7c8;
-  --color-mercury-badge-tint: #b0e57a;
-  /* Dark text on light Wise green (#9fe870); use white when bg is #054d28 or darker */
-  --color-mercury-on-accent: #163300;
+  --color-mercury-badge-tint: #ffc46e;
+  /* Black text on MidwestEA gold (#ffb452) */
+  --color-mercury-on-accent: #191920;
 
-  /* Brand ramp — Wise-inspired green (see docs/DESIGN.md) */
-  --color-brand-25: #fcfefa;
-  --color-brand-50: #f3fbeb;
-  --color-brand-100: #e4f7d4;
-  --color-brand-200: #cbeea8;
-  --color-brand-300: #b0e57a;
-  --color-brand-400: #a8e578;
-  --color-brand-500: #9fe870;
-  --color-brand-600: #054d28;
-  --color-brand-700: #043d20;
-  --color-brand-800: #032c18;
-  --color-brand-900: #021d10;
-  --color-brand-950: #011409;
+  /* Brand ramp — MidwestEA gold from the marketing site */
+  --color-brand-25: #fffbf5;
+  --color-brand-50: #fff6ea;
+  --color-brand-100: #ffecd0;
+  --color-brand-200: #ffd9a3;
+  --color-brand-300: #ffc46e;
+  --color-brand-400: #ffbc5e;
+  --color-brand-500: #ffb452;
+  --color-brand-600: #f2a141;
+  --color-brand-700: #c47e22;
+  --color-brand-800: #9a5f18;
+  --color-brand-900: #6b4010;
+  --color-brand-950: #3d2408;
 
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;
@@ -235,8 +235,8 @@
   --color-bg-secondary: var(--color-gray-50);
   --color-bg-secondary_hover: var(--color-gray-100);
   --color-bg-primary-solid: var(--color-gray-900);
-  --color-bg-brand-solid: var(--color-brand-600);
-  --color-bg-brand-solid_hover: var(--color-brand-700);
+  --color-bg-brand-solid: var(--color-brand-500);
+  --color-bg-brand-solid_hover: var(--color-brand-600);
   --color-bg-error-primary: var(--color-error-50);
   --color-bg-error-solid: var(--color-error-600);
   --color-bg-error-solid_hover: var(--color-error-700);
@@ -376,8 +376,8 @@
     --color-bg-secondary: var(--color-gray-800);
     --color-bg-secondary_hover: var(--color-gray-700);
     --color-bg-primary-solid: var(--color-gray-950);
-    --color-bg-brand-solid: var(--color-brand-600);
-    --color-bg-brand-solid_hover: var(--color-brand-500);
+    --color-bg-brand-solid: var(--color-brand-500);
+    --color-bg-brand-solid_hover: var(--color-brand-600);
     --color-bg-error-primary: var(--color-error-950);
     --color-bg-error-solid: var(--color-error-600);
     --color-bg-error-solid_hover: var(--color-error-500);
@@ -698,7 +698,7 @@ span.flatpickr-weekday,
 .flatpickr-day.startRange.nextMonthDay,
 .flatpickr-day.endRange.nextMonthDay {
   background: var(--color-brand-500);
-  @apply !border-brand-500 !bg-brand-500 hover:!border-brand-50 hover:!bg-brand-600 hover:!text-white dark:hover:!text-white;
+  @apply !border-brand-500 !bg-brand-500 !text-mercury-on-accent hover:!border-brand-600 hover:!bg-brand-600 hover:!text-mercury-on-accent;
 }
 .flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n + 1)),
 .flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n + 1)),
@@ -762,7 +762,7 @@ span.flatpickr-weekday,
   @apply hidden;
 }
 .fc-addEventButton-button {
-  @apply !rounded-lg !border-0 !bg-brand-500 !px-4 !py-2.5 !text-sm !font-medium !text-mercury-on-accent hover:!bg-brand-600 hover:!text-white focus:!shadow-none;
+  @apply !rounded-lg !border-0 !bg-brand-500 !px-4 !py-2.5 !text-sm !font-medium !text-mercury-on-accent hover:!bg-brand-600 hover:!text-mercury-on-accent focus:!shadow-none;
 }
 .fc-toolbar-title {
   @apply !text-lg !font-medium text-gray-800 dark:text-white/90;

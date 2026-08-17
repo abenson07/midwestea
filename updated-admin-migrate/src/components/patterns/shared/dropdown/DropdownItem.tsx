@@ -32,8 +32,10 @@ export function DropdownItem({
         gap: 8,
         width: "100%",
         height: 32,
+        minHeight: 32,
         paddingInline: 10,
         borderRadius: 6,
+        whiteSpace: "nowrap",
         color: selected
           ? "var(--linear-color-ink)"
           : "var(--linear-color-sidebar-item-idle)",
@@ -69,7 +71,7 @@ export function DropdownItem({
           {icon}
         </span>
       ) : null}
-      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}>
+      <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {label}
       </span>
     </button>

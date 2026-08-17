@@ -30,7 +30,7 @@ const Button: React.FC<ButtonProps> = ({
 
   const variantClasses = {
     primary:
-      "rounded-mercury-button-lg bg-brand-500 text-mercury-on-accent shadow-mercury-low hover:bg-brand-600 hover:text-white disabled:bg-brand-300 font-[360]",
+      "rounded-mercury-button-lg bg-brand-500 text-mercury-on-accent shadow-mercury-low hover:bg-brand-600 disabled:bg-brand-300 font-[360]",
     outline:
       "rounded-mercury-button-lg bg-white text-mercury-ink ring-1 ring-inset ring-mercury-line hover:bg-gray-50 font-[360] dark:bg-white/[0.04] dark:text-white/85 dark:ring-white/10 dark:hover:bg-white/[0.08]",
     ghost:

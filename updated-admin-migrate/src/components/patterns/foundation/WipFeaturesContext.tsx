@@ -39,7 +39,7 @@ export type WipFeaturesProviderProps = {
 
 /**
  * Per-browser switch for previewing in-development `/admin-migrate` surfaces
- * (committees, inbox, action items). Backed by a cookie rather than
+ * (committees, inbox, overview). Backed by a cookie rather than
  * localStorage so `src/middleware.ts` can read it and gate the routes
  * server-side, not just hide nav links client-side.
  */

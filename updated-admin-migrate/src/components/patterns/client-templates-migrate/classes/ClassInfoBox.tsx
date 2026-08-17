@@ -3,6 +3,13 @@
 import { useRouter } from "next/navigation";
 import { GraduationCap, BookOpen, CalendarClock } from "lucide-react";
 import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { formatCalendarMonthDay } from "@/lib/dates";
+import {
+  closedClassDateLabel,
+  isClassClosed,
+  isClassInRegistration,
+  startOfToday,
+} from "./classTableColumns";
 import type { ClassDetail, ClassTemplateRef } from "./classMocks";
 
 export type ClassInfoBoxProps = {
@@ -32,6 +39,20 @@ function ClassTemplateLink({ template, onClick }: { template: ClassTemplateRef; 
       {template.name}
     </button>
   );
+}
+
+function scheduleLabel(classDetail: ClassDetail): string {
+  const today = startOfToday();
+  if (isClassClosed(classDetail, today)) {
+    return closedClassDateLabel(classDetail);
+  }
+  if (isClassInRegistration(classDetail, today) && classDetail.enrollmentClose) {
+    return `Registration ends ${formatCalendarMonthDay(classDetail.enrollmentClose)}`;
+  }
+  if (classDetail.classEnd) {
+    return `Class ends ${formatCalendarMonthDay(classDetail.classEnd)}`;
+  }
+  return "Open for registration";
 }
 
 /** Class overview header — title, summary, and schedule, no card chrome. */
@@ -81,7 +102,7 @@ export function ClassInfoBox({ classDetail }: ClassInfoBoxProps) {
             }}
           >
             <CalendarClock size={14} strokeWidth={1.75} />
-            32 days left to register
+            {scheduleLabel(classDetail)}
           </span>
         </div>
       </div>

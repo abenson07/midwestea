@@ -7,6 +7,7 @@ import {
   isClassOnline,
   type ClassActivityItem,
   type ClassDetail,
+  type ClassExternalLink,
   type ClassFormat,
 } from "../classes/classMocks";
 
@@ -39,6 +40,7 @@ export type CatalogTemplate = {
   registrationLimit: string;
   classLength: string;
   prerequisites: string[];
+  externalLinks?: ClassExternalLink[];
 };
 
 export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
@@ -56,6 +58,10 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
     registrationLimit: "25 seats",
     classLength: "12 weeks",
     prerequisites: ["High school graduation", "CPR Certificate"],
+    externalLinks: [
+      { id: "jb", name: "JB Learning", url: "https://www.jblearning.com" },
+      { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
+    ],
   },
   aemt: {
     id: "aemt",
@@ -86,6 +92,10 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
     registrationLimit: "25 seats",
     classLength: "1 year",
     prerequisites: ["High school graduation", "CPR Certificate"],
+    externalLinks: [
+      { id: "jb", name: "JB Learning", url: "https://www.jblearning.com" },
+      { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
+    ],
   },
   atcc: {
     id: "atcc",
@@ -177,6 +187,10 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
     registrationLimit: "25 seats",
     classLength: "—",
     prerequisites: ["Current BLS Certification"],
+    externalLinks: [
+      { id: "jb", name: "JB Learning", url: "https://www.jblearning.com" },
+      { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
+    ],
   },
   "pals-provider": {
     id: "pals-provider",
@@ -322,6 +336,7 @@ export function catalogTemplateFor(templateId: string): CatalogTemplate {
       registrationLimit: "—",
       classLength: "—",
       prerequisites: [],
+      externalLinks: [],
     }
   );
 }
