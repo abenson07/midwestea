@@ -16,6 +16,14 @@ import {
   type ClassRosterRow,
 } from "./classMocks";
 
+/** 12-column overview. Tweak `left` / `right` (must sum to `columns`). */
+const OVERVIEW_GRID = {
+  columns: 24,
+  left: 17,
+  right: 7,
+  gap: 24,
+} as const;
+
 export type ClassOverviewPageProps = {
   classDetail: ClassDetail;
   roster: ClassRosterRow[];
@@ -32,26 +40,45 @@ export function ClassOverviewPage({ classDetail, roster, onEditDetails }: ClassO
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 280px",
-          gap: 24,
+          gridTemplateColumns: `repeat(${OVERVIEW_GRID.columns}, minmax(0, 1fr))`,
+          gap: OVERVIEW_GRID.gap,
           alignItems: "start",
         }}
         className="class-overview-layout"
       >
         <style>{`
           @media (max-width: 900px) {
-            .class-overview-layout {
-              grid-template-columns: minmax(0, 1fr) !important;
+            .class-overview-layout > [data-slot="class-overview-main"],
+            .class-overview-layout > [data-slot="class-overview-rail"] {
+              grid-column: 1 / -1 !important;
             }
           }
         `}</style>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
+        <div
+          data-slot="class-overview-main"
+          style={{
+            gridColumn: `span ${OVERVIEW_GRID.left}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: OVERVIEW_GRID.gap,
+            minWidth: 0,
+          }}
+        >
           <ClassInfoBox classDetail={classDetail} onEditDetails={onEditDetails} />
           <ClassPrerequisitesQueue key={classDetail.id} submissions={submissions} />
           <ClassDueInvoicesSection invoices={invoices} />
           <ClassRosterSection rows={roster} />
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
+        <div
+          data-slot="class-overview-rail"
+          style={{
+            gridColumn: `span ${OVERVIEW_GRID.right}`,
+            display: "flex",
+            flexDirection: "column",
+            gap: OVERVIEW_GRID.gap,
+            minWidth: 0,
+          }}
+        >
           <ClassDetailsCard classDetail={classDetail} />
           <ClassPrerequisitesList items={classDetail.prerequisites} />
           <ClassActivityCard items={activity} />
