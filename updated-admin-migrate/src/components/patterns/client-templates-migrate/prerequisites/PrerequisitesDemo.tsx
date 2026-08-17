@@ -140,63 +140,50 @@ export function PrerequisitesDemo() {
                 return (
                   <Card key={row.id} padding={4}>
                     {editing ? (
-                      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                          <input
-                            style={{ ...fieldStyle, fontWeight: 510 }}
-                            value={row.name}
-                            onChange={(e) => patchRow(row.id, { name: e.target.value })}
-                            placeholder="Name"
-                          />
-                          <textarea
-                            style={{ ...fieldStyle, resize: "vertical", minHeight: 56 }}
-                            value={row.description}
-                            onChange={(e) => patchRow(row.id, { description: e.target.value })}
-                            placeholder="Description"
-                            rows={2}
-                          />
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "column",
-                            gap: 8,
-                            alignItems: "flex-end",
-                          }}
-                        >
-                          <label
-                            style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <input
+                          style={{ ...fieldStyle, fontWeight: 510 }}
+                          value={row.name}
+                          onChange={(e) => patchRow(row.id, { name: e.target.value })}
+                          placeholder="Name"
+                        />
+                        <textarea
+                          style={{ ...fieldStyle, resize: "vertical", minHeight: 56 }}
+                          value={row.description}
+                          onChange={(e) => patchRow(row.id, { description: e.target.value })}
+                          placeholder="Description"
+                          rows={2}
+                        />
+                        <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <Text size="sm" color="secondary">
+                            File type
+                          </Text>
+                          <select
+                            style={selectStyle}
+                            value={row.fileType}
+                            onChange={(e) => patchRow(row.id, { fileType: e.target.value as FileType })}
                           >
-                            <Text size="sm" color="secondary">
-                              File type
-                            </Text>
-                            <select
-                              style={selectStyle}
-                              value={row.fileType}
-                              onChange={(e) => patchRow(row.id, { fileType: e.target.value as FileType })}
-                            >
-                              {FILE_TYPE_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <Button
-                              label="Done"
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => setEditingId(null)}
-                            />
-                            <IconButton
-                              label="Remove prerequisite"
-                              variant="ghost"
-                              size="sm"
-                              icon={<X size={14} strokeWidth={1.75} />}
-                              onClick={() => removeRow(row.id)}
-                            />
-                          </div>
+                            {FILE_TYPE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                          <Button
+                            label="Done"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setEditingId(null)}
+                          />
+                          <IconButton
+                            label="Remove prerequisite"
+                            variant="ghost"
+                            size="sm"
+                            icon={<X size={14} strokeWidth={1.75} />}
+                            onClick={() => removeRow(row.id)}
+                          />
                         </div>
                       </div>
                     ) : (

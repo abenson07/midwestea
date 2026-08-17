@@ -680,83 +680,7 @@ function LinearSidebarBase({
       </SidebarHeader>
 
       <SidebarScrollArea>
-        <SidebarSection title="Manage">
-          {visibleGroup2Items.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
-            />
-          ))}
-          {activeMoreItem ? (
-            <MenuItem
-              key={activeMoreItem.id}
-              label={activeMoreItem.label}
-              icon={activeMoreItem.icon}
-              selected
-              onClick={() => router.push(hrefFor(activeMoreItem.path))}
-            />
-          ) : null}
-          <Dropdown
-            label="More"
-            trigger={
-              <MenuItem
-                label="More"
-                icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
-              />
-            }
-          >
-            {moreItems.map((item) => (
-              <DropdownItem
-                key={item.id}
-                label={item.label}
-                icon={item.icon}
-                selected={item.id === activeMoreItem?.id}
-                onSelect={() => router.push(hrefFor(item.path))}
-              />
-            ))}
-          </Dropdown>
-        </SidebarSection>
-
-        <SidebarSection title="Database">
-          {databaseItems.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
-            />
-          ))}
-        </SidebarSection>
-
-        {favorites.length > 0 ? (
-          <SidebarSection title="Favorites">
-            {favorites.map((favorite) => (
-              <MenuItem
-                key={favorite.id}
-                label={favorite.name}
-                icon={<Star size={16} strokeWidth={1.75} />}
-                selected={favorite.route === activeHref}
-                onClick={() => router.push(favorite.route)}
-                action={
-                  onRemoveFavorite ? (
-                    <SidebarIconButton
-                      label={`Remove ${favorite.name} from favorites`}
-                      variant="ghost"
-                      icon={<Trash2 size={14} strokeWidth={1.75} />}
-                      onClick={() => onRemoveFavorite(favorite.route)}
-                    />
-                  ) : undefined
-                }
-              />
-            ))}
-          </SidebarSection>
-        ) : null}
-
-        <SidebarSection title="Group One">
+        <SidebarSection>
           {visibleGroup1Items.map((item) => (
             <MenuItem
               key={item.id}
@@ -768,7 +692,7 @@ function LinearSidebarBase({
           ))}
         </SidebarSection>
 
-        <SidebarSection title="Group Two">
+        <SidebarSection title="Open classes">
           {visibleClassItems.map((item) => (
             <MenuItem
               key={item.id}
@@ -814,7 +738,7 @@ function LinearSidebarBase({
           ) : null}
         </SidebarSection>
 
-        <SidebarSection title="Group Three">
+        <SidebarSection title="Manage">
           {visibleGroup3Items.map((item) => (
             <MenuItem
               key={item.id}
@@ -846,6 +770,79 @@ function LinearSidebarBase({
               ))}
             </Dropdown>
           ) : null}
+        </SidebarSection>
+
+        {favorites.length > 0 ? (
+          <SidebarSection title="Favorites">
+            {favorites.map((favorite) => (
+              <MenuItem
+                key={favorite.id}
+                label={favorite.name}
+                icon={<Star size={16} strokeWidth={1.75} />}
+                selected={favorite.route === activeHref}
+                onClick={() => router.push(favorite.route)}
+                action={
+                  onRemoveFavorite ? (
+                    <SidebarIconButton
+                      label={`Remove ${favorite.name} from favorites`}
+                      variant="ghost"
+                      icon={<Trash2 size={14} strokeWidth={1.75} />}
+                      onClick={() => onRemoveFavorite(favorite.route)}
+                    />
+                  ) : undefined
+                }
+              />
+            ))}
+          </SidebarSection>
+        ) : null}
+
+        <SidebarSection title="Templates">
+          {visibleGroup2Items.map((item) => (
+            <MenuItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              selected={isSelected(item.path)}
+              onClick={() => router.push(hrefFor(item.path))}
+            />
+          ))}
+          {activeMoreItem ? (
+            <MenuItem
+              key={activeMoreItem.id}
+              label={activeMoreItem.label}
+              icon={activeMoreItem.icon}
+              selected
+              onClick={() => router.push(hrefFor(activeMoreItem.path))}
+            />
+          ) : null}
+          <Dropdown
+            label="More"
+            trigger={
+              <MenuItem
+                label="More"
+                icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+              />
+            }
+          >
+            {moreItems.map((item) => (
+              <DropdownItem
+                key={item.id}
+                label={item.label}
+                icon={item.icon}
+                selected={item.id === activeMoreItem?.id}
+                onSelect={() => router.push(hrefFor(item.path))}
+              />
+            ))}
+          </Dropdown>
+          {databaseItems.map((item) => (
+            <MenuItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              selected={isSelected(item.path)}
+              onClick={() => router.push(hrefFor(item.path))}
+            />
+          ))}
         </SidebarSection>
       </SidebarScrollArea>
 

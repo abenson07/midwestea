@@ -6,11 +6,8 @@ import { Text } from "@/components/patterns/primitives/Text";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
 import { RowClickCell } from "@/components/patterns/client-templates/shared";
-import { ViewTab } from "@/components/patterns/foundation/ViewTab";
-import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
+import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
 import type { ClassRosterRow } from "./classMocks";
-
-type Subview = "status" | "role";
 
 const STATUS_ORDER = ["Enrolled", "Waitlisted"];
 const STATUS_COLOR: Record<string, string> = {
@@ -18,59 +15,70 @@ const STATUS_COLOR: Record<string, string> = {
   Waitlisted: "#f2c94c",
 };
 
+const STATUS_OPTIONS = [
+  { value: "Enrolled", label: "Enrolled" },
+  { value: "Waitlisted", label: "Waitlisted" },
+];
+
+const ROLE_OPTIONS = [
+  { value: "Student", label: "Student" },
+  { value: "Instructor", label: "Instructor" },
+];
+
+const columns: TableColumn<ClassRosterRow>[] = [
+  {
+    key: "name",
+    header: "Name",
+    width: proportional(1, { minWidth: 160 }),
+    renderCell: (row) => (
+      <RowClickCell>
+        <Avatar name={row.name} size="sm" />
+        <span style={{ marginInlineStart: 8 }}>{row.name}</span>
+      </RowClickCell>
+    ),
+  },
+  {
+    key: "email",
+    header: "Email",
+    width: pixel(200),
+    renderCell: (row) => (
+      <RowClickCell>
+        <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.email}</span>
+      </RowClickCell>
+    ),
+  },
+  {
+    key: "role",
+    header: "Role",
+    width: pixel(140),
+    renderCell: (row) => <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.role}</span>,
+  },
+];
+
 export type ClassRosterSectionProps = {
   rows: ClassRosterRow[];
 };
 
-/** Bottom roster table — mirrors the Volunteers tab's `NestedGroupedTable` (By status / By ask). */
 export function ClassRosterSection({ rows }: ClassRosterSectionProps) {
-  const [subview, setSubview] = useState<Subview>("status");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [roleFilter, setRoleFilter] = useState<string[]>([]);
 
-  const columns = useMemo<TableColumn<ClassRosterRow>[]>(() => {
-    const cols: TableColumn<ClassRosterRow>[] = [
-      {
-        key: "name",
-        header: "Name",
-        width: proportional(1, { minWidth: 160 }),
-        renderCell: (row) => (
-          <RowClickCell>
-            <Avatar name={row.name} size="sm" />
-            <span style={{ marginInlineStart: 8 }}>{row.name}</span>
-          </RowClickCell>
-        ),
-      },
-      {
-        key: "email",
-        header: "Email",
-        width: pixel(200),
-        renderCell: (row) => (
-          <RowClickCell>
-            <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.email}</span>
-          </RowClickCell>
-        ),
-      },
-    ];
-    cols.push(
-      subview === "status"
-        ? {
-            key: "role",
-            header: "Role",
-            width: pixel(140),
-            renderCell: (row) => (
-              <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.role}</span>
-            ),
-          }
-        : {
-            key: "status",
-            header: "Status",
-            width: pixel(140),
-            renderCell: (row) => (
-              <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.status}</span>
-            ),
-          },
-    );
-    return cols;
-  }, [subview]);
+  const filteredRows = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return rows.filter((row) => {
+      if (
+        query &&
+        !row.name.toLowerCase().includes(query) &&
+        !row.email.toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+      if (statusFilter.length && !statusFilter.includes(row.status)) return false;
+      if (roleFilter.length && !roleFilter.includes(row.role)) return false;
+      return true;
+    });
+  }, [rows, search, statusFilter, roleFilter]);
 
   return (
     <section
@@ -79,25 +87,28 @@ export function ClassRosterSection({ rows }: ClassRosterSectionProps) {
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
-        gap: 4,
+        gap: 8,
       }}
     >
-      <Text weight="semibold">Students</Text>
-      <ViewTabs aria-label="Students grouping">
-        <ViewTab
-          label="By status"
-          selected={subview === "status"}
-          onClick={() => setSubview("status")}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <Text weight="semibold">Students</Text>
+        <ListToolbar
+          searchValue={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search students…"
+          filterGroups={[
+            { label: "Status", options: STATUS_OPTIONS, selected: statusFilter, onChange: setStatusFilter },
+            { label: "Role", options: ROLE_OPTIONS, selected: roleFilter, onChange: setRoleFilter },
+          ]}
         />
-        <ViewTab label="By role" selected={subview === "role"} onClick={() => setSubview("role")} />
-      </ViewTabs>
+      </div>
       <GroupedTable
-        data={rows}
+        data={filteredRows}
         columns={columns}
         getRowKey={(row) => row.id}
-        groupBy={(row) => (subview === "status" ? row.status : row.role)}
-        groupOrder={subview === "status" ? STATUS_ORDER : undefined}
-        getGroupMeta={(key) => (subview === "status" ? { color: STATUS_COLOR[key], label: key } : { label: key })}
+        groupBy={(row) => row.status}
+        groupOrder={STATUS_ORDER}
+        getGroupMeta={(key) => ({ color: STATUS_COLOR[key], label: key })}
         listChrome
       />
     </section>

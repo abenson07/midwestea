@@ -8,6 +8,11 @@ export type ClassDetail = {
   time: string;
   location: string;
   publishStatus: "draft" | "published";
+  registrationFee: string;
+  tuitionFee: string;
+  classSize: string;
+  classFormat: "Online" | "Hybrid" | "In-person";
+  prerequisites: string[];
 };
 
 export type ClassRosterRow = {
@@ -30,6 +35,11 @@ export const CLASS_DETAILS: Record<string, ClassDetail> = {
     time: "6:00 PM – 9:00 PM",
     location: "Midwest EMS Training Center, Room 2",
     publishStatus: "published",
+    registrationFee: "$25",
+    tuitionFee: "$450",
+    classSize: "18 / 24 seats",
+    classFormat: "Hybrid",
+    prerequisites: ["High school graduation", "CPR Certificate"],
   },
   "open-class-b": {
     id: "open-class-b",
@@ -42,6 +52,11 @@ export const CLASS_DETAILS: Record<string, ClassDetail> = {
     time: "6:00 PM – 9:00 PM",
     location: "Midwest EMS Training Center, Room 1",
     publishStatus: "draft",
+    registrationFee: "$25",
+    tuitionFee: "$600",
+    classSize: "12 / 20 seats",
+    classFormat: "Online",
+    prerequisites: ["Current BLS Certification"],
   },
 };
 
@@ -72,6 +87,11 @@ export function classDetailFor(classId: string): ClassDetail {
       time: "—",
       location: "—",
       publishStatus: "draft",
+      registrationFee: "—",
+      tuitionFee: "—",
+      classSize: "—",
+      classFormat: "In-person",
+      prerequisites: [],
     }
   );
 }
