@@ -99,8 +99,16 @@ export function ClassOverviewPage({
         }}
       >
         <ClassInfoBox classDetail={classDetail} />
-        <ClassPrerequisitesQueue key={classDetail.id} submissions={submissions} />
-        <ClassDueInvoicesSection invoices={invoices} />
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: OVERVIEW_GRID.gap,
+          }}
+        >
+          <ClassPrerequisitesQueue key={classDetail.id} submissions={submissions} />
+          <ClassDueInvoicesSection invoices={invoices} />
+        </div>
         <ClassRosterSection
           rows={roster}
           selectedStudentId={selectedStudentId}

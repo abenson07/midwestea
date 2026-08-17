@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, ClipboardCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/patterns/primitives/Avatar";
 import { Text } from "@/components/patterns/primitives/Text";
 import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Modal } from "@/components/patterns/shared/Modal";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
+import { ClassBanner } from "./ClassBanner";
 import type { ClassPrerequisiteSubmission } from "./classMocks";
 
 function DocumentLightbox({
@@ -106,6 +108,7 @@ export type ClassPrerequisitesQueueProps = {
 export function ClassPrerequisitesQueue({ submissions }: ClassPrerequisitesQueueProps) {
   const [rows, setRows] = useState(submissions);
   const [viewing, setViewing] = useState<ClassPrerequisiteSubmission | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   function removeRow(id: string) {
     setRows((prev) => prev.filter((row) => row.id !== id));
@@ -175,34 +178,28 @@ export function ClassPrerequisitesQueue({ submissions }: ClassPrerequisitesQueue
   ];
 
   return (
-    <section
-      data-slot="class-prerequisites-queue"
-      style={{
-        boxSizing: "border-box",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-        padding: 20,
-        border: "var(--linear-border-width) solid var(--linear-color-hairline)",
-        borderRadius: "var(--linear-radius-md)",
-        background: "var(--linear-color-panel)",
-      }}
-    >
-      <Text weight="semibold">Prerequisites</Text>
-      {rows.length ? (
-        <GroupedTable
-          data={rows}
-          columns={columns}
-          getRowKey={(row) => row.id}
-          appearance="nested"
-          listChrome={false}
-        />
-      ) : (
-        <Text size="sm" color="secondary">
-          No prerequisites to review.
-        </Text>
-      )}
+    <div data-slot="class-prerequisites-queue">
+      <ClassBanner
+        icon={<ClipboardCheck size={16} strokeWidth={1.75} />}
+        label={`${rows.length} Prerequisite${rows.length === 1 ? "" : "s"} to review`}
+        onClick={() => setIsOpen(true)}
+      />
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Prerequisites" width={640}>
+        {rows.length ? (
+          <GroupedTable
+            data={rows}
+            columns={columns}
+            getRowKey={(row) => row.id}
+            appearance="nested"
+            listChrome={false}
+          />
+        ) : (
+          <Text size="sm" color="secondary">
+            No prerequisites to review.
+          </Text>
+        )}
+      </Modal>
       {viewing ? <DocumentLightbox submission={viewing} onClose={() => setViewing(null)} /> : null}
-    </section>
+    </div>
   );
 }

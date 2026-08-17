@@ -1,17 +1,25 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { CalendarDays, Clock, MapPin, User } from "lucide-react";
-import type { ClassDetail } from "./classMocks";
+import { useRouter } from "next/navigation";
+import { GraduationCap, BookOpen, CalendarClock } from "lucide-react";
+import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import type { ClassDetail, ClassTemplateRef } from "./classMocks";
 
 export type ClassInfoBoxProps = {
   classDetail: ClassDetail;
 };
 
-function ClassMetaItem({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+/** Icon + name row linking back to the program/course template a class was created from. */
+function ClassTemplateLink({ template, onClick }: { template: ClassTemplateRef; onClick: () => void }) {
+  const TemplateIcon = template.kind === "Program" ? GraduationCap : BookOpen;
   return (
-    <span
+    <button
+      type="button"
+      onClick={onClick}
       style={{
+        all: "unset",
+        alignSelf: "flex-start",
+        cursor: "pointer",
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
@@ -20,14 +28,17 @@ function ClassMetaItem({ icon, children }: { icon: ReactNode; children: ReactNod
         lineHeight: "20px",
       }}
     >
-      <span style={{ display: "inline-flex" }}>{icon}</span>
-      {children}
-    </span>
+      <TemplateIcon size={14} strokeWidth={1.75} />
+      {template.name}
+    </button>
   );
 }
 
 /** Class overview header — title, summary, and schedule, no card chrome. */
 export function ClassInfoBox({ classDetail }: ClassInfoBoxProps) {
+  const router = useRouter();
+  const basePath = useAdminBasePath();
+
   return (
     <header
       data-slot="class-info-box"
@@ -38,7 +49,7 @@ export function ClassInfoBox({ classDetail }: ClassInfoBoxProps) {
         gap: 16,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
         <h1
           style={{
             margin: 0,
@@ -49,45 +60,30 @@ export function ClassInfoBox({ classDetail }: ClassInfoBoxProps) {
             color: "var(--linear-color-ink)",
           }}
         >
-          {classDetail.title}
+          {classDetail.classCode}
         </h1>
 
-        <p
-          style={{
-            margin: 0,
-            fontSize: 13,
-            lineHeight: "20px",
-            color: "var(--linear-color-ink-subtle)",
-          }}
-        >
-          {classDetail.type} · Instructed by {classDetail.instructor}
-        </p>
-
-        <p
-          style={{
-            margin: "8px 0 0",
-            fontSize: 13,
-            lineHeight: "20px",
-            color: "var(--linear-color-ink-subtle)",
-          }}
-        >
-          {classDetail.description}
-        </p>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
-        <ClassMetaItem icon={<CalendarDays size={14} strokeWidth={1.75} />}>
-          {classDetail.date}
-        </ClassMetaItem>
-        <ClassMetaItem icon={<Clock size={14} strokeWidth={1.75} />}>
-          {classDetail.time}
-        </ClassMetaItem>
-        <ClassMetaItem icon={<MapPin size={14} strokeWidth={1.75} />}>
-          {classDetail.location}
-        </ClassMetaItem>
-        <ClassMetaItem icon={<User size={14} strokeWidth={1.75} />}>
-          {classDetail.instructor}
-        </ClassMetaItem>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          {classDetail.template ? (
+            <ClassTemplateLink
+              template={classDetail.template}
+              onClick={() => router.push(`${basePath}${classDetail.template!.href}`)}
+            />
+          ) : null}
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              color: "var(--linear-color-ink-subtle)",
+              fontSize: 13,
+              lineHeight: "20px",
+            }}
+          >
+            <CalendarClock size={14} strokeWidth={1.75} />
+            32 days left to register
+          </span>
+        </div>
       </div>
     </header>
   );

@@ -1,5 +1,14 @@
+export type ClassTemplateRef = {
+  kind: "Program" | "Course";
+  name: string;
+  /** Path relative to the admin base (`/admin` or `/admin-preview`). */
+  href: string;
+};
+
 export type ClassDetail = {
   id: string;
+  /** Human class ID, e.g. "PARA-001" — assigned from the parent template's code. */
+  classCode: string;
   title: string;
   type: string;
   instructor: string;
@@ -13,6 +22,8 @@ export type ClassDetail = {
   classSize: string;
   classFormat: "Online" | "Hybrid" | "In-person";
   prerequisites: string[];
+  /** The program or course template this class was created from. */
+  template?: ClassTemplateRef;
 };
 
 export type ClassRosterRow = {
@@ -68,6 +79,7 @@ export type ClassActivityItem = {
 export const CLASS_DETAILS: Record<string, ClassDetail> = {
   "open-class-a": {
     id: "open-class-a",
+    classCode: "PARA-001",
     title: "Open Class A",
     type: "BLS Certification",
     instructor: "Dana Whitfield",
@@ -82,9 +94,11 @@ export const CLASS_DETAILS: Record<string, ClassDetail> = {
     classSize: "18 / 24 seats",
     classFormat: "Hybrid",
     prerequisites: ["High school graduation", "CPR Certificate"],
+    template: { kind: "Program", name: "Paramedic Program", href: "/programs/paramedic-program" },
   },
   "open-class-b": {
     id: "open-class-b",
+    classCode: "PARA-001",
     title: "Open Class B",
     type: "ACLS Certification",
     instructor: "Marcus Cole",
@@ -99,6 +113,7 @@ export const CLASS_DETAILS: Record<string, ClassDetail> = {
     classSize: "12 / 20 seats",
     classFormat: "Online",
     prerequisites: ["Current BLS Certification"],
+    template: { kind: "Program", name: "Paramedic Program", href: "/programs/paramedic-program" },
   },
 };
 
