@@ -29,10 +29,10 @@ export function CommitteeCard({ committee }: CommitteeCardProps) {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => router.push(`/admin/committees/${committee.id}`)}
+        onClick={() => router.push(`/admin-preview/committees/${committee.id}`)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
-            router.push(`/admin/committees/${committee.id}`);
+            router.push(`/admin-preview/committees/${committee.id}`);
           }
         }}
       >

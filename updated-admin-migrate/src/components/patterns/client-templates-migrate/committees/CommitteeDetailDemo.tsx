@@ -206,7 +206,7 @@ export function CommitteeDetailDemo() {
 
   function goToMeeting(meetingId: string) {
     router.push(
-      `/admin/committees/${encodeURIComponent(rawId)}/meetings/${encodeURIComponent(meetingId)}`,
+      `/admin-preview/committees/${encodeURIComponent(rawId)}/meetings/${encodeURIComponent(meetingId)}`,
     );
   }
 
@@ -225,7 +225,7 @@ export function CommitteeDetailDemo() {
       setDemoInitiatives((prev) => [initiative, ...prev]);
       await guard(async () => undefined, { action: "Initiative created" });
       router.push(
-        `/admin/committees/${encodeURIComponent(rawId)}/initiatives/${encodeURIComponent(initiative.id)}`,
+        `/admin-preview/committees/${encodeURIComponent(rawId)}/initiatives/${encodeURIComponent(initiative.id)}`,
       );
       return;
     }
@@ -233,7 +233,7 @@ export function CommitteeDetailDemo() {
     try {
       const created = await createInitiative({ title });
       router.push(
-        `/admin/committees/${encodeURIComponent(rawId)}/initiatives/${encodeURIComponent(created.id)}`,
+        `/admin-preview/committees/${encodeURIComponent(rawId)}/initiatives/${encodeURIComponent(created.id)}`,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create initiative");
@@ -259,7 +259,7 @@ export function CommitteeDetailDemo() {
           });
         },
       });
-      router.push(`/admin/events/${id}`);
+      router.push(`/admin-preview/events/${id}`);
       return;
     }
     const startsAt = event.date
@@ -277,7 +277,7 @@ export function CommitteeDetailDemo() {
           kind: "council",
         },
       });
-      if (created) router.push(`/admin/events/${created.id}`);
+      if (created) router.push(`/admin-preview/events/${created.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create event");
     }
@@ -430,7 +430,7 @@ export function CommitteeDetailDemo() {
         onAddInitiative={() => void handleAddInitiative()}
         onSelectInitiative={(initiativeId) => {
           router.push(
-            `/admin/committees/${encodeURIComponent(rawId)}/initiatives/${encodeURIComponent(initiativeId)}`,
+            `/admin-preview/committees/${encodeURIComponent(rawId)}/initiatives/${encodeURIComponent(initiativeId)}`,
           );
         }}
       />
@@ -481,7 +481,7 @@ export function CommitteeDetailDemo() {
               breadcrumbs: [
                 {
                   label: "Committees",
-                  onClick: () => router.push("/admin/committees"),
+                  onClick: () => router.push("/admin-preview/committees"),
                 },
               ],
               endContent:
@@ -545,7 +545,7 @@ export function CommitteeDetailDemo() {
         onClose={() => setScheduleOpen(false)}
         onCreated={(meeting) => {
           router.push(
-            `/admin/committees/${encodeURIComponent(rawId)}/meetings/${encodeURIComponent(meeting.id)}`,
+            `/admin-preview/committees/${encodeURIComponent(rawId)}/meetings/${encodeURIComponent(meeting.id)}`,
           );
         }}
       />

@@ -200,7 +200,7 @@ export function CommitteeDetailPage({
               ]
                 .filter(Boolean)
                 .join(" · ")}
-              onClick={() => router.push("/admin/action-items")}
+              onClick={() => router.push("/admin-preview/action-items")}
             />
           ))}
         </div>

@@ -94,7 +94,7 @@ export function CommitteeMeetingsSection({
                   if (onSelectMeeting) onSelectMeeting(meeting.id);
                   else
                     router.push(
-                      `/admin/committees/${encodeURIComponent(committee)}/meetings/${encodeURIComponent(meeting.id)}`,
+                      `/admin-preview/committees/${encodeURIComponent(committee)}/meetings/${encodeURIComponent(meeting.id)}`,
                     );
                 }}
                 style={{

@@ -4,16 +4,23 @@ import { Suspense, useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
+  Box,
+  BookOpen,
   Building2,
   Bug,
   CalendarDays,
+  ClipboardCheck,
   CreditCard,
   FileStack,
   FileText,
+  GraduationCap,
   HelpCircle,
   Inbox,
+  LayoutDashboard,
+  LayoutGrid,
   ListChecks,
   Mail,
+  MapPin,
   Megaphone,
   FlaskConical,
   Moon,
@@ -23,14 +30,19 @@ import {
   Search,
   Settings,
   Star,
+  Stethoscope,
   Sun,
   Trash2,
+  UserCog,
+  UserRound,
   Users,
   Users2,
+  Wallet,
 } from "lucide-react";
 import {
   Dropdown,
   DropdownItem,
+  DropdownSeparator,
 } from "@/components/patterns/shared/dropdown";
 import { useEvents, useStories, useCurrentPerson, useFavorites } from "hooks";
 import { getCurrentPersonId } from "@/lib/people/currentPerson";
@@ -74,6 +86,13 @@ type DemoItem = {
 
 const group1Items: DemoItem[] = [
   {
+    id: "overview",
+    label: "Overview",
+    icon: <LayoutDashboard size={16} strokeWidth={1.75} />,
+    path: "/overview",
+    wip: true,
+  },
+  {
     id: "action-items",
     label: "Action Items",
     icon: <ListChecks size={16} strokeWidth={1.75} />,
@@ -85,6 +104,119 @@ const group1Items: DemoItem[] = [
     label: "Inbox",
     icon: <Inbox size={16} strokeWidth={1.75} />,
     path: "/inbox",
+    wip: true,
+  },
+];
+
+const classItems: DemoItem[] = [
+  {
+    id: "open-class-a",
+    label: "Open Class A",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/open-class-a",
+    wip: true,
+  },
+  {
+    id: "open-class-b",
+    label: "Open Class B",
+    icon: <Box size={16} strokeWidth={1.75} />,
+    path: "/open-class-b",
+    wip: true,
+  },
+];
+
+const classTypeItems: DemoItem[] = [
+  {
+    id: "bls",
+    label: "BLS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/bls",
+    wip: true,
+  },
+  {
+    id: "acls",
+    label: "ACLS",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/acls",
+    wip: true,
+  },
+  {
+    id: "ped",
+    label: "PED",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/ped",
+    wip: true,
+  },
+  {
+    id: "oxy",
+    label: "OXY",
+    icon: <Stethoscope size={16} strokeWidth={1.75} />,
+    path: "/oxy",
+    wip: true,
+  },
+];
+
+const allClassesItems: DemoItem[] = [
+  {
+    id: "all-classes",
+    label: "All Classes",
+    icon: <LayoutGrid size={16} strokeWidth={1.75} />,
+    path: "/classes",
+    wip: true,
+  },
+];
+
+const group3Items: DemoItem[] = [
+  {
+    id: "students",
+    label: "Students",
+    icon: <UserRound size={16} strokeWidth={1.75} />,
+    path: "/students",
+    wip: true,
+  },
+  {
+    id: "payments",
+    label: "Payments",
+    icon: <Wallet size={16} strokeWidth={1.75} />,
+    path: "/payments",
+    wip: true,
+  },
+];
+
+const group3MoreItems: DemoItem[] = [
+  {
+    id: "programs",
+    label: "Programs",
+    icon: <GraduationCap size={16} strokeWidth={1.75} />,
+    path: "/programs",
+    wip: true,
+  },
+  {
+    id: "courses",
+    label: "Courses",
+    icon: <BookOpen size={16} strokeWidth={1.75} />,
+    path: "/courses",
+    wip: true,
+  },
+  {
+    id: "locations",
+    label: "Locations",
+    icon: <MapPin size={16} strokeWidth={1.75} />,
+    path: "/locations",
+    wip: true,
+  },
+  {
+    id: "staff",
+    label: "Staff",
+    icon: <UserCog size={16} strokeWidth={1.75} />,
+    path: "/staff",
+    wip: true,
+  },
+  {
+    id: "prerequisites",
+    label: "Prerequisites",
+    icon: <ClipboardCheck size={16} strokeWidth={1.75} />,
+    path: "/prerequisites",
     wip: true,
   },
 ];
@@ -351,6 +483,21 @@ function LinearSidebarBase({
   const visibleGroup2Items = showWipItems
     ? group2Items
     : group2Items.filter((item) => !item.wip);
+  const visibleClassItems = showWipItems
+    ? classItems
+    : classItems.filter((item) => !item.wip);
+  const visibleClassTypeItems = showWipItems
+    ? classTypeItems
+    : classTypeItems.filter((item) => !item.wip);
+  const visibleGroup3Items = showWipItems
+    ? group3Items
+    : group3Items.filter((item) => !item.wip);
+  const visibleGroup3MoreItems = showWipItems
+    ? group3MoreItems
+    : group3MoreItems.filter((item) => !item.wip);
+  const visibleAllClassesItems = showWipItems
+    ? allClassesItems
+    : allClassesItems.filter((item) => !item.wip);
 
   function requestDemoTransition(target: DemoModeConfirmModalTarget) {
     setDemoTransition(target);
@@ -375,12 +522,28 @@ function LinearSidebarBase({
     const allHrefs = [
       ...visibleGroup1Items.map((item) => hrefFor(item.path)),
       ...visibleGroup2Items.map((item) => hrefFor(item.path)),
+      ...visibleClassItems.map((item) => hrefFor(item.path)),
+      ...visibleClassTypeItems.map((item) => hrefFor(item.path)),
+      ...visibleAllClassesItems.map((item) => hrefFor(item.path)),
+      ...visibleGroup3Items.map((item) => hrefFor(item.path)),
+      ...visibleGroup3MoreItems.map((item) => hrefFor(item.path)),
       ...databaseItems.map((item) => hrefFor(item.path)),
       ...favorites.map((favorite) => favorite.route),
     ];
     return getBestMatchingHref(currentRoute, allHrefs);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hrefFor/basePath change together; visible*/databaseItems are stable module-level data
-  }, [currentRoute, visibleGroup1Items, visibleGroup2Items, favorites, basePath]);
+  }, [
+    currentRoute,
+    visibleGroup1Items,
+    visibleGroup2Items,
+    visibleClassItems,
+    visibleClassTypeItems,
+    visibleAllClassesItems,
+    visibleGroup3Items,
+    visibleGroup3MoreItems,
+    favorites,
+    basePath,
+  ]);
 
   function isSelected(path: string): boolean {
     return hrefFor(path) === activeHref;
@@ -402,13 +565,33 @@ function LinearSidebarBase({
   // pages don't render an <h1>, so this is the most reliable "what section is the user in"
   // signal available to the bug-report modal.
   const activeSectionLabel = useMemo(() => {
-    const allItems = [...visibleGroup1Items, ...visibleGroup2Items, ...databaseItems];
+    const allItems = [
+      ...visibleGroup1Items,
+      ...visibleGroup2Items,
+      ...visibleClassItems,
+      ...visibleClassTypeItems,
+      ...visibleAllClassesItems,
+      ...visibleGroup3Items,
+      ...visibleGroup3MoreItems,
+      ...databaseItems,
+    ];
     const match = allItems.find((item) => hrefFor(item.path) === activeHref);
     if (match) return match.label;
     const favoriteMatch = favorites.find((favorite) => favorite.route === activeHref);
     return favoriteMatch?.name;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- hrefFor/basePath change together
-  }, [activeHref, visibleGroup1Items, visibleGroup2Items, favorites, basePath]);
+  }, [
+    activeHref,
+    visibleGroup1Items,
+    visibleGroup2Items,
+    visibleClassItems,
+    visibleClassTypeItems,
+    visibleAllClassesItems,
+    visibleGroup3Items,
+    visibleGroup3MoreItems,
+    favorites,
+    basePath,
+  ]);
 
   function openCreateOption(next: () => void) {
     setIsCreateMenuOpen(false);
@@ -497,18 +680,6 @@ function LinearSidebarBase({
       </SidebarHeader>
 
       <SidebarScrollArea>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {visibleGroup1Items.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
-            />
-          ))}
-        </div>
-
         <SidebarSection title="Manage">
           {visibleGroup2Items.map((item) => (
             <MenuItem
@@ -584,6 +755,98 @@ function LinearSidebarBase({
             ))}
           </SidebarSection>
         ) : null}
+
+        <SidebarSection title="Group One">
+          {visibleGroup1Items.map((item) => (
+            <MenuItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              selected={isSelected(item.path)}
+              onClick={() => router.push(hrefFor(item.path))}
+            />
+          ))}
+        </SidebarSection>
+
+        <SidebarSection title="Group Two">
+          {visibleClassItems.map((item) => (
+            <MenuItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              selected={isSelected(item.path)}
+              onClick={() => router.push(hrefFor(item.path))}
+            />
+          ))}
+          {visibleClassTypeItems.length > 0 || visibleAllClassesItems.length > 0 ? (
+            <Dropdown
+              label="More"
+              trigger={
+                <MenuItem
+                  label="More"
+                  icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+                  selected={[...visibleClassTypeItems, ...visibleAllClassesItems].some((item) =>
+                    isSelected(item.path)
+                  )}
+                />
+              }
+            >
+              {visibleClassTypeItems.map((item) => (
+                <DropdownItem
+                  key={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                  selected={isSelected(item.path)}
+                  onSelect={() => router.push(hrefFor(item.path))}
+                />
+              ))}
+              {visibleAllClassesItems.length > 0 ? <DropdownSeparator /> : null}
+              {visibleAllClassesItems.map((item) => (
+                <DropdownItem
+                  key={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                  selected={isSelected(item.path)}
+                  onSelect={() => router.push(hrefFor(item.path))}
+                />
+              ))}
+            </Dropdown>
+          ) : null}
+        </SidebarSection>
+
+        <SidebarSection title="Group Three">
+          {visibleGroup3Items.map((item) => (
+            <MenuItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              selected={isSelected(item.path)}
+              onClick={() => router.push(hrefFor(item.path))}
+            />
+          ))}
+          {visibleGroup3MoreItems.length > 0 ? (
+            <Dropdown
+              label="More"
+              trigger={
+                <MenuItem
+                  label="More"
+                  icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+                  selected={visibleGroup3MoreItems.some((item) => isSelected(item.path))}
+                />
+              }
+            >
+              {visibleGroup3MoreItems.map((item) => (
+                <DropdownItem
+                  key={item.id}
+                  label={item.label}
+                  icon={item.icon}
+                  selected={isSelected(item.path)}
+                  onSelect={() => router.push(hrefFor(item.path))}
+                />
+              ))}
+            </Dropdown>
+          ) : null}
+        </SidebarSection>
       </SidebarScrollArea>
 
       {isMigrate && demoEnabled ? (

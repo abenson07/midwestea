@@ -359,7 +359,7 @@ export function EventDetailDemo({ navigation }: EventDetailDemoProps = {}) {
 
   const eventsCrumb: CanvasTopbarBreadcrumb = {
     label: "Events",
-    onClick: () => router.push("/admin/events"),
+    onClick: () => router.push("/admin-preview/events"),
   };
   const eventCrumb: CanvasTopbarBreadcrumb = {
     label: eventTitle,

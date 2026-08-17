@@ -25,10 +25,10 @@ export function EventCard({ event }: EventCardProps) {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => router.push(`/admin/events/${event.id}`)}
+        onClick={() => router.push(`/admin-preview/events/${event.id}`)}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
-            router.push(`/admin/events/${event.id}`);
+            router.push(`/admin-preview/events/${event.id}`);
           }
         }}
       >

@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "webapp",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/webapp", "--", "-p", "3100"],
+      "port": 3100
+    },
+    {
+      "name": "admin-migrate",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "updated-admin-migrate", "--", "-p", "3101"],
+      "port": 3101
+    }
+  ]
+}

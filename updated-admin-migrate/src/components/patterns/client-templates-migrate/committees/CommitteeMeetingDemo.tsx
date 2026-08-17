@@ -29,12 +29,12 @@ export function CommitteeMeetingDemo({ committeeId, meetingId }: CommitteeMeetin
               breadcrumbs: [
                 {
                   label: "Committees",
-                  onClick: () => router.push("/admin/committees"),
+                  onClick: () => router.push("/admin-preview/committees"),
                 },
                 {
                   label,
                   onClick: () =>
-                    router.push(`/admin/committees/${encodeURIComponent(committeeId)}`),
+                    router.push(`/admin-preview/committees/${encodeURIComponent(committeeId)}`),
                 },
                 { label: "Meeting" },
               ],

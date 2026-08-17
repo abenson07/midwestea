@@ -44,7 +44,7 @@ export function EventsDemo() {
         kind: "council",
       },
     });
-    if (created) router.push(`/admin/events/${created.id}`);
+    if (created) router.push(`/admin-preview/events/${created.id}`);
   }
 
   return (

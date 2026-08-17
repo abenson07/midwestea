@@ -287,13 +287,13 @@ export function eventIdsForInvoiceFilter(eventId: string, fieldData: EventFieldD
 }
 
 export function eventsListBasePath(pathname: string | null): string {
-  if (pathname?.startsWith("/admin/events")) return "/admin/events";
+  if (pathname?.startsWith("/admin-preview/events")) return "/admin-preview/events";
   if (pathname?.startsWith("/admin/events")) return "/admin/events";
   return "/old-admin/events";
 }
 
 export function eventsHubBasePath(pathname: string | null): string {
-  if (pathname?.startsWith("/admin/events")) return "/admin/events";
+  if (pathname?.startsWith("/admin-preview/events")) return "/admin-preview/events";
   if (pathname?.startsWith("/admin/events")) return "/admin/events";
   return "/old-admin/events-hub";
 }
