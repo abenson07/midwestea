@@ -1,11 +1,14 @@
 "use client";
 
+import { Pencil } from "lucide-react";
 import { Text } from "@/components/patterns/primitives/Text";
+import { IconButton } from "@/components/patterns/shared/IconButton";
 import { ClassSidebarSection } from "./ClassSidebarSection";
 import type { ClassDetail } from "./classMocks";
 
 export type ClassDetailsCardProps = {
   classDetail: ClassDetail;
+  onEditDetails?: () => void;
 };
 
 function PropertyRow({ label, value }: { label: string; value: string }) {
@@ -28,10 +31,23 @@ function PropertyRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Properties card — field on the left, value on the right. */
-export function ClassDetailsCard({ classDetail }: ClassDetailsCardProps) {
+/** Class details card — field on the left, value on the right. */
+export function ClassDetailsCard({ classDetail, onEditDetails }: ClassDetailsCardProps) {
   return (
-    <ClassSidebarSection title="Properties">
+    <ClassSidebarSection
+      title="Class Details"
+      action={
+        onEditDetails ? (
+          <IconButton
+            label="Edit class details"
+            variant="ghost"
+            size="sm"
+            icon={<Pencil size={14} strokeWidth={1.75} />}
+            onClick={onEditDetails}
+          />
+        ) : null
+      }
+    >
       <div style={{ display: "flex", flexDirection: "column" }}>
         <PropertyRow
           label="Status"

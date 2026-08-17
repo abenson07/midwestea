@@ -28,9 +28,15 @@ export type ClassOverviewPageProps = {
   classDetail: ClassDetail;
   roster: ClassRosterRow[];
   onEditDetails?: () => void;
+  onSeeAllInvoices?: () => void;
 };
 
-export function ClassOverviewPage({ classDetail, roster, onEditDetails }: ClassOverviewPageProps) {
+export function ClassOverviewPage({
+  classDetail,
+  roster,
+  onEditDetails,
+  onSeeAllInvoices,
+}: ClassOverviewPageProps) {
   const invoices = classDueInvoicesFor(classDetail.id);
   const submissions = classPrerequisiteQueueFor(classDetail.id);
   const activity = classActivityFor(classDetail.id);
@@ -64,9 +70,9 @@ export function ClassOverviewPage({ classDetail, roster, onEditDetails }: ClassO
             minWidth: 0,
           }}
         >
-          <ClassInfoBox classDetail={classDetail} onEditDetails={onEditDetails} />
+          <ClassInfoBox classDetail={classDetail} />
           <ClassPrerequisitesQueue key={classDetail.id} submissions={submissions} />
-          <ClassDueInvoicesSection invoices={invoices} />
+          <ClassDueInvoicesSection invoices={invoices} onSeeAllInvoices={onSeeAllInvoices} />
           <ClassRosterSection rows={roster} />
         </div>
         <div
@@ -79,8 +85,8 @@ export function ClassOverviewPage({ classDetail, roster, onEditDetails }: ClassO
             minWidth: 0,
           }}
         >
-          <ClassDetailsCard classDetail={classDetail} />
-          <ClassPrerequisitesList items={classDetail.prerequisites} />
+          <ClassDetailsCard classDetail={classDetail} onEditDetails={onEditDetails} />
+          <ClassPrerequisitesList key={classDetail.id} items={classDetail.prerequisites} />
           <ClassActivityCard items={activity} />
         </div>
       </div>
