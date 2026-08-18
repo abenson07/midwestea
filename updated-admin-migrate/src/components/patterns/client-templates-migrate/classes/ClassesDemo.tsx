@@ -10,7 +10,7 @@ import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
 import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
 import { Text } from "@/components/patterns/primitives/Text";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import {
   allClassDetails,
   catalogKindForClass,
@@ -58,25 +58,34 @@ function matchesKindFilter(row: ClassDetail, selected: string[]): boolean {
   return selected.includes(catalogKindForClass(row));
 }
 
+export type ClassesDemoProps = {
+  /** When omitted, the list stays on demo mocks (`/admin-preview`). */
+  rows?: ClassDetail[];
+  /** Real enrollment counts (step 2), keyed by class id. When omitted, falls back to the mock roster lookup. */
+  enrolledCounts?: Map<string, number>;
+};
+
 /**
  * All classes: name, dates, and enrolled.
  * Open / Closed tabs split by class end date; the filter next to search is Program vs Course.
  */
-export function ClassesDemo() {
+export function ClassesDemo({ rows: rowsProp, enrolledCounts }: ClassesDemoProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
+  const live = useIsNewAdminMigrate();
   const root = `${basePath}/classes`;
   const view = viewFromPath(pathname ?? "", root);
   const [search, setSearch] = useState("");
   const [kindFilter, setKindFilter] = useState<string[]>([]);
+  const isReal = rowsProp !== undefined || live;
 
   function changeView(next: ClassesView) {
     router.push(hrefForView(root, next));
   }
 
   function selectClass(row: ClassDetail) {
-    if (classHasDetailRoute(row.id)) {
+    if (isReal || classHasDetailRoute(row.id)) {
       router.push(`${basePath}${classDetailHref(row.id)}`);
       return;
     }
@@ -84,13 +93,13 @@ export function ClassesDemo() {
   }
 
   const filtered = useMemo(() => {
-    const all = allClassDetails().filter(
+    const all = (rowsProp ?? (live ? [] : allClassDetails())).filter(
       (row) => matchesKindFilter(row, kindFilter) && matchesSearch(row, search),
     );
     if (view === "all") return all;
     const { open, past } = splitClassesByStatus(all);
     return view === "open" ? open : past;
-  }, [view, search, kindFilter]);
+  }, [rowsProp, live, view, search, kindFilter]);
 
   const emptyLabel =
     view === "open"
@@ -142,7 +151,11 @@ export function ClassesDemo() {
         }
       >
         {filtered.length ? (
-          <ClassesTable data={filtered} onSelect={selectClass} />
+          <ClassesTable
+            data={filtered}
+            onSelect={selectClass}
+            enrolledCounts={enrolledCounts ?? (live ? new Map() : undefined)}
+          />
         ) : (
           <div style={{ padding: 24 }}>
             <Text color="secondary">{emptyLabel}</Text>

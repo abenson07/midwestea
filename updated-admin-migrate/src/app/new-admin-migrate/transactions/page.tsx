@@ -1,5 +1,5 @@
-import { PaymentsDemo } from "@/components/patterns/client-templates-migrate/payments";
+import { TransactionsMigrate } from "./TransactionsMigrate";
 
 export default function TransactionsRoute() {
-  return <PaymentsDemo />;
+  return <TransactionsMigrate />;
 }

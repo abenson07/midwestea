@@ -9,10 +9,11 @@ import { Text } from "@/components/patterns/primitives/Text";
 import { IconButton } from "@/components/patterns/shared/IconButton";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { RowClickCell, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { ClassSidebarSection } from "./ClassSidebarSection";
 import { ClassPrerequisiteViewer, type ClassPrerequisiteDecision } from "./ClassPrerequisiteViewer";
 import { classPrerequisiteQueueFor, type ClassDetail, type ClassPrerequisiteSubmission } from "./classMocks";
+import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
 
 /** 12-column table. Table takes all 12 until a row is selected, then it shifts to 11 + a 1-column sidebar. */
 const PREREQUISITES_GRID = { columns: 12, left: 11, right: 1, gap: 24 } as const;
@@ -26,7 +27,8 @@ export function ClassPrerequisitesPage({ classDetail }: ClassPrerequisitesPagePr
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const rows = classPrerequisiteQueueFor(classDetail.id);
+  const live = useIsNewAdminMigrate();
+  const rows = live ? [] : classPrerequisiteQueueFor(classDetail.id);
   const [decisions, setDecisions] = useState<Record<string, ClassPrerequisiteDecision>>({});
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("submissionId"));
@@ -100,17 +102,21 @@ export function ClassPrerequisitesPage({ classDetail }: ClassPrerequisitesPagePr
       key: "status",
       header: "",
       width: pixel(100),
-      renderCell: (row) => (
-        <RowClickCell onClick={() => selectSubmission(row.id)}>
-          <span style={{ color: "var(--linear-color-ink-subtle)" }}>
-            {decisions[row.id] === "approved"
-              ? "Approved"
-              : decisions[row.id] === "rejected"
-                ? "Rejected"
-                : "Pending"}
-          </span>
-        </RowClickCell>
-      ),
+      renderCell: (row) => {
+        const status =
+          decisions[row.id] === "approved"
+            ? "approved"
+            : decisions[row.id] === "rejected"
+              ? "needs_resubmission"
+              : "pending_review";
+        return (
+          <RowClickCell onClick={() => selectSubmission(row.id)}>
+            <span style={{ color: PREREQUISITE_STATUS_COLOR[status] }}>
+              {PREREQUISITE_STATUS_LABEL[status]}
+            </span>
+          </RowClickCell>
+        );
+      },
     },
   ];
 

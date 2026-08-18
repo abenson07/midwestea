@@ -7,6 +7,7 @@ import { IconButton } from "@/components/patterns/shared/IconButton";
 export type OutlinedPanelProps = {
   children: ReactNode;
   width?: number | string;
+  title?: string;
   /** When set, shows a close X top-right and closes on Escape. */
   onClose?: () => void;
   /** When set, shows an Edit pencil button top-right, to the left of the close X. */
@@ -18,7 +19,7 @@ export type OutlinedPanelProps = {
  * (`--linear-color-side-panel` / `--linear-shadow-side-panel`), separate from
  * translucent content cards (`--linear-color-panel` at 50% opacity).
  */
-export function OutlinedPanel({ children, width = 320, onClose, onEdit }: OutlinedPanelProps) {
+export function OutlinedPanel({ children, width = 320, title, onClose, onEdit }: OutlinedPanelProps) {
   useEffect(() => {
     if (!onClose) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -48,25 +49,52 @@ export function OutlinedPanel({ children, width = 320, onClose, onEdit }: Outlin
         padding: 16,
       }}
     >
-      {onEdit || onClose ? (
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 4, marginBottom: 8 }}>
-          {onEdit ? (
-            <IconButton
-              label="Edit"
-              variant="ghost"
-              size="sm"
-              icon={<Pencil size={16} strokeWidth={1.75} />}
-              onClick={onEdit}
-            />
-          ) : null}
-          {onClose ? (
-            <IconButton
-              label="Close"
-              variant="ghost"
-              size="sm"
-              icon={<X size={16} strokeWidth={1.75} />}
-              onClick={onClose}
-            />
+      {title || onEdit || onClose ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 8,
+            minHeight: 20,
+          }}
+        >
+          {title ? (
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                lineHeight: "20px",
+                color: "var(--linear-color-ink)",
+              }}
+            >
+              {title}
+            </span>
+          ) : (
+            <span />
+          )}
+          {onEdit || onClose ? (
+            <div style={{ display: "inline-flex", gap: 4, flexShrink: 0 }}>
+              {onEdit ? (
+                <IconButton
+                  label="Edit"
+                  variant="ghost"
+                  size="sm"
+                  icon={<Pencil size={16} strokeWidth={1.75} />}
+                  onClick={onEdit}
+                />
+              ) : null}
+              {onClose ? (
+                <IconButton
+                  label="Close"
+                  variant="ghost"
+                  size="sm"
+                  icon={<X size={16} strokeWidth={1.75} />}
+                  onClick={onClose}
+                />
+              ) : null}
+            </div>
           ) : null}
         </div>
       ) : null}

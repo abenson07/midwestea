@@ -31,7 +31,36 @@ Related: [existing-admin-requirements.md](./existing-admin-requirements.md) (wha
 - Current / Past Due stay empty until step 5. No class links, invoice actions, or live prereq review.
 - `/admin-preview` still uses mocks.
 
-Students identity is piped in. Other sections still render demo mocks.
+### 2. Classes
+
+- `/new-admin-migrate/classes`, `/classes/open`, `/classes/closed` list real staging class rows (code, name, course code, dates) via `classes/ClassesMigrate.tsx` / `classes/fromStaging.ts`.
+- `/class/[classId]` is a real class: header identity fields are real; roster is real (enrolled students joined from `enrollments` + the step-1 student readers, `enrollment_status = "removed"` excluded).
+- Catalog fields (price, location, format, capacity, cert length, prerequisites, external links, template link, publish status) stay placeholder (`—`) until step 4. Payment/invoice fields (roster payment pill, due-invoices banner, revenue card) stay placeholder until step 3.
+- Added `getClassById` to `src/lib/staging/classes.ts` and `GET /api/new-admin-migrate/classes/[id]`, mirroring the students `[id]` route.
+- Short-alias demo routes (`open-class-a`, `open-class-b`, `closed-class-a`, `bls`, `acls`, `ped`, `oxy`) are untouched — still pure mock.
+
+### 3. Transactions
+
+- `/new-admin-migrate/transactions` lists real staging invoices (student name/email, class code, type, amount, derived status, due date) via `transactions/TransactionsMigrate.tsx`.
+- Class Transactions tab and roster payment pills / due-invoice banner on `/class/[classId]` use the same rows.
+- Mark paid / remind / cancel / adjust amount stay demo toasts (local only). No Stripe writes.
+- Staging has no `discount_percent` / `original_amount_due` columns yet, so the “% off” badge stays empty.
+
+### 4. Programs / courses / settings
+
+- `/programs` and `/courses` list real `courses` rows (split by `program_type`). Detail routes use real UUIDs so class-from-template links work.
+- Template detail shows real classes for that code/`course_uuid`, plus template prereq names and catalog fields (price, format, limits, external links).
+- Class catalog fields and the template link on `/class/[id]` are filled from the expanded class + course adapters.
+- Settings → Locations and Prerequisites read staging. Trainers stay mock (no live trainers table). Saves stay demo toasts.
+- Waitlist-when-empty is not in this fork UI yet.
+
+### 5. Backfill Students
+
+- Current / Past Due, list payment status, profile invoices, and class links now use the same adapters as steps 1–3.
+- Class names on the student profile link to `/class/[uuid]`.
+- Prereq review, documents, and activity stay mock-empty for real UUIDs.
+
+Students, classes, transactions, and catalog reads are piped in. `/admin-preview` still uses mocks. Cutover (step 6) is not done.
 
 Dev: `updated-admin-migrate` on port 3003 → `http://localhost:3003/new-admin-migrate`.
 
@@ -78,19 +107,19 @@ Routes: `/new-admin-migrate/students`, `/students/current`, `/students/past-due`
 
 Current / Past Due can stay empty or keep mock filters until step 5. Class names as text if you show them at all.
 
-### 2. Classes
+### 2. Classes — done
 
 Roster and class detail use the same enrollments and class rows. Now class IDs are real UUIDs, so links from a student can exist without 404s.
 
-### 3. Transactions
+### 3. Transactions — done
 
 Same invoices the student profile will eventually show. List, status, mark paid / remind can land here — not in the Students slice.
 
-### 4. Programs / courses / settings
+### 4. Programs / courses / settings — done
 
 Templates, locations, trainers, prerequisites config. After classes so class-from-template links are real.
 
-### 5. Backfill Students
+### 5. Backfill Students — done
 
 Turn on Current, Past Due, payment status, profile invoices, and class links. Same adapters as steps 1–3. No new data model.
 

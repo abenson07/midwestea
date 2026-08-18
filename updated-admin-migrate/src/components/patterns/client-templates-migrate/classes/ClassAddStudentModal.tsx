@@ -6,6 +6,7 @@ import { Modal } from "@/components/patterns/shared/Modal";
 import { Button } from "@/components/patterns/primitives/Button";
 import { TextInput } from "@/components/patterns/primitives/TextInput";
 import { Text } from "@/components/patterns/primitives/Text";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { STUDENT_ROWS } from "../students/studentData";
 import type { ClassRosterRow } from "./classMocks";
 
@@ -42,14 +43,15 @@ export function ClassAddStudentModal({
     [roster],
   );
 
+  const live = useIsNewAdminMigrate();
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
+    if (!q || live) return [];
     return STUDENT_ROWS.filter((row) => {
       if (enrolledEmails.has(row.email.toLowerCase())) return false;
       return row.name.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
     }).slice(0, 8);
-  }, [query, enrolledEmails]);
+  }, [query, enrolledEmails, live]);
 
   function enrollExisting(student: { id: string; name: string; email: string }) {
     onAdd({

@@ -6,6 +6,7 @@ import { Card } from "@/components/patterns/primitives/Card";
 import { Heading, Text } from "@/components/patterns/primitives/Text";
 import { VStack } from "@/components/patterns/primitives/Stack";
 import { Button } from "@/components/patterns/primitives/Button";
+import { Modal } from "@/components/patterns/shared/Modal";
 import { SettingsRow } from "@/components/patterns/client-templates-migrate/settings/SettingsRow";
 import {
   SettingsCardList,
@@ -47,14 +48,22 @@ function Divider() {
 export type ClassSettingsPageProps = {
   classDetail: ClassDetail;
   onSave: (next: ClassDetail) => void;
+  onDeleted?: () => void;
+  locationNames?: string[];
 };
 
 /** Class Settings — mirrors `CommitteeSettingsPage`'s details + publish sections. */
-export function ClassSettingsPage({ classDetail, onSave }: ClassSettingsPageProps) {
+export function ClassSettingsPage({
+  classDetail,
+  onSave,
+  onDeleted,
+  locationNames,
+}: ClassSettingsPageProps) {
   const [draft, setDraft] = useState(classDetail);
   const [saving, setSaving] = useState(false);
   const [editingPrereqId, setEditingPrereqId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     setDraft(classDetail);
@@ -78,6 +87,12 @@ export function ClassSettingsPage({ classDetail, onSave }: ClassSettingsPageProp
     onSave(draft);
     setSaving(false);
     toast.success("Class settings saved — demo mode, saved locally only");
+  }
+
+  function handleDelete() {
+    setDeleteOpen(false);
+    toast.success(`${draft.title} deleted — demo mode, not removed from the list`);
+    onDeleted?.();
   }
 
   const isPublished = draft.publishStatus === "published";
@@ -146,6 +161,7 @@ export function ClassSettingsPage({ classDetail, onSave }: ClassSettingsPageProp
                       <LocationSelect
                         value={draft.location}
                         onChange={(location) => patch({ location })}
+                        options={locationNames}
                         style={{ ...rowInputStyle, textAlign: "left" }}
                       />
                     }
@@ -385,7 +401,44 @@ export function ClassSettingsPage({ classDetail, onSave }: ClassSettingsPageProp
             onClick={() => void handleSave()}
           />
         </div>
+
+        <VStack gap={3}>
+          <Text type="label" color="secondary">
+            Danger zone
+          </Text>
+          <Card padding={4}>
+            <SettingsRow
+              label="Delete class"
+              description="Permanently removes this class. This cannot be undone."
+              control={
+                <Button
+                  label="Delete class"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDeleteOpen(true)}
+                />
+              }
+            />
+          </Card>
+        </VStack>
       </VStack>
+
+      <Modal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title={`Delete ${draft.title}?`}
+        width={440}
+        footer={
+          <>
+            <Button label="Cancel" variant="ghost" onClick={() => setDeleteOpen(false)} />
+            <Button label="Delete class" variant="primary" onClick={handleDelete} />
+          </>
+        }
+      >
+        <Text size="sm" color="secondary">
+          This permanently removes {draft.title}. It cannot be undone.
+        </Text>
+      </Modal>
     </div>
   );
 }

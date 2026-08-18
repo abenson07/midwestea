@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Modal } from "@/components/patterns/shared/Modal";
 import { Button } from "@/components/patterns/primitives/Button";
 import { Text } from "@/components/patterns/primitives/Text";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { allClassDetails, catalogKindForClass, catalogTemplateByCode } from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
 import { isClassClosed } from "@/components/patterns/client-templates-migrate/classes/classTableColumns";
 import { STUDENT_RECORDS } from "@/components/patterns/client-templates-migrate/students/studentData";
@@ -39,7 +40,9 @@ const fieldStyle = {
 };
 
 export function CreateTransactionModal({ isOpen, onClose, onCreate }: CreateTransactionModalProps) {
-  const classes = useMemo(() => allClassDetails(), []);
+  const live = useIsNewAdminMigrate();
+  const classes = useMemo(() => (live ? [] : allClassDetails()), [live]);
+  const students = useMemo(() => (live ? [] : STUDENT_RECORDS), [live]);
   const [studentId, setStudentId] = useState("");
   const [classId, setClassId] = useState("");
   const [type, setType] = useState<TransactionType>("custom");
@@ -48,15 +51,15 @@ export function CreateTransactionModal({ isOpen, onClose, onCreate }: CreateTran
 
   useEffect(() => {
     if (!isOpen) return;
-    setStudentId(STUDENT_RECORDS[0]?.id ?? "");
+    setStudentId(students[0]?.id ?? "");
     setClassId(classes[0]?.id ?? "");
     setType("custom");
     setAmount("");
     setDueDate("");
-  }, [isOpen, classes]);
+  }, [isOpen, classes, students]);
 
   function submit() {
-    const student = STUDENT_RECORDS.find((row) => row.id === studentId);
+    const student = students.find((row) => row.id === studentId);
     const classDetail = classes.find((row) => row.id === classId);
     const dollars = Number.parseFloat(amount);
     if (!student || !classDetail) {
@@ -121,7 +124,7 @@ export function CreateTransactionModal({ isOpen, onClose, onCreate }: CreateTran
             Student
           </Text>
           <select value={studentId} onChange={(event) => setStudentId(event.target.value)} style={fieldStyle}>
-            {STUDENT_RECORDS.map((row) => (
+            {students.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.name}
               </option>

@@ -1,5 +1,8 @@
 import { createStagingAdminClient } from "./adminClient";
 
+/** Legacy demo routes still link to non-UUID mock slugs; treat those as not-found rather than querying the UUID column. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const STUDENT_IDENTITY_SELECT =
   "id, full_name, email, phone, t_shirt_size, emergency_contact_name, emergency_contact_phone, has_required_info, stripe_customer_id, created_at";
 
@@ -82,6 +85,8 @@ export async function listStudents(): Promise<StagingStudent[]> {
 }
 
 export async function getStudentById(id: string): Promise<StagingStudent | null> {
+  if (!UUID_RE.test(id)) return null;
+
   const supabase = createStagingAdminClient();
   const { data, error } = await supabase
     .from("students")

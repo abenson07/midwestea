@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
+import { ExternalLink } from "lucide-react";
 import { Card } from "@/components/patterns/primitives/Card";
 import { Heading, Text } from "@/components/patterns/primitives/Text";
 import { VStack } from "@/components/patterns/primitives/Stack";
@@ -52,17 +53,12 @@ export type CatalogSettingsPageProps = {
 export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPageProps) {
   const [draft, setDraft] = useState(template);
   const [saving, setSaving] = useState(false);
-  const [editingPrereqId, setEditingPrereqId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(template);
   }, [template]);
 
-  const prereqItems = draft.prerequisites.map((name, index) => ({
-    id: `prereq-${index}`,
-    name,
-  }));
   const links = draft.externalLinks ?? [];
 
   function patch(next: Partial<CatalogTemplate>) {
@@ -77,10 +73,21 @@ export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPagePro
     toast.success(`${draft.kind} details saved — demo mode, saved locally only`);
   }
 
+  const siteHref = `https://midwestea.example/${draft.kind === "Program" ? "programs" : "courses"}/${draft.code.toLowerCase()}`;
+
   return (
     <div style={{ maxWidth: 760, marginInline: "auto", padding: "48px 24px 64px" }}>
       <VStack gap={8}>
-        <Heading level={1}>{draft.kind} settings</Heading>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <Heading level={1}>{draft.kind} settings</Heading>
+          <Button
+            label="View on site"
+            variant="secondary"
+            size="sm"
+            icon={<ExternalLink size={14} strokeWidth={1.75} />}
+            onClick={() => window.open(siteHref, "_blank", "noopener,noreferrer")}
+          />
+        </div>
 
         <VStack gap={3}>
           <Text type="label" color="secondary">
@@ -190,17 +197,21 @@ export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPagePro
                   />
                 }
               />
-              <Divider />
-              <SettingsRow
-                label="Registration fee"
-                control={
-                  <input
-                    style={rowInputStyle}
-                    value={draft.registrationFee}
-                    onChange={(e) => patch({ registrationFee: e.target.value })}
+              {draft.kind !== "Course" ? (
+                <>
+                  <Divider />
+                  <SettingsRow
+                    label="Registration fee"
+                    control={
+                      <input
+                        style={rowInputStyle}
+                        value={draft.registrationFee}
+                        onChange={(e) => patch({ registrationFee: e.target.value })}
+                      />
+                    }
                   />
-                }
-              />
+                </>
+              ) : null}
               <Divider />
               <SettingsRow
                 label="Description"
@@ -212,47 +223,27 @@ export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPagePro
                   />
                 }
               />
+              <Divider />
+              <SettingsRow
+                label="Course image URL"
+                control={
+                  <input
+                    style={rowInputStyle}
+                    value={draft.courseImageUrl ?? ""}
+                    placeholder="https://"
+                    onChange={(e) => patch({ courseImageUrl: e.target.value })}
+                  />
+                }
+              />
+              <Divider />
+              <SettingsRow
+                label="Stripe Product ID"
+                description="Assigned when the template is created"
+                control={<Text style={lockedValueStyle}>{draft.stripeProductId || "Not set"}</Text>}
+              />
             </VStack>
           </Card>
         </VStack>
-
-        <SettingsCardList
-          label="Prerequisites"
-          addLabel="Add prerequisite"
-          emptyLabel="No prerequisites yet."
-          items={prereqItems}
-          editingId={editingPrereqId}
-          onEditingIdChange={setEditingPrereqId}
-          onAdd={() => {
-            const name = "New prerequisite";
-            patch({ prerequisites: [...draft.prerequisites, name] });
-            setEditingPrereqId(`prereq-${draft.prerequisites.length}`);
-          }}
-          onRemove={(id) => {
-            const index = prereqItems.findIndex((item) => item.id === id);
-            if (index < 0) return;
-            patch({
-              prerequisites: draft.prerequisites.filter((_, i) => i !== index),
-            });
-            setEditingPrereqId(null);
-          }}
-          getTitle={(item) => item.name}
-          renderEditor={(item) => {
-            const index = prereqItems.findIndex((row) => row.id === item.id);
-            return (
-              <input
-                style={{ ...settingsCardFieldStyle, fontWeight: 510 }}
-                value={item.name}
-                onChange={(e) => {
-                  const next = [...draft.prerequisites];
-                  next[index] = e.target.value;
-                  patch({ prerequisites: next });
-                }}
-                placeholder="Name"
-              />
-            );
-          }}
-        />
 
         <SettingsCardList
           label="External links"

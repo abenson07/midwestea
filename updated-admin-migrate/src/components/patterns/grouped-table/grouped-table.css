@@ -18,6 +18,7 @@
 .grouped-table-header-cell {
   display: flex;
   align-items: center;
+  min-width: 0;
   height: 32px;
   padding-inline: 8px;
   color: var(--linear-color-ink-subtle);
@@ -45,6 +46,7 @@
 .grouped-table-cell {
   display: flex;
   align-items: center;
+  min-width: 0;
   padding-inline: 8px;
   color: var(--linear-color-ink);
   font-size: 13px;

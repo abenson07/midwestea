@@ -1,9 +1,13 @@
 export { ClassContentPage } from "./ClassContentPage";
 export { ComingSoon } from "./ComingSoon";
 export type { ComingSoonProps } from "./ComingSoon";
-export { useAdminBasePath } from "./useAdminBasePath";
+export { useAdminBasePath, useIsNewAdminMigrate } from "./useAdminBasePath";
 export type { ClassContentPageProps } from "./ClassContentPage";
 export { EmptyStateCard } from "./EmptyStateCard";
+export { HoverCard } from "./HoverCard";
+export type { HoverCardProps } from "./HoverCard";
+export { HoverTooltip } from "./HoverTooltip";
+export type { HoverTooltipProps } from "./HoverTooltip";
 export type { EmptyStateCardProps } from "./EmptyStateCard";
 export { InvoiceStatusToken } from "./InvoiceStatusToken";
 export type { InvoiceStatusTokenProps } from "./InvoiceStatusToken";

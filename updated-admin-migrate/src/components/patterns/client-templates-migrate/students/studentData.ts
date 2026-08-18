@@ -7,6 +7,7 @@ import {
   classDetailFor,
   type ClassActivityItem,
   type ClassPrerequisiteSubmission,
+  type PrerequisiteItemStatus,
 } from "../classes/classMocks";
 import { sampleTransactions, type TransactionRow } from "@/data/mocks/transactions";
 import { getTransactionListStatus } from "@/data/mocks/transaction-status";
@@ -493,6 +494,52 @@ export function pendingPrereqsForStudent(studentId: string): ClassPrerequisiteSu
   );
 }
 
+export type StudentPrerequisiteSubmissionRow = {
+  id: string;
+  classId: string;
+  className: string;
+  type: string;
+  status: PrerequisiteItemStatus;
+  issuedOn?: string;
+  expiresOn?: string;
+  submittedOn?: string;
+  rejectionReason?: string;
+};
+
+/** Full submission history (current + earlier attempts) across every class, for one student. */
+export function studentPrerequisiteSubmissionRows(studentId: string): StudentPrerequisiteSubmissionRow[] {
+  const student = studentById(studentId);
+  if (!student) return [];
+  return Object.entries(CLASS_PREREQUISITE_ITEMS).flatMap(([classId, items]) => {
+    const className = CLASS_DETAILS[classId]?.title ?? classId;
+    return items
+      .filter((item) => item.student === student.name)
+      .flatMap((item) => {
+        const current: StudentPrerequisiteSubmissionRow = {
+          id: item.id,
+          classId,
+          className,
+          type: item.type,
+          status: item.status,
+          issuedOn: item.issuedOn,
+          expiresOn: item.expiresOn,
+        };
+        const previous = (item.previousSubmissions ?? []).map((submission, index) => ({
+          id: `${item.id}-prev-${index}`,
+          classId,
+          className,
+          type: item.type,
+          status: submission.status,
+          issuedOn: submission.issuedOn,
+          expiresOn: submission.expiresOn,
+          submittedOn: submission.submittedOn,
+          rejectionReason: submission.rejectionReason,
+        }));
+        return [current, ...previous];
+      });
+  });
+}
+
 export function documentsForStudent(studentId: string): StudentDocument[] {
   const fromMocks = STUDENT_DOCUMENTS.filter((doc) => doc.studentId === studentId);
   const student = studentById(studentId);
@@ -528,9 +575,13 @@ export function activityForStudent(studentId: string): ClassActivityItem[] {
 export function enrollmentPaymentStatus(
   studentId: string,
   classId: string,
+  rows?: TransactionRow[],
 ): EnrollmentPaymentStatus {
-  const invoices = classAllInvoicesFor(classId).filter(
-    (invoice) => invoice.studentId === studentId && invoice.transactionStatus !== "refunded",
+  const invoices = (rows ?? classAllInvoicesFor(classId)).filter(
+    (invoice) =>
+      invoice.classId === classId &&
+      invoice.studentId === studentId &&
+      invoice.transactionStatus !== "refunded",
   );
   if (!invoices.length) return "No payments yet";
 

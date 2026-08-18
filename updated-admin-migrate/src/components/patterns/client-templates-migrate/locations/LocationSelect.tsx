@@ -1,11 +1,13 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { locationNameOptions } from "./locationData";
 
 export type LocationSelectProps = {
   value: string;
   onChange: (next: string) => void;
+  options?: string[];
   style?: CSSProperties;
   "aria-label"?: string;
 };
@@ -14,10 +16,12 @@ export type LocationSelectProps = {
 export function LocationSelect({
   value,
   onChange,
+  options,
   style,
   "aria-label": ariaLabel = "Location",
 }: LocationSelectProps) {
-  const names = locationNameOptions();
+  const live = useIsNewAdminMigrate();
+  const names = options ?? (live ? [] : locationNameOptions());
   const current = value === "—" || !value ? "" : value;
   const extra = current && !names.includes(current) ? current : null;
 

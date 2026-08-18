@@ -23,6 +23,7 @@ import {
   type ClassRevenueRow,
   type RevenueScope,
 } from "./classRevenue";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { catalogTemplatesOfKind } from "../catalog/catalogMocks";
 import { buildPastDueTransactionColumns } from "./transactionColumns";
 import { useTransactions } from "./useTransactions";
@@ -155,6 +156,7 @@ export type PaymentsOverviewPageProps = {
 };
 
 export function PaymentsOverviewPage({ onSelectTransaction }: PaymentsOverviewPageProps) {
+  const live = useIsNewAdminMigrate();
   const { transactions } = useTransactions();
   const { sponsorships } = useAllSponsorships();
   const [revenueScope, setRevenueScope] = useState<RevenueScope>("open");
@@ -162,16 +164,24 @@ export function PaymentsOverviewPage({ onSelectTransaction }: PaymentsOverviewPa
   const [courseFilter, setCourseFilter] = useState<string[]>([]);
 
   const scopedRevenue = useMemo(
-    () => classRevenueFromTransactions(transactions, revenueScope),
-    [transactions, revenueScope],
+    () => (live ? [] : classRevenueFromTransactions(transactions, revenueScope)),
+    [live, transactions, revenueScope],
   );
   const programOptions = useMemo(
-    () => catalogTemplatesOfKind("Program").map((template) => ({ value: template.code, label: template.name })),
-    [],
+    () =>
+      (live ? [] : catalogTemplatesOfKind("Program")).map((template) => ({
+        value: template.code,
+        label: template.name,
+      })),
+    [live],
   );
   const courseOptions = useMemo(
-    () => catalogTemplatesOfKind("Course").map((template) => ({ value: template.code, label: template.name })),
-    [],
+    () =>
+      (live ? [] : catalogTemplatesOfKind("Course")).map((template) => ({
+        value: template.code,
+        label: template.name,
+      })),
+    [live],
   );
   const revenueRows = useMemo(() => {
     return scopedRevenue.filter((row) => {
@@ -341,7 +351,7 @@ export function PaymentsOverviewPage({ onSelectTransaction }: PaymentsOverviewPa
             />
           ) : (
             <Text size="sm" color="secondary">
-              No classes match the current filters.
+              {live ? "No revenue data yet." : "No classes match the current filters."}
             </Text>
           )}
         </div>

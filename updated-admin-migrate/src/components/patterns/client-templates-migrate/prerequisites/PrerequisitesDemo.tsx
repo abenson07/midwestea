@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { RowClickCell, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { Button } from "@/components/patterns/primitives/Button";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { formatCalendarDate } from "@/lib/dates";
@@ -100,8 +100,14 @@ function buildColumns(options: {
 /**
  * Global prerequisite catalog — one inset table grouped Active / Archived.
  */
-export function PrerequisitesDemo() {
-  const [rows, setRows] = useState<PrerequisiteRow[]>(INITIAL_PREREQUISITES);
+export type PrerequisitesDemoProps = {
+  /** When omitted, the catalog stays on demo mocks (`/admin-preview`). */
+  rows?: PrerequisiteRow[];
+};
+
+export function PrerequisitesDemo({ rows: rowsProp }: PrerequisitesDemoProps = {}) {
+  const live = useIsNewAdminMigrate();
+  const [rows, setRows] = useState<PrerequisiteRow[]>(rowsProp ?? (live ? [] : INITIAL_PREREQUISITES));
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<PrerequisiteRow | null>(null);

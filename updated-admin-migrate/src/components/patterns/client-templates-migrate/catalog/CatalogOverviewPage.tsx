@@ -3,9 +3,17 @@
 import { CatalogInfoBox } from "./CatalogInfoBox";
 import { CatalogDetailsCard } from "./CatalogDetailsCard";
 import { CatalogClassesSection } from "./CatalogClassesSection";
-import { ClassPrerequisitesList } from "../classes/ClassPrerequisitesList";
+import { CatalogWaitlistSection } from "./CatalogWaitlistSection";
+import { CatalogPrerequisitesList } from "./CatalogPrerequisitesList";
 import { ClassActivityCard } from "../classes/ClassActivityCard";
-import { catalogActivityFor, type CatalogTemplate } from "./catalogMocks";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import {
+  catalogActivityFor,
+  catalogPrerequisiteAssignments,
+  catalogWaitlistFor,
+  type CatalogPrerequisiteAssignment,
+  type CatalogTemplate,
+} from "./catalogMocks";
 import type { ClassDetail } from "../classes/classMocks";
 
 /** 24-column overview. Tweak `left` / `right` (must sum to `columns`). */
@@ -21,6 +29,8 @@ export type CatalogOverviewPageProps = {
   classes: ClassDetail[];
   onEditDetails?: () => void;
   onCreateClass?: () => void;
+  onTemplateChange?: (next: CatalogTemplate) => void;
+  enrolledCounts?: Map<string, number>;
 };
 
 export function CatalogOverviewPage({
@@ -28,8 +38,21 @@ export function CatalogOverviewPage({
   classes,
   onEditDetails,
   onCreateClass,
+  onTemplateChange,
+  enrolledCounts,
 }: CatalogOverviewPageProps) {
-  const activity = catalogActivityFor(template.id);
+  const live = useIsNewAdminMigrate();
+  const activity = live ? [] : catalogActivityFor(template.id);
+  const waitlist = live ? [] : catalogWaitlistFor(template.id);
+  const prereqAssignments = catalogPrerequisiteAssignments(template);
+
+  function handlePrerequisitesChange(next: CatalogPrerequisiteAssignment[]) {
+    onTemplateChange?.({
+      ...template,
+      prerequisiteAssignments: next,
+      prerequisites: next.map((item) => item.name),
+    });
+  }
 
   return (
     <div
@@ -76,7 +99,12 @@ export function CatalogOverviewPage({
         }}
       >
         <CatalogInfoBox template={template} />
-        <CatalogClassesSection classes={classes} onCreateClass={onCreateClass} />
+        <CatalogWaitlistSection entries={waitlist} />
+        <CatalogClassesSection
+          classes={classes}
+          onCreateClass={onCreateClass}
+          enrolledCounts={enrolledCounts}
+        />
       </div>
       <div
         data-slot="catalog-overview-rail"
@@ -92,7 +120,11 @@ export function CatalogOverviewPage({
         }}
       >
         <CatalogDetailsCard template={template} onEditDetails={onEditDetails} />
-        <ClassPrerequisitesList key={template.id} items={template.prerequisites} />
+        <CatalogPrerequisitesList
+          key={template.id}
+          assignments={prereqAssignments}
+          onChange={handlePrerequisitesChange}
+        />
         <ClassActivityCard items={activity} />
       </div>
     </div>

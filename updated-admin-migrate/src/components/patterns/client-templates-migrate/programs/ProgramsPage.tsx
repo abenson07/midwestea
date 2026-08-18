@@ -2,16 +2,22 @@
 
 import { VStack } from "@/components/patterns/primitives/Stack";
 import { DraftsSection } from "@/components/patterns/client-templates/drafts/DraftsSection";
-import { catalogTemplatesOfKind } from "../catalog/catalogMocks";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { catalogTemplatesOfKind, type CatalogTemplate } from "../catalog/catalogMocks";
 import { ProgramCard } from "./ProgramCard";
 
 function cardLength(classLength: string, classType: string): string {
   return classLength && classLength !== "—" ? classLength : classType;
 }
 
+export type ProgramsPageProps = {
+  templates?: CatalogTemplate[];
+};
+
 /** Programs body — a 2-column grid of program cards. */
-export function ProgramsPage() {
-  const programs = catalogTemplatesOfKind("Program");
+export function ProgramsPage({ templates }: ProgramsPageProps = {}) {
+  const live = useIsNewAdminMigrate();
+  const programs = templates ?? (live ? [] : catalogTemplatesOfKind("Program"));
 
   return (
     <VStack gap={8}>

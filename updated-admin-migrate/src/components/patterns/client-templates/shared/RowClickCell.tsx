@@ -13,14 +13,15 @@ export type RowClickCellProps = {
  * click, not just one column — matches the row-wide hover highlight from
  * `listChrome`/`appearance="nested"`.
  */
-export function RowClickCell({ onClick, align = "start", children }: RowClickCellProps) {
+export function RowClickCell({ onClick, align, children }: RowClickCellProps) {
   const style: CSSProperties = {
     all: "unset",
     boxSizing: "border-box",
     cursor: onClick ? "pointer" : "default",
     display: "flex",
     alignItems: "center",
-    justifyContent: align === "end" ? "flex-end" : "flex-start",
+    justifyContent:
+      align === "end" ? "flex-end" : align === "start" ? "flex-start" : "inherit",
     width: "100%",
     height: "100%",
     minWidth: 0,

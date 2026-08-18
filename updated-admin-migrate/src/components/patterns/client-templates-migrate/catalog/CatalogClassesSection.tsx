@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Text } from "@/components/patterns/primitives/Text";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { EmptyStateCard, useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { EmptyStateCard, useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import {
   buildClassTableColumns,
   closedClassDateLabel,
@@ -18,6 +18,7 @@ import { classDetailHref, classHasDetailRoute, splitClassesByStatus } from "./ca
 export type CatalogClassesSectionProps = {
   classes: ClassDetail[];
   onCreateClass?: () => void;
+  enrolledCounts?: Map<string, number>;
 };
 
 const sectionStyle = {
@@ -34,6 +35,7 @@ function ClassTable({
   dateLabel,
   onSelect,
   emptyAction,
+  enrolledCounts,
 }: {
   title: string;
   emptyLabel: string;
@@ -41,8 +43,9 @@ function ClassTable({
   dateLabel: (row: ClassDetail) => string;
   onSelect: (row: ClassDetail) => void;
   emptyAction?: () => void;
+  enrolledCounts?: Map<string, number>;
 }) {
-  const columns = buildClassTableColumns({ dateLabel, onSelect });
+  const columns = buildClassTableColumns({ dateLabel, onSelect, enrolledCounts });
 
   return (
     <section style={sectionStyle}>
@@ -73,14 +76,19 @@ function ClassTable({
 }
 
 /** Two stacked class tables — open vs past — no card chrome, extra space between. */
-export function CatalogClassesSection({ classes, onCreateClass }: CatalogClassesSectionProps) {
+export function CatalogClassesSection({
+  classes,
+  onCreateClass,
+  enrolledCounts,
+}: CatalogClassesSectionProps) {
   const router = useRouter();
   const basePath = useAdminBasePath();
+  const live = useIsNewAdminMigrate();
   const { open, past } = splitClassesByStatus(classes);
   const today = startOfToday();
 
   function selectClass(row: ClassDetail) {
-    if (classHasDetailRoute(row.id)) {
+    if (live || classHasDetailRoute(row.id)) {
       router.push(`${basePath}${classDetailHref(row.id)}`);
       return;
     }
@@ -99,6 +107,7 @@ export function CatalogClassesSection({ classes, onCreateClass }: CatalogClasses
         dateLabel={(row) => openClassDateLabel(row, today)}
         onSelect={selectClass}
         emptyAction={onCreateClass}
+        enrolledCounts={enrolledCounts}
       />
       <ClassTable
         title="Past classes"
@@ -106,6 +115,7 @@ export function CatalogClassesSection({ classes, onCreateClass }: CatalogClasses
         rows={past}
         dateLabel={closedClassDateLabel}
         onSelect={selectClass}
+        enrolledCounts={enrolledCounts}
       />
     </div>
   );

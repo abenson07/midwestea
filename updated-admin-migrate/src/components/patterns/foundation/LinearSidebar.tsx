@@ -32,7 +32,6 @@ import {
 import {
   Dropdown,
   DropdownItem,
-  DropdownSeparator,
 } from "@/components/patterns/shared/dropdown";
 import { useEvents, useStories, useCurrentPerson, useFavorites } from "hooks";
 import { getCurrentPersonId } from "@/lib/people/currentPerson";
@@ -43,6 +42,9 @@ import { AddPromotionModal } from "@/components/patterns/client-templates/events
 import { NewEventModal } from "@/components/patterns/client-templates/events/NewEventModal";
 import { NewStoryModal } from "@/components/patterns/client-templates/content/NewStoryModal";
 import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useStagingOpenClasses } from "@/lib/staging/useOpenClasses";
+import { splitOpenClassNav, type StagingOpenClass } from "@/lib/staging/openClasses";
+import { ClassNavHoverCard } from "./sidebar/ClassNavHoverCard";
 import type { EventPromotionType, EventSummary } from "@/data/mocks/events";
 import type { Story } from "@/data/mocks/content";
 import {
@@ -72,6 +74,8 @@ type DemoItem = {
   path: string;
   /** Hidden on /admin unless the "Preview features in development" setting is on. */
   wip?: boolean;
+  count?: number;
+  openClass?: StagingOpenClass;
 };
 
 const group1Items: DemoItem[] = [
@@ -102,6 +106,9 @@ const group1Items: DemoItem[] = [
     icon: <Wallet size={16} strokeWidth={1.75} />,
     path: "/transactions",
   },
+];
+
+const classCatalogItems: DemoItem[] = [
   {
     id: "programs",
     label: "Programs",
@@ -114,6 +121,13 @@ const group1Items: DemoItem[] = [
     label: "Courses",
     icon: <BookOpen size={16} strokeWidth={1.75} />,
     path: "/courses",
+    wip: true,
+  },
+  {
+    id: "all-classes",
+    label: "All Classes",
+    icon: <LayoutGrid size={16} strokeWidth={1.75} />,
+    path: "/classes",
     wip: true,
   },
 ];
@@ -243,16 +257,6 @@ const classTypeItems: DemoItem[] = [
   },
 ];
 
-const allClassesItems: DemoItem[] = [
-  {
-    id: "all-classes",
-    label: "All Classes",
-    icon: <LayoutGrid size={16} strokeWidth={1.75} />,
-    path: "/classes",
-    wip: true,
-  },
-];
-
 function AccountAvatar({ initials }: { initials: string }) {
   return (
     <span
@@ -281,6 +285,66 @@ function initialsFromName(name: string): string {
   if (parts.length === 0) return "KB";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function OpenClassNavSection({
+  title,
+  items,
+  isSelected,
+  onNavigate,
+}: {
+  title: string;
+  items: DemoItem[];
+  isSelected: (path: string) => boolean;
+  onNavigate: (path: string) => void;
+}) {
+  const { visible, overflow } = splitOpenClassNav(items);
+
+  return (
+    <SidebarSection title={title}>
+      {visible.map((item) => {
+        const row = (
+          <MenuItem
+            label={item.label}
+            icon={item.icon}
+            count={item.count}
+            countOnHover
+            selected={isSelected(item.path)}
+            onClick={() => onNavigate(item.path)}
+          />
+        );
+        return item.openClass ? (
+          <ClassNavHoverCard key={item.id} item={item.openClass}>
+            {row}
+          </ClassNavHoverCard>
+        ) : (
+          <div key={item.id}>{row}</div>
+        );
+      })}
+      {overflow.length > 0 ? (
+        <Dropdown
+          label="More"
+          trigger={
+            <MenuItem
+              label="More"
+              icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+              selected={overflow.some((item) => isSelected(item.path))}
+            />
+          }
+        >
+          {overflow.map((item) => (
+            <DropdownItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              selected={isSelected(item.path)}
+              onSelect={() => onNavigate(item.path)}
+            />
+          ))}
+        </Dropdown>
+      ) : null}
+    </SidebarSection>
+  );
 }
 
 /**
@@ -452,19 +516,42 @@ function LinearSidebarBase({
   // needs its WIP items (committees/inbox/overview) hidden until opted in.
   const showWipItems = !isMigrate || wipFeaturesEnabled;
   const hideInbox = basePath === "/new-admin-migrate";
+  const hideFixtureNav = basePath === "/new-admin-migrate";
+  const stagingOpenClasses = useStagingOpenClasses(hideFixtureNav);
   const visibleGroup1Items = (showWipItems
     ? group1Items
     : group1Items.filter((item) => !item.wip)
-  ).filter((item) => !hideInbox || item.id !== "inbox");
-  const visibleClassItems = showWipItems
-    ? classItems
-    : classItems.filter((item) => !item.wip);
-  const visibleClassTypeItems = showWipItems
-    ? classTypeItems
-    : classTypeItems.filter((item) => !item.wip);
-  const visibleAllClassesItems = showWipItems
-    ? allClassesItems
-    : allClassesItems.filter((item) => !item.wip);
+  )
+    .filter((item) => !hideInbox || item.id !== "inbox");
+  const stagingProgramItems = stagingOpenClasses.programs.map((row) => ({
+    id: row.id,
+    label: row.label,
+    icon: <GraduationCap size={16} strokeWidth={1.75} />,
+    path: row.path,
+    count: row.enrolledCount,
+    openClass: row,
+  }));
+  const stagingCourseItems = stagingOpenClasses.courses.map((row) => ({
+    id: row.id,
+    label: row.label,
+    icon: <BookOpen size={16} strokeWidth={1.75} />,
+    path: row.path,
+    count: row.enrolledCount,
+    openClass: row,
+  }));
+  const visibleClassItems = hideFixtureNav
+    ? [...stagingProgramItems, ...stagingCourseItems]
+    : showWipItems
+      ? classItems
+      : classItems.filter((item) => !item.wip);
+  const visibleClassTypeItems = hideFixtureNav
+    ? []
+    : showWipItems
+      ? classTypeItems
+      : classTypeItems.filter((item) => !item.wip);
+  const visibleClassCatalogItems = showWipItems
+    ? classCatalogItems
+    : classCatalogItems.filter((item) => !item.wip);
 
   function requestDemoTransition(target: DemoModeConfirmModalTarget) {
     setDemoTransition(target);
@@ -490,7 +577,7 @@ function LinearSidebarBase({
       ...visibleGroup1Items.map((item) => hrefFor(item.path)),
       ...visibleClassItems.map((item) => hrefFor(item.path)),
       ...visibleClassTypeItems.map((item) => hrefFor(item.path)),
-      ...visibleAllClassesItems.map((item) => hrefFor(item.path)),
+      ...visibleClassCatalogItems.map((item) => hrefFor(item.path)),
       ...favorites.map((favorite) => favorite.route),
     ];
     return getBestMatchingHref(currentRoute, allHrefs);
@@ -500,7 +587,7 @@ function LinearSidebarBase({
     visibleGroup1Items,
     visibleClassItems,
     visibleClassTypeItems,
-    visibleAllClassesItems,
+    visibleClassCatalogItems,
     favorites,
     basePath,
   ]);
@@ -517,7 +604,7 @@ function LinearSidebarBase({
       ...visibleGroup1Items,
       ...visibleClassItems,
       ...visibleClassTypeItems,
-      ...visibleAllClassesItems,
+      ...visibleClassCatalogItems,
     ];
     const match = allItems.find((item) => hrefFor(item.path) === activeHref);
     if (match) return match.label;
@@ -529,7 +616,7 @@ function LinearSidebarBase({
     visibleGroup1Items,
     visibleClassItems,
     visibleClassTypeItems,
-    visibleAllClassesItems,
+    visibleClassCatalogItems,
     favorites,
     basePath,
   ]);
@@ -633,51 +720,70 @@ function LinearSidebarBase({
           ))}
         </SidebarSection>
 
-        <SidebarSection title="Open classes">
-          {visibleClassItems.map((item) => (
-            <MenuItem
-              key={item.id}
-              label={item.label}
-              icon={item.icon}
-              selected={isSelected(item.path)}
-              onClick={() => router.push(hrefFor(item.path))}
+        {visibleClassCatalogItems.length > 0 ? (
+          <SidebarSection title="Classes">
+            {visibleClassCatalogItems.map((item) => (
+              <MenuItem
+                key={item.id}
+                label={item.label}
+                icon={item.icon}
+                selected={isSelected(item.path)}
+                onClick={() => router.push(hrefFor(item.path))}
+              />
+            ))}
+          </SidebarSection>
+        ) : null}
+
+        {hideFixtureNav ? (
+          <>
+            <OpenClassNavSection
+              title="Open programs"
+              items={stagingProgramItems}
+              isSelected={isSelected}
+              onNavigate={(path) => router.push(hrefFor(path))}
             />
-          ))}
-          {visibleClassTypeItems.length > 0 || visibleAllClassesItems.length > 0 ? (
-            <Dropdown
-              label="More"
-              trigger={
-                <MenuItem
-                  label="More"
-                  icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
-                  selected={[...visibleClassTypeItems, ...visibleAllClassesItems].some((item) =>
-                    isSelected(item.path)
-                  )}
-                />
-              }
-            >
-              {visibleClassTypeItems.map((item) => (
-                <DropdownItem
-                  key={item.id}
-                  label={item.label}
-                  icon={item.icon}
-                  selected={isSelected(item.path)}
-                  onSelect={() => router.push(hrefFor(item.path))}
-                />
-              ))}
-              {visibleAllClassesItems.length > 0 ? <DropdownSeparator /> : null}
-              {visibleAllClassesItems.map((item) => (
-                <DropdownItem
-                  key={item.id}
-                  label={item.label}
-                  icon={item.icon}
-                  selected={isSelected(item.path)}
-                  onSelect={() => router.push(hrefFor(item.path))}
-                />
-              ))}
-            </Dropdown>
-          ) : null}
-        </SidebarSection>
+            <OpenClassNavSection
+              title="Open courses"
+              items={stagingCourseItems}
+              isSelected={isSelected}
+              onNavigate={(path) => router.push(hrefFor(path))}
+            />
+          </>
+        ) : (
+          <SidebarSection title="Open classes">
+            {visibleClassItems.map((item) => (
+              <MenuItem
+                key={item.id}
+                label={item.label}
+                icon={item.icon}
+                selected={isSelected(item.path)}
+                onClick={() => router.push(hrefFor(item.path))}
+              />
+            ))}
+            {visibleClassTypeItems.length > 0 ? (
+              <Dropdown
+                label="More"
+                trigger={
+                  <MenuItem
+                    label="More"
+                    icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+                    selected={visibleClassTypeItems.some((item) => isSelected(item.path))}
+                  />
+                }
+              >
+                {visibleClassTypeItems.map((item) => (
+                  <DropdownItem
+                    key={item.id}
+                    label={item.label}
+                    icon={item.icon}
+                    selected={isSelected(item.path)}
+                    onSelect={() => router.push(hrefFor(item.path))}
+                  />
+                ))}
+              </Dropdown>
+            ) : null}
+          </SidebarSection>
+        )}
 
         {favorites.length > 0 ? (
           <SidebarSection title="Favorites">

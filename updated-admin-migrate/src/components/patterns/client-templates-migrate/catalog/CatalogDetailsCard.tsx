@@ -65,7 +65,9 @@ export function CatalogDetailsCard({ template, onEditDetails }: CatalogDetailsCa
         <PropertyRow label="Type">{template.kind}</PropertyRow>
         <PropertyRow label="Default class format">{template.defaultClassFormat}</PropertyRow>
         <PropertyRow label="Price">{template.price}</PropertyRow>
-        <PropertyRow label="Registration fee">{template.registrationFee}</PropertyRow>
+        {template.kind !== "Course" ? (
+          <PropertyRow label="Registration fee">{template.registrationFee}</PropertyRow>
+        ) : null}
         <PropertyRow label="Certification length">{template.certificationLength}</PropertyRow>
         <PropertyRow label="Registration limit">{template.registrationLimit}</PropertyRow>
         {links.length ? (

@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { Text } from "@/components/patterns/primitives/Text";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell, useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { RowClickCell, useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { classDetailHref } from "../catalog/catalogMocks";
-import { classDetailFor } from "../classes/classMocks";
+import { classDetailFor, type ClassDetail } from "../classes/classMocks";
+import { useTransactions } from "../payments/useTransactions";
 import { isClassClosed } from "../classes/classTableColumns";
 import {
   documentsForStudent,
@@ -162,25 +163,31 @@ function buildColumns(
 
 export type StudentClassesSectionProps = {
   studentId: string;
+  enrollments?: StudentEnrollment[];
+  classDetails?: ClassDetail[];
+  onSelectClass?: (classId: string) => void;
 };
 
 function rowsFor(
   studentId: string,
   enrollments: StudentEnrollment[],
+  classById: Map<string, ClassDetail>,
+  invoices?: Parameters<typeof enrollmentPaymentStatus>[2],
+  live = false,
 ): ClassTableRow[] {
-  const documents = documentsForStudent(studentId);
+  const documents = live ? [] : documentsForStudent(studentId);
   return enrollments.map((enrollment) => {
-    const detail = classDetailFor(enrollment.classId);
+    const detail = classById.get(enrollment.classId) ?? (live ? undefined : classDetailFor(enrollment.classId));
     const issued = documents.find(
       (doc) => doc.kind === "issued" && doc.classId === enrollment.classId,
     );
     return {
       enrollment,
       classId: enrollment.classId,
-      classCode: detail.classCode,
-      className: detail.title || detail.classCode,
+      classCode: detail?.classCode ?? enrollment.classId,
+      className: detail?.title || detail?.classCode || "Class",
       enrolledAt: enrollment.enrolledAt,
-      paymentStatus: enrollmentPaymentStatus(studentId, enrollment.classId),
+      paymentStatus: enrollmentPaymentStatus(studentId, enrollment.classId, invoices),
       outcome: enrollment.outcome,
       certificateHref: issued?.href,
     };
@@ -188,19 +195,39 @@ function rowsFor(
 }
 
 /** Stacked active and past class tables. */
-export function StudentClassesSection({ studentId }: StudentClassesSectionProps) {
+export function StudentClassesSection({
+  studentId,
+  enrollments: enrollmentsProp,
+  classDetails,
+  onSelectClass,
+}: StudentClassesSectionProps) {
   const router = useRouter();
   const basePath = useAdminBasePath();
-  const enrollments = enrollmentsFor(studentId);
-  const active = enrollments.filter((row) => !isClassClosed(classDetailFor(row.classId)));
-  const past = enrollments.filter((row) => isClassClosed(classDetailFor(row.classId)));
+  const live = useIsNewAdminMigrate();
+  const { transactions } = useTransactions();
+  const enrollments = enrollmentsProp ?? (live ? [] : enrollmentsFor(studentId));
+  const classById = new Map((classDetails ?? []).map((row) => [row.id, row]));
+  const detailFor = (classId: string) =>
+    classById.get(classId) ?? (live ? undefined : classDetailFor(classId));
+  const active = enrollments.filter((row) => {
+    const detail = detailFor(row.classId);
+    return detail ? !isClassClosed(detail) : true;
+  });
+  const past = enrollments.filter((row) => {
+    const detail = detailFor(row.classId);
+    return detail ? isClassClosed(detail) : false;
+  });
 
   function selectClass(classId: string) {
+    if (onSelectClass) {
+      onSelectClass(classId);
+      return;
+    }
     router.push(`${basePath}${classDetailHref(classId)}`);
   }
 
-  const activeRows = rowsFor(studentId, active);
-  const pastRows = rowsFor(studentId, past);
+  const activeRows = rowsFor(studentId, active, classById, transactions, live);
+  const pastRows = rowsFor(studentId, past, classById, transactions, live);
   const activeColumns = buildColumns(selectClass, false);
   const pastColumns = buildColumns(selectClass, true);
 

@@ -1,13 +1,10 @@
-"use client";
+import { CatalogDetailMigrate } from "../../catalog/CatalogDetailMigrate";
 
-import { use } from "react";
-import { CatalogDetailDemo } from "@/components/patterns/client-templates-migrate/catalog";
-
-export default function CourseDetailRoute({
+export default async function CourseDetailRoute({
   params,
 }: {
   params: Promise<{ templateId: string }>;
 }) {
-  const { templateId } = use(params);
-  return <CatalogDetailDemo key={templateId} templateId={templateId} />;
+  const { templateId } = await params;
+  return <CatalogDetailMigrate templateId={templateId} />;
 }

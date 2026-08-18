@@ -1,7 +1,9 @@
 "use client";
 
 import { Bell, ClipboardCheck, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { Text } from "@/components/patterns/primitives/Text";
 import { Button } from "@/components/patterns/primitives/Button";
 import { IconButton } from "@/components/patterns/shared/IconButton";
@@ -16,6 +18,7 @@ import {
   type StudentPrerequisiteRow,
   type StudentToRemove,
 } from "./classMocks";
+import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
 import type { TransactionRow } from "@/data/mocks/transactions";
 import { useTransactions } from "../payments/useTransactions";
 import { TransactionAmountCell } from "../payments/TransactionAmountCell";
@@ -171,7 +174,17 @@ function PrerequisiteRow({
         {row.type}
       </Text>
       {row.status === "approved" ? (
-        <span style={{ color: "#27a644", fontSize: 12, fontWeight: 500 }}>Approved</span>
+        <span style={{ color: PREREQUISITE_STATUS_COLOR.approved, fontSize: 12, fontWeight: 500 }}>
+          {PREREQUISITE_STATUS_LABEL.approved}
+        </span>
+      ) : row.status === "expired" || row.status === "needs_resubmission" ? (
+        <span style={{ color: PREREQUISITE_STATUS_COLOR[row.status], fontSize: 12, fontWeight: 500 }}>
+          {PREREQUISITE_STATUS_LABEL[row.status]}
+        </span>
+      ) : row.status === "optional" ? (
+        <span style={{ color: PREREQUISITE_STATUS_COLOR.optional, fontSize: 12, fontWeight: 500 }}>
+          {PREREQUISITE_STATUS_LABEL.optional}
+        </span>
       ) : row.status === "pending_review" && row.submissionId ? (
         <Button
           label="Review"
@@ -211,6 +224,9 @@ export function ClassStudentPaymentsCard({
   onRemove,
   onReviewPrerequisite,
 }: ClassStudentPaymentsCardProps) {
+  const router = useRouter();
+  const basePath = useAdminBasePath();
+  const live = useIsNewAdminMigrate();
   const { transactions } = useTransactions();
   const invoices = classInvoicesForStudent(classId, student.name, transactions);
   const summary = enrollmentInvoiceSummary(invoices);
@@ -289,7 +305,13 @@ export function ClassStudentPaymentsCard({
           label="View Profile"
           variant="secondary"
           width="100%"
-          onClick={() => toast.message(`Student profile for ${student.name} isn’t wired yet — demo mode`)}
+          onClick={() => {
+            if (live) {
+              router.push(`${basePath}/students/${student.id}`);
+              return;
+            }
+            toast.message(`Student profile for ${student.name} isn’t wired yet — demo mode`);
+          }}
         />
         <Button
           label="Remove student"

@@ -1,5 +1,5 @@
-import { ProgramsDemo } from "@/components/patterns/client-templates-migrate/programs";
+import { ProgramsMigrate } from "./ProgramsMigrate";
 
 export default function ProgramsRoute() {
-  return <ProgramsDemo />;
+  return <ProgramsMigrate />;
 }

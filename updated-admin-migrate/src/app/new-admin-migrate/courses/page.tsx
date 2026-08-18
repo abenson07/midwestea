@@ -1,5 +1,5 @@
-import { CoursesDemo } from "@/components/patterns/client-templates-migrate/courses";
+import { CoursesMigrate } from "./CoursesMigrate";
 
 export default function CoursesRoute() {
-  return <CoursesDemo />;
+  return <CoursesMigrate />;
 }

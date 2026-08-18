@@ -115,11 +115,18 @@ export type ClassStudentPayment = {
   invoiceB: ClassPaymentLine;
 };
 
-export type PrerequisiteItemStatus = "not_started" | "pending_review" | "approved";
+export type PrerequisiteItemStatus =
+  | "not_started"
+  | "pending_review"
+  | "approved"
+  | "expired"
+  | "needs_resubmission"
+  | "optional"
+  | "expires_before_class_starts";
 
 export type RosterPrerequisiteStatus = "approved" | "needs-review" | "needs-reminder";
 
-export type RosterPaymentStatus = "paid" | "past-due" | "pending" | "na";
+export type RosterPaymentStatus = "paid" | "partially-paid" | "past-due" | "pending" | "na";
 
 export type ClassPrerequisiteItem = {
   id: string;
@@ -128,7 +135,16 @@ export type ClassPrerequisiteItem = {
   type: string;
   status: PrerequisiteItemStatus;
   issuedOn?: string;
+  expiresOn?: string;
   issuer?: string;
+  /** Earlier submissions for this same (student, type) pair, most recent first. */
+  previousSubmissions?: {
+    status: PrerequisiteItemStatus;
+    issuedOn?: string;
+    expiresOn?: string;
+    submittedOn: string;
+    rejectionReason?: string;
+  }[];
 };
 
 export type ClassPrerequisiteSubmission = {
@@ -137,6 +153,7 @@ export type ClassPrerequisiteSubmission = {
   student: string;
   type: string;
   issuedOn: string;
+  expiresOn?: string;
   issuer: string;
 };
 
@@ -635,7 +652,17 @@ export const CLASS_PREREQUISITE_ITEMS: Record<string, ClassPrerequisiteItem[]> =
       type: "CPR Certificate",
       status: "pending_review",
       issuedOn: "Mar 12, 2026",
+      expiresOn: "Mar 12, 2028",
       issuer: "American Heart Association",
+      previousSubmissions: [
+        {
+          status: "needs_resubmission",
+          issuedOn: "Jan 4, 2026",
+          expiresOn: "Jan 4, 2028",
+          submittedOn: "Jan 6, 2026",
+          rejectionReason: "Certificate photo was cropped — issue date not visible.",
+        },
+      ],
     },
     {
       id: "prereq-a1b",
@@ -660,6 +687,7 @@ export const CLASS_PREREQUISITE_ITEMS: Record<string, ClassPrerequisiteItem[]> =
       type: "CPR Certificate",
       status: "approved",
       issuedOn: "Feb 18, 2026",
+      expiresOn: "Feb 18, 2028",
       issuer: "American Heart Association",
     },
     {
@@ -763,6 +791,7 @@ function toSubmission(item: ClassPrerequisiteItem): ClassPrerequisiteSubmission 
     student: item.student,
     type: item.type,
     issuedOn: item.issuedOn ?? "",
+    expiresOn: item.expiresOn,
     issuer: item.issuer ?? "",
   };
 }
@@ -945,21 +974,36 @@ export function rosterPrerequisiteStatusFor(
   return "approved";
 }
 
-export function rosterPaymentStatusFor(classId: string, student: ClassRosterRow): RosterPaymentStatus {
+export function rosterPaymentStatusFor(
+  classId: string,
+  student: ClassRosterRow,
+  rows: TransactionRow[] = sampleTransactions,
+): RosterPaymentStatus {
   const payment = classStudentPaymentFor(student.id);
   if (payment) {
     const lines = [payment.registration, payment.invoiceA, payment.invoiceB];
     if (lines.some((line) => line.status === "Overdue")) return "past-due";
     if (lines.every((line) => line.status === "Paid")) return "paid";
+    if (lines.some((line) => line.status === "Paid")) return "partially-paid";
     return "pending";
   }
 
-  const invoices = classAllInvoicesFor(classId).filter((invoice) => invoice.studentName === student.name);
-  if (!invoices.length) return "na";
-  if (invoices.some((invoice) => getTransactionListStatus(invoice) === "past_due")) return "past-due";
-  const active = invoices.filter((invoice) => invoice.transactionStatus !== "refunded");
-  if (active.length && active.every((invoice) => invoice.transactionStatus === "paid")) return "paid";
-  return "pending";
+  const invoices = classAllInvoicesFor(classId, rows).filter(
+    (invoice) => invoice.studentId === student.id || invoice.studentName === student.name,
+  );
+  const summary = enrollmentInvoiceSummary(invoices);
+  switch (summary) {
+    case "No invoices":
+      return "na";
+    case "Past due":
+      return "past-due";
+    case "All paid":
+      return "paid";
+    case "Partially paid":
+      return "partially-paid";
+    case "Pending":
+      return "pending";
+  }
 }
 
 export const STUDENTS_TO_REMOVE: StudentToRemove[] = [

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Text } from "@/components/patterns/primitives/Text";
 import { CatalogSettingsPage } from "@/components/patterns/client-templates-migrate/catalog/CatalogSettingsPage";
 import {
   catalogTemplateFor,
@@ -11,7 +12,9 @@ import {
 } from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
 import { StaffDemo } from "@/components/patterns/client-templates-migrate/staff";
 import { LocationsDemo } from "@/components/patterns/client-templates-migrate/locations";
+import type { LocationRow } from "@/components/patterns/client-templates-migrate/locations/types";
 import { PrerequisitesDemo } from "@/components/patterns/client-templates-migrate/prerequisites";
+import type { PrerequisiteRow } from "@/components/patterns/client-templates-migrate/prerequisites/types";
 import { SettingsSideNav } from "./SettingsSideNav";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { ProfilePanel } from "./ProfilePanel";
@@ -41,8 +44,24 @@ function hrefForNav(root: string, id: string): string {
   return id === "preferences" ? root : `${root}/${id}`;
 }
 
-function CatalogTemplateSettings({ templateId }: { templateId: string }) {
-  const [template, setTemplate] = useState<CatalogTemplate>(() => catalogTemplateFor(templateId));
+function CatalogTemplateSettings({
+  templateId,
+  templates,
+}: {
+  templateId: string;
+  templates?: CatalogTemplate[];
+}) {
+  const live = useIsNewAdminMigrate();
+  const [template, setTemplate] = useState<CatalogTemplate | null>(
+    () => templates?.find((row) => row.id === templateId) ?? (live ? null : catalogTemplateFor(templateId)),
+  );
+  if (!template) {
+    return (
+      <div style={{ padding: 24 }}>
+        <Text color="secondary">No template matches this profile.</Text>
+      </div>
+    );
+  }
   return (
     <CatalogSettingsPage
       key={templateId}
@@ -52,26 +71,46 @@ function CatalogTemplateSettings({ templateId }: { templateId: string }) {
   );
 }
 
-function SettingsBody({ navId }: { navId: string }) {
+function SettingsBody({
+  navId,
+  templates,
+  locations,
+  prerequisites,
+}: {
+  navId: string;
+  templates?: CatalogTemplate[];
+  locations?: LocationRow[];
+  prerequisites?: PrerequisiteRow[];
+}) {
   if (navId === "profile") return <ProfilePanel />;
   if (navId === "preferences") return <PreferencesPanel />;
   if (navId === "trainers") return <StaffDemo view="trainers" />;
   if (navId === "admins") return <StaffDemo view="admin" />;
-  if (navId === "prerequisites") return <PrerequisitesDemo />;
-  if (navId === "locations") return <LocationsDemo />;
+  if (navId === "prerequisites") return <PrerequisitesDemo rows={prerequisites} />;
+  if (navId === "locations") return <LocationsDemo rows={locations} />;
   if (navId === "logs") return <LogsPage />;
   if (navId === "payouts") return <PayoutsPage />;
   if (navId === "download-invoices") return <DownloadInvoicesPage />;
 
   const programMatch = navId.match(/^programs\/(.+)$/);
-  if (programMatch?.[1]) return <CatalogTemplateSettings templateId={programMatch[1]} />;
+  if (programMatch?.[1]) {
+    return <CatalogTemplateSettings templateId={programMatch[1]} templates={templates} />;
+  }
   const courseMatch = navId.match(/^courses\/(.+)$/);
-  if (courseMatch?.[1]) return <CatalogTemplateSettings templateId={courseMatch[1]} />;
+  if (courseMatch?.[1]) {
+    return <CatalogTemplateSettings templateId={courseMatch[1]} templates={templates} />;
+  }
 
   return <PreferencesPanel />;
 }
 
-export function SettingsDemo() {
+export type SettingsDemoProps = {
+  templates?: CatalogTemplate[];
+  locations?: LocationRow[];
+  prerequisites?: PrerequisiteRow[];
+};
+
+export function SettingsDemo({ templates, locations, prerequisites }: SettingsDemoProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
@@ -88,14 +127,27 @@ export function SettingsDemo() {
             selectedNavId={selectedNavId}
             onNavSelect={(id) => router.push(hrefForNav(root, id))}
             onBack={() => router.push(`${basePath}/overview`)}
+            templates={templates}
           />
         }
       >
         {isInset ? (
-          <SettingsBody key={selectedNavId} navId={selectedNavId} />
+          <SettingsBody
+            key={selectedNavId}
+            navId={selectedNavId}
+            templates={templates}
+            locations={locations}
+            prerequisites={prerequisites}
+          />
         ) : isCatalog ? (
           <div style={{ height: "100%", minHeight: 0, overflow: "auto" }}>
-            <SettingsBody key={selectedNavId} navId={selectedNavId} />
+            <SettingsBody
+              key={selectedNavId}
+              navId={selectedNavId}
+              templates={templates}
+              locations={locations}
+              prerequisites={prerequisites}
+            />
           </div>
         ) : (
           <div
@@ -108,7 +160,13 @@ export function SettingsDemo() {
             }}
           >
             <div style={{ maxWidth: 640, marginInline: "auto" }}>
-              <SettingsBody key={selectedNavId} navId={selectedNavId} />
+              <SettingsBody
+                key={selectedNavId}
+                navId={selectedNavId}
+                templates={templates}
+                locations={locations}
+                prerequisites={prerequisites}
+              />
             </div>
           </div>
         )}

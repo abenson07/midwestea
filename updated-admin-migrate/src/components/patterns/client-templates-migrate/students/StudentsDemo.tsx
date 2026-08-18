@@ -9,7 +9,7 @@ import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
 import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
 import { Text } from "@/components/patterns/primitives/Text";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { STUDENT_ROWS } from "./studentData";
 import { StudentsTable } from "./StudentsTable";
 import { matchesStudentsView, type StudentRow, type StudentsView } from "./types";
@@ -47,10 +47,12 @@ export type StudentsDemoProps = {
  * Students roster: name, email, classes, payment status, and first enrolled.
  * Current filters to enrolled students; Past due to enrolled students with a past-due invoice.
  */
-export function StudentsDemo({ rows = STUDENT_ROWS }: StudentsDemoProps) {
+export function StudentsDemo({ rows: rowsProp }: StudentsDemoProps) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
+  const live = useIsNewAdminMigrate();
+  const rows = rowsProp ?? (live ? [] : STUDENT_ROWS);
   const root = `${basePath}/students`;
   const view = viewFromPath(pathname ?? "", root);
   const [search, setSearch] = useState("");

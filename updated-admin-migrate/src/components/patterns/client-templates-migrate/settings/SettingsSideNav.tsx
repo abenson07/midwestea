@@ -8,13 +8,18 @@ import {
   SidebarSection,
 } from "@/components/patterns/foundation/sidebar";
 import "@/components/patterns/foundation/sidebar/sidebar.css";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { settingsNavSections, settingsTechnicalNavSection } from "@/data/mocks/settings-nav";
-import { catalogTemplatesOfKind } from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
+import {
+  catalogTemplatesOfKind,
+  type CatalogTemplate,
+} from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
 
 export type SettingsSideNavProps = {
   selectedNavId: string;
   onNavSelect: (id: string) => void;
   onBack?: () => void;
+  templates?: CatalogTemplate[];
 };
 
 /**
@@ -24,9 +29,19 @@ export function SettingsSideNav({
   selectedNavId,
   onNavSelect,
   onBack,
+  templates,
 }: SettingsSideNavProps) {
-  const programs = catalogTemplatesOfKind("Program");
-  const courses = catalogTemplatesOfKind("Course");
+  const live = useIsNewAdminMigrate();
+  const programs = templates
+    ? templates.filter((template) => template.kind === "Program")
+    : live
+      ? []
+      : catalogTemplatesOfKind("Program");
+  const courses = templates
+    ? templates.filter((template) => template.kind === "Course")
+    : live
+      ? []
+      : catalogTemplatesOfKind("Course");
 
   return (
     <div

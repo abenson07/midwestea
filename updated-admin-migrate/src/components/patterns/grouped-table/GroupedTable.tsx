@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
-import { columnsToGridTemplate, type TableColumn } from "@/components/patterns/primitives/table";
+import { columnAlignsEnd, columnsToGridTemplate, type TableColumn } from "@/components/patterns/primitives/table";
 import { LinearGroupHeader } from "./LinearGroupHeader";
 import "./grouped-table.css";
 
@@ -129,13 +129,13 @@ export function GroupedTable<T extends Record<string, unknown>>({
         className="grouped-table-row"
         data-hover={hasHover ? "true" : undefined}
         data-selected={isRowSelected?.(item) ? "true" : undefined}
-        style={{ display: "grid", gridTemplateColumns }}
+        style={{ display: "grid", gridTemplateColumns, width: "100%" }}
       >
-        {columns.map((column) => (
+        {columns.map((column, index) => (
           <div
             key={column.key}
             className="grouped-table-cell"
-            data-align={column.align === "end" ? "end" : undefined}
+            data-align={columnAlignsEnd(column, index, columns.length) ? "end" : undefined}
           >
             {column.renderCell(item)}
           </div>
@@ -160,13 +160,13 @@ export function GroupedTable<T extends Record<string, unknown>>({
       {showHeader ? (
         <div
           className="grouped-table-header-row"
-          style={{ display: "grid", gridTemplateColumns }}
+          style={{ display: "grid", gridTemplateColumns, width: "100%" }}
         >
-          {columns.map((column) => (
+          {columns.map((column, index) => (
             <div
               key={column.key}
               className="grouped-table-header-cell"
-              data-align={column.align === "end" ? "end" : undefined}
+              data-align={columnAlignsEnd(column, index, columns.length) ? "end" : undefined}
             >
               {column.header}
             </div>
@@ -216,10 +216,10 @@ export function GroupedTable<T extends Record<string, unknown>>({
       {footerLabel != null ? (
         <div
           className="grouped-table-row grouped-table-footer-row"
-          style={{ display: "grid", gridTemplateColumns }}
+          style={{ display: "grid", gridTemplateColumns, width: "100%" }}
         >
           {columns.map((column, index) => {
-            const alignEnd = column.align === "end";
+            const alignEnd = columnAlignsEnd(column, index, columns.length);
             let content: ReactNode = null;
             if (column.sumValue) {
               const total = data.reduce((sum, row) => sum + (column.sumValue?.(row) ?? 0), 0);

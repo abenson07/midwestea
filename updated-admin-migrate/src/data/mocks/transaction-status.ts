@@ -166,3 +166,8 @@ export function dueDateInputValue(iso: string | null): string {
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
+
+/** Today, as a `YYYY-MM-DD` value for a native date input. */
+export function todayLocalDateInputValue(): string {
+  return dueDateInputValue(new Date().toISOString());
+}

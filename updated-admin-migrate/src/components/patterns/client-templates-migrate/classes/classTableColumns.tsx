@@ -41,10 +41,10 @@ function seatCapacity(limit: string): number | null {
   return match ? Number(match[0]) : null;
 }
 
-export function enrolledLabel(row: ClassDetail): string {
-  const enrolled = classRosterFor(row.id).filter(
-    (person) => person.role === "Student" && person.status === "Enrolled",
-  ).length;
+export function enrolledLabel(row: ClassDetail, enrolledCounts?: Map<string, number>): string {
+  const enrolled = enrolledCounts
+    ? (enrolledCounts.get(row.id) ?? 0)
+    : classRosterFor(row.id).filter((person) => person.role === "Student" && person.status === "Enrolled").length;
   const capacity = seatCapacity(row.registrationLimit);
   if (capacity == null) return String(enrolled);
   return `${enrolled} out of ${capacity}`;
@@ -53,9 +53,12 @@ export function enrolledLabel(row: ClassDetail): string {
 export function buildClassTableColumns({
   dateLabel,
   onSelect,
+  enrolledCounts,
 }: {
   dateLabel: (row: ClassDetail) => string;
   onSelect: (row: ClassDetail) => void;
+  /** Real enrollment counts (step 2). When omitted, falls back to the mock roster lookup. */
+  enrolledCounts?: Map<string, number>;
 }): TableColumn<ClassDetail>[] {
   return [
     {
@@ -83,7 +86,7 @@ export function buildClassTableColumns({
       header: "Enrolled",
       width: pixel(120),
       renderCell: (row) => (
-        <RowClickCell onClick={() => onSelect(row)}>{enrolledLabel(row)}</RowClickCell>
+        <RowClickCell onClick={() => onSelect(row)}>{enrolledLabel(row, enrolledCounts)}</RowClickCell>
       ),
     },
   ];

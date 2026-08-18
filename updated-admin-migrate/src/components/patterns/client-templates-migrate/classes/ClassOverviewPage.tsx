@@ -10,6 +10,7 @@ import { ClassDueInvoicesSection } from "./ClassDueInvoicesSection";
 import { ClassRosterSection } from "./ClassRosterSection";
 import { ClassStudentPaymentsCard } from "./ClassStudentPaymentsCard";
 import { ClassRevenueCard } from "./ClassRevenueCard";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { catalogKindForClass } from "../catalog/catalogMocks";
 import { isClassClosed } from "./classTableColumns";
 import {
@@ -48,14 +49,15 @@ export function ClassOverviewPage({
   onAddPrerequisite,
   onRemoveStudent,
 }: ClassOverviewPageProps) {
+  const live = useIsNewAdminMigrate();
   const { transactions } = useTransactions();
   const closed = isClassClosed(classDetail);
   const isCourse = catalogKindForClass(classDetail) === "Course";
   const showBanners = !closed && !isCourse;
   const canEdit = !closed;
-  const revenue = classRevenueFor(classDetail.id);
+  const revenue = live ? null : classRevenueFor(classDetail.id);
   const invoices = classDueInvoicesFor(classDetail.id, transactions);
-  const submissions = classPrerequisiteQueueFor(classDetail.id);
+  const submissions = live ? [] : classPrerequisiteQueueFor(classDetail.id);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
 

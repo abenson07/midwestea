@@ -1,5 +1,6 @@
 .sidebar-menu-item-action,
-.sidebar-section-header-action {
+.sidebar-section-header-action,
+.sidebar-menu-item-count {
   opacity: 0;
   pointer-events: none;
 }
@@ -10,6 +11,11 @@
 .sidebar-section-header:focus-within .sidebar-section-header-action {
   opacity: 1;
   pointer-events: auto;
+}
+
+.sidebar-menu-item:hover .sidebar-menu-item-count,
+.sidebar-menu-item:focus-within .sidebar-menu-item-count {
+  opacity: 1;
 }
 
 @keyframes demo-mode-spin {

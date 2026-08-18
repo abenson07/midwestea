@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { RowClickCell, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { Button } from "@/components/patterns/primitives/Button";
 import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
 import { LocationDetailPanel } from "./LocationDetailPanel";
@@ -114,8 +114,14 @@ function buildColumns(
   ];
 }
 
-export function LocationsDemo() {
-  const [rows, setRows] = useState<LocationRow[]>(INITIAL_LOCATION_ROWS);
+export type LocationsDemoProps = {
+  /** When omitted, the table stays on demo mocks (`/admin-preview`). */
+  rows?: LocationRow[];
+};
+
+export function LocationsDemo({ rows: rowsProp }: LocationsDemoProps = {}) {
+  const live = useIsNewAdminMigrate();
+  const [rows, setRows] = useState<LocationRow[]>(rowsProp ?? (live ? [] : INITIAL_LOCATION_ROWS));
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [search, setSearch] = useState("");

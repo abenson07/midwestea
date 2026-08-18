@@ -4,7 +4,7 @@ import { Bell } from "lucide-react";
 import { Avatar } from "@/components/patterns/primitives/Avatar";
 import { Button } from "@/components/patterns/primitives/Button";
 import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { HoverTooltip, RowClickCell } from "@/components/patterns/client-templates/shared";
 import {
   formatShortDate,
   getTransactionDaysPastDue,
@@ -206,11 +206,18 @@ export function buildPastDueTransactionColumns(
       width: pixel(130),
       renderCell: (row) => {
         const days = getTransactionDaysPastDue(row);
+        const label = (
+          <span style={{ color: PAST_DUE_COLOR, fontWeight: 500 }}>
+            {days} day{days === 1 ? "" : "s"} past due
+          </span>
+        );
         return (
           <RowClickCell onClick={selectHandler(options, row.id)}>
-            <span style={{ color: PAST_DUE_COLOR, fontWeight: 500 }}>
-              {days} day{days === 1 ? "" : "s"} past due
-            </span>
+            {row.dueDate ? (
+              <HoverTooltip content={`Due ${formatShortDate(row.dueDate)}`}>{label}</HoverTooltip>
+            ) : (
+              label
+            )}
           </RowClickCell>
         );
       },

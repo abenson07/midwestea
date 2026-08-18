@@ -41,7 +41,30 @@ export type CatalogTemplate = {
   classLength: string;
   prerequisites: string[];
   externalLinks?: ClassExternalLink[];
+  courseImageUrl?: string;
+  /** Assigned when the template is created — read-only in settings. */
+  stripeProductId?: string;
+  /** Ordered, per-item required flag. Falls back to `prerequisites` (all required) when unset. */
+  prerequisiteAssignments?: CatalogPrerequisiteAssignment[];
 };
+
+export type CatalogPrerequisiteAssignment = {
+  id: string;
+  prerequisiteTypeId: string;
+  name: string;
+  required: boolean;
+};
+
+/** Assignment rows for a template — synthesized from `prerequisites` until explicitly edited. */
+export function catalogPrerequisiteAssignments(template: CatalogTemplate): CatalogPrerequisiteAssignment[] {
+  if (template.prerequisiteAssignments) return template.prerequisiteAssignments;
+  return template.prerequisites.map((name, index) => ({
+    id: `${template.id}-prereq-${index}`,
+    prerequisiteTypeId: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+    name,
+    required: true,
+  }));
+}
 
 export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
   "emt-basic": {
@@ -62,6 +85,8 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
       { id: "jb", name: "JB Learning", url: "https://www.jblearning.com" },
       { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
     ],
+    courseImageUrl: "https://assets.midwestea.example/programs/emt-basic.jpg",
+    stripeProductId: "prod_EMTBasic001",
   },
   aemt: {
     id: "aemt",
@@ -96,6 +121,8 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
       { id: "jb", name: "JB Learning", url: "https://www.jblearning.com" },
       { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
     ],
+    courseImageUrl: "https://assets.midwestea.example/programs/paramedic.jpg",
+    stripeProductId: "prod_ParamedicProgram",
   },
   atcc: {
     id: "atcc",
@@ -172,6 +199,8 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
     registrationLimit: "—",
     classLength: "—",
     prerequisites: [],
+    courseImageUrl: "https://assets.midwestea.example/courses/bls.jpg",
+    stripeProductId: "prod_BLSProvider",
   },
   "acls-provider": {
     id: "acls-provider",
@@ -313,6 +342,43 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
     prerequisites: [],
   },
 };
+
+export type CatalogWaitlistEntry = {
+  id: string;
+  fullName: string;
+  email: string;
+  signedUpAt: string;
+};
+
+/** Pre-enrollment interest signups for a template — independent of whether it has classes yet. */
+export const CATALOG_WAITLISTS: Record<string, CatalogWaitlistEntry[]> = {
+  "paramedic-program": [
+    {
+      id: "wl-para-1",
+      fullName: "Devon Ashworth",
+      email: "devon.ashworth@example.com",
+      signedUpAt: "Jul 28, 2026",
+    },
+    {
+      id: "wl-para-2",
+      fullName: "Marisol Vega",
+      email: "marisol.vega@example.com",
+      signedUpAt: "Aug 2, 2026",
+    },
+  ],
+  atcc: [
+    {
+      id: "wl-atcc-1",
+      fullName: "Tobias Renner",
+      email: "tobias.renner@example.com",
+      signedUpAt: "Aug 9, 2026",
+    },
+  ],
+};
+
+export function catalogWaitlistFor(templateId: string): CatalogWaitlistEntry[] {
+  return CATALOG_WAITLISTS[templateId] ?? [];
+}
 
 export function catalogTemplatesOfKind(kind: CatalogTemplateKind): CatalogTemplate[] {
   return Object.values(CATALOG_TEMPLATES)

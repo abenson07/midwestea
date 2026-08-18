@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
 import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { ClassContentPage, RowClickCell, useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { ClassContentPage, RowClickCell, useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
 import { Text } from "@/components/patterns/primitives/Text";
 import { Avatar } from "@/components/patterns/primitives/Avatar";
@@ -194,11 +194,12 @@ function RemindFollowUpModal({
 export function OverviewDemo() {
   const router = useRouter();
   const basePath = useAdminBasePath();
-  const [prerequisites, setPrerequisites] = useState(allPrerequisiteQueue);
-  const followUp = useMemo(() => allFollowUpQueue(), []);
-  const outstandingInvoices = useMemo(() => allClassDueInvoices(), []);
+  const live = useIsNewAdminMigrate();
+  const [prerequisites, setPrerequisites] = useState(() => (live ? [] : allPrerequisiteQueue()));
+  const followUp = useMemo(() => (live ? [] : allFollowUpQueue()), [live]);
+  const outstandingInvoices = useMemo(() => (live ? [] : allClassDueInvoices()), [live]);
   const invoiceColumns = useMemo(() => buildClassPastDueInvoiceColumns(), []);
-  const [students, setStudents] = useState(STUDENTS_TO_REMOVE);
+  const [students, setStudents] = useState(live ? [] : STUDENTS_TO_REMOVE);
   const [messageStudent, setMessageStudent] = useState<StudentToRemove | null>(null);
   const [removeStudent, setRemoveStudent] = useState<StudentToRemove | null>(null);
   const [createOpen, setCreateOpen] = useState(false);

@@ -1,5 +1,5 @@
-import { ClassesDemo } from "@/components/patterns/client-templates-migrate/classes";
+import { ClassesMigrate } from "../ClassesMigrate";
 
 export default function ClosedClassesRoute() {
-  return <ClassesDemo />;
+  return <ClassesMigrate />;
 }

@@ -11,10 +11,12 @@ import type { ClassDetail } from "./classMocks";
 export type ClassesTableProps = {
   data: ClassDetail[];
   onSelect: (row: ClassDetail) => void;
+  /** Real enrollment counts (step 2). When omitted, falls back to the mock roster lookup. */
+  enrolledCounts?: Map<string, number>;
 };
 
 /** Flat classes roster: name plus the program/course class-table columns (dates, enrolled). */
-export function ClassesTable({ data, onSelect }: ClassesTableProps) {
+export function ClassesTable({ data, onSelect, enrolledCounts }: ClassesTableProps) {
   const closedIds = useMemo(() => {
     const { past } = splitClassesByStatus(data);
     return new Set(past.map((row) => row.id));
@@ -24,6 +26,7 @@ export function ClassesTable({ data, onSelect }: ClassesTableProps) {
     const base = buildClassTableColumns({
       onSelect,
       dateLabel: (row) => classDateLabel(row, startOfToday(), closedIds.has(row.id)),
+      enrolledCounts,
     });
     const typeColumn: TableColumn<ClassDetail> = {
       key: "type",
@@ -36,7 +39,7 @@ export function ClassesTable({ data, onSelect }: ClassesTableProps) {
       ),
     };
     return [base[0], typeColumn, ...base.slice(1)];
-  }, [onSelect, closedIds]);
+  }, [onSelect, closedIds, enrolledCounts]);
 
   return (
     <div style={{ height: "100%", minHeight: 0, boxSizing: "border-box", padding: "0 8px" }}>

@@ -4,9 +4,15 @@ import { FoundationLayout } from "@/components/patterns/foundation/FoundationLay
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
 import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
 import { ProgramsPage } from "./ProgramsPage";
+import type { CatalogTemplate } from "../catalog/catalogMocks";
+
+export type ProgramsDemoProps = {
+  /** When omitted, the list stays on demo mocks (`/admin-preview`). */
+  templates?: CatalogTemplate[];
+};
 
 /** Copied structurally from Committees — placeholder cards until Programs gets real data. */
-export function ProgramsDemo() {
+export function ProgramsDemo({ templates }: ProgramsDemoProps = {}) {
   return (
     <div style={{ height: "100%" }}>
       <FoundationLayout
@@ -23,7 +29,7 @@ export function ProgramsDemo() {
             padding: "32px 24px 64px",
           }}
         >
-          <ProgramsPage />
+          <ProgramsPage templates={templates} />
         </div>
       </FoundationLayout>
     </div>

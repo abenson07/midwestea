@@ -16,6 +16,9 @@ import {
   type ClassRosterRow,
   type RosterPaymentStatus,
 } from "./classMocks";
+import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
+import { useTransactions } from "../payments/useTransactions";
+import type { TransactionRow } from "@/data/mocks/transactions";
 
 const STATUS_ORDER = ["Enrolled", "Waitlisted"];
 const STATUS_COLOR: Record<string, string> = {
@@ -30,6 +33,7 @@ const STATUS_OPTIONS = [
 
 const PAYMENT_LABEL: Record<RosterPaymentStatus, string> = {
   paid: "Paid",
+  "partially-paid": "Partially paid",
   "past-due": "Past due",
   pending: "Pending",
   na: "NA",
@@ -37,6 +41,7 @@ const PAYMENT_LABEL: Record<RosterPaymentStatus, string> = {
 
 const PAYMENT_COLOR: Record<Exclude<RosterPaymentStatus, "na">, string> = {
   paid: "#27a644",
+  "partially-paid": "#f2c94c",
   "past-due": "#eb5757",
   pending: "#f2994a",
 };
@@ -98,16 +103,19 @@ function buildColumns(
   classId?: string,
   showPrerequisites?: boolean,
   onReviewPrerequisite?: (studentId: string) => void,
+  invoices?: TransactionRow[],
 ): TableColumn<ClassRosterRow>[] {
   function selectIfStudent(row: ClassRosterRow) {
     return row.role === "Student" ? () => onSelectStudent?.(row.id) : undefined;
   }
 
+  const even = proportional(1);
   const columns: TableColumn<ClassRosterRow>[] = [
     {
       key: "name",
       header: "Name",
-      width: proportional(1, { minWidth: 140 }),
+      width: even,
+      align: "start",
       renderCell: (row) => (
         <RowClickCell onClick={selectIfStudent(row)}>
           <Avatar name={row.name} size="sm" />
@@ -125,7 +133,8 @@ function buildColumns(
     {
       key: "email",
       header: "Email",
-      width: proportional(1, { minWidth: 140 }),
+      width: even,
+      align: "start",
       renderCell: (row) => (
         <RowClickCell onClick={selectIfStudent(row)}>
           <span style={{ color: "var(--linear-color-ink-subtle)" }}>{row.email}</span>
@@ -138,14 +147,20 @@ function buildColumns(
     columns.push({
       key: "prerequisites",
       header: "Prerequisites",
-      width: proportional(1, { minWidth: 120 }),
+      width: even,
+      align: "start",
       renderCell: (row) => {
         if (row.role !== "Student" || row.status !== "Enrolled") {
           return <span style={{ color: "var(--linear-color-ink-subtle)" }}>—</span>;
         }
         const status = rosterPrerequisiteStatusFor(classId, row.id);
         if (status === "approved") {
-          return <StatusBadge label="Approved" color="#27a644" />;
+          return (
+            <StatusBadge
+              label={PREREQUISITE_STATUS_LABEL.approved}
+              color={PREREQUISITE_STATUS_COLOR.approved}
+            />
+          );
         }
         if (status === "needs-review") {
           return (
@@ -179,10 +194,11 @@ function buildColumns(
     columns.push({
       key: "payment",
       header: "Payment status",
-      width: proportional(1, { minWidth: 120 }),
+      width: even,
+      align: "start",
       renderCell: (row) => (
         <RowClickCell onClick={selectIfStudent(row)}>
-          <PaymentStatusBadge status={rosterPaymentStatusFor(classId, row)} />
+          <PaymentStatusBadge status={rosterPaymentStatusFor(classId, row, invoices)} />
         </RowClickCell>
       ),
     });
@@ -192,7 +208,8 @@ function buildColumns(
     columns.push({
       key: "certificate",
       header: "Certificate",
-      width: proportional(1, { minWidth: 100 }),
+      width: even,
+      align: "start",
       renderCell: (row) =>
         row.certificateHref ? (
           <a
@@ -232,6 +249,7 @@ export function ClassRosterSection({
   showCertificates = false,
   showPrerequisites = false,
 }: ClassRosterSectionProps) {
+  const { transactions } = useTransactions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const hasWaitlist = rows.some((row) => row.status === "Waitlisted");
@@ -245,8 +263,9 @@ export function ClassRosterSection({
         classId,
         showPrerequisites,
         onReviewPrerequisite,
+        transactions,
       ),
-    [onSelectStudent, selectedStudentId, showCertificates, classId, showPrerequisites, onReviewPrerequisite],
+    [onSelectStudent, selectedStudentId, showCertificates, classId, showPrerequisites, onReviewPrerequisite, transactions],
   );
 
   const filteredRows = useMemo(() => {

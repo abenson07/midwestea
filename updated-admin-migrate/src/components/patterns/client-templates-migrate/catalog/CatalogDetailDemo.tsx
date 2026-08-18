@@ -7,7 +7,8 @@ import { FoundationLayout } from "@/components/patterns/foundation/FoundationLay
 import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
 import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
 import { Button } from "@/components/patterns/primitives/Button";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Text } from "@/components/patterns/primitives/Text";
 import { CatalogOverviewPage } from "./CatalogOverviewPage";
 import { CreateClassModal } from "./CreateClassModal";
 import {
@@ -16,19 +17,56 @@ import {
   catalogTemplateFor,
   classDetailHref,
   classesForTemplate,
+  type CatalogTemplate,
 } from "./catalogMocks";
 import type { ClassDetail } from "../classes/classMocks";
 
 export type CatalogDetailDemoProps = {
   templateId: string;
+  /** When omitted, the profile stays on demo mocks (`/admin-preview`). */
+  template?: CatalogTemplate;
+  classes?: ClassDetail[];
+  enrolledCounts?: Map<string, number>;
 };
 
-export function CatalogDetailDemo({ templateId }: CatalogDetailDemoProps) {
+export function CatalogDetailDemo({
+  templateId,
+  template: templateProp,
+  classes: classesProp,
+  enrolledCounts,
+}: CatalogDetailDemoProps) {
   const router = useRouter();
   const basePath = useAdminBasePath();
-  const [template] = useState(() => catalogTemplateFor(templateId));
-  const [classes, setClasses] = useState<ClassDetail[]>(() => classesForTemplate(template.code));
+  const live = useIsNewAdminMigrate();
+  const [template, setTemplate] = useState(
+    () => templateProp ?? (live ? undefined : catalogTemplateFor(templateId)),
+  );
+  const [classes, setClasses] = useState<ClassDetail[]>(
+    () => classesProp ?? (template && !live ? classesForTemplate(template.code) : []),
+  );
   const [createOpen, setCreateOpen] = useState(false);
+
+  if (!template) {
+    return (
+      <div style={{ height: "100%" }}>
+        <FoundationLayout
+          navigation={<LinearSidebar />}
+          header={
+            <CanvasHeader
+              topbar={{
+                title: "Template",
+                breadcrumbs: [{ label: "Programs", onClick: () => router.push(`${basePath}/programs`) }],
+              }}
+            />
+          }
+        >
+          <div style={{ padding: 24 }}>
+            <Text color="secondary">No template matches this profile.</Text>
+          </div>
+        </FoundationLayout>
+      </div>
+    );
+  }
 
   const listHref = `${basePath}${catalogListHref(template.kind)}`;
   const listLabel = template.kind === "Program" ? "Programs" : "Courses";
@@ -62,6 +100,8 @@ export function CatalogDetailDemo({ templateId }: CatalogDetailDemoProps) {
             classes={classes}
             onEditDetails={() => router.push(`${basePath}${catalogSettingsHref(template)}`)}
             onCreateClass={() => setCreateOpen(true)}
+            onTemplateChange={setTemplate}
+            enrolledCounts={enrolledCounts}
           />
         </div>
       </FoundationLayout>

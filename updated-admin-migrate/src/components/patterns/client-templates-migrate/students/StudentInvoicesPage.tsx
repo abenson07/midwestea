@@ -2,51 +2,45 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 import { X } from "lucide-react";
 import { Text } from "@/components/patterns/primitives/Text";
 import { IconButton } from "@/components/patterns/shared/IconButton";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
 import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { ClassSidebarSection } from "../classes/ClassSidebarSection";
 import { TransactionDetailPanel } from "../payments/TransactionDetailPanel";
 import { useTransactions } from "../payments/useTransactions";
 import {
-  buildPastDueTransactionColumns,
   buildTransactionColumns,
   TRANSACTION_STATUS_FILTER_OPTIONS,
   TRANSACTION_TYPE_FILTER_OPTIONS,
 } from "../payments/transactionColumns";
-import { getTransactionListStatus, matchesTransactionStatusFilter } from "@/data/mocks/transaction-status";
+import { matchesTransactionStatusFilter } from "@/data/mocks/transaction-status";
+import { enrollmentsFor } from "./studentData";
+import type { StudentEnrollment } from "./types";
 
 const INVOICES_GRID = { columns: 12, left: 11, right: 1, gap: 24 } as const;
 
-type InvoiceTable = "pastDue" | "all";
-
 export type StudentInvoicesPageProps = {
   studentId: string;
+  enrollments?: StudentEnrollment[];
 };
 
-export function StudentInvoicesPage({ studentId }: StudentInvoicesPageProps) {
+export function StudentInvoicesPage({ studentId, enrollments: enrollmentsProp }: StudentInvoicesPageProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const live = useIsNewAdminMigrate();
   const { transactions, updateTransaction } = useTransactions();
+  const enrollments = enrollmentsProp ?? (live ? [] : enrollmentsFor(studentId));
 
   const studentRows = useMemo(
     () => transactions.filter((row) => row.studentId === studentId),
     [transactions, studentId],
   );
-  const pastDue = useMemo(
-    () => studentRows.filter((row) => getTransactionListStatus(row) === "past_due"),
-    [studentRows],
-  );
 
   const [selectedId, setSelectedId] = useState<string | null>(searchParams.get("transactionId"));
-  const [selectedTable, setSelectedTable] = useState<InvoiceTable | null>(
-    searchParams.get("transactionId") ? "all" : null,
-  );
   const selected = studentRows.find((row) => row.id === selectedId) ?? null;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
@@ -74,40 +68,44 @@ export function StudentInvoicesPage({ studentId }: StudentInvoicesPageProps) {
     });
   }, [studentRows, search, statusFilter, typeFilter]);
 
-  function selectTransaction(id: string | null, table: InvoiceTable | null = null) {
+  function selectTransaction(id: string | null) {
     setSelectedId(id);
-    setSelectedTable(id ? table : null);
     const params = new URLSearchParams(searchParams.toString());
     if (id) params.set("transactionId", id);
     else params.delete("transactionId");
     router.replace(`${pathname}${params.toString() ? `?${params.toString()}` : ""}`);
   }
 
-  const pastDueSelectedId = selectedTable === "pastDue" ? selectedId : null;
-  const allSelectedId = selectedTable === "all" ? selectedId : null;
-
-  const pastDueColumns = useMemo(
-    () =>
-      buildPastDueTransactionColumns({
-        selectedId: pastDueSelectedId,
-        onSelect: (id) => selectTransaction(id, "pastDue"),
-        showStudent: false,
-        onRemind: (row) =>
-          toast.success(`Reminder sent to ${row.studentName} — demo mode, not delivered`),
-      }),
-    [pastDueSelectedId],
-  );
-
-  const allColumns = useMemo(
+  const columns = useMemo(
     () =>
       buildTransactionColumns({
-        selectedId: allSelectedId,
-        onSelect: (id) => selectTransaction(id, "all"),
+        selectedId,
+        onSelect: selectTransaction,
         showStudent: false,
-        showClass: true,
+        showClass: false,
       }),
-    [allSelectedId],
+    [selectedId],
   );
+
+  const classNameByClassId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const row of studentRows) {
+      if (!map.has(row.classId)) map.set(row.classId, row.className);
+    }
+    return map;
+  }, [studentRows]);
+
+  /** Most-recent-enrollment-first; classes with invoices but no enrollment record sort last. */
+  const groupOrder = useMemo(() => {
+    const byRecency = [...enrollments].sort(
+      (a, b) => new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime(),
+    );
+    const ordered = byRecency.map((row) => row.classId);
+    for (const classId of classNameByClassId.keys()) {
+      if (!ordered.includes(classId)) ordered.push(classId);
+    }
+    return ordered;
+  }, [enrollments, classNameByClassId]);
 
   return (
     <div
@@ -131,87 +129,54 @@ export function StudentInvoicesPage({ studentId }: StudentInvoicesPageProps) {
           minHeight: 0,
           display: "flex",
           flexDirection: "column",
-          gap: 24,
+          gap: 8,
         }}
       >
-        {pastDue.length ? (
-          <div
-            style={{
-              ...cardSurfaceStyle,
-              boxSizing: "border-box",
-              padding: 20,
-              display: "flex",
-              flexDirection: "column",
-              gap: 12,
-              flexShrink: 0,
-            }}
-          >
-            <Text weight="semibold">Past due transactions</Text>
-            <GroupedTable
-              data={pastDue}
-              columns={pastDueColumns}
-              getRowKey={(row) => row.id}
-              isRowSelected={(row) => row.id === pastDueSelectedId}
-              appearance="nested"
-              listChrome={false}
-            />
-          </div>
-        ) : null}
-
         <div
           style={{
-            boxSizing: "border-box",
-            paddingInline: "calc(20px + var(--linear-border-width))",
             display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            flex: 1,
-            minHeight: 0,
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexShrink: 0,
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexShrink: 0,
-            }}
-          >
-            <Text weight="semibold">All transactions</Text>
-            <ListToolbar
-              searchValue={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Search transactions…"
-              filterGroups={[
-                {
-                  label: "Status",
-                  options: TRANSACTION_STATUS_FILTER_OPTIONS,
-                  selected: statusFilter,
-                  onChange: setStatusFilter,
-                },
-                {
-                  label: "Type",
-                  options: TRANSACTION_TYPE_FILTER_OPTIONS,
-                  selected: typeFilter,
-                  onChange: setTypeFilter,
-                },
-              ]}
+          <Text weight="semibold">Invoices by class</Text>
+          <ListToolbar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search transactions…"
+            filterGroups={[
+              {
+                label: "Status",
+                options: TRANSACTION_STATUS_FILTER_OPTIONS,
+                selected: statusFilter,
+                onChange: setStatusFilter,
+              },
+              {
+                label: "Type",
+                options: TRANSACTION_TYPE_FILTER_OPTIONS,
+                selected: typeFilter,
+                onChange: setTypeFilter,
+              },
+            ]}
+          />
+        </div>
+        {filtered.length ? (
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <GroupedTable
+              data={filtered}
+              columns={columns}
+              getRowKey={(row) => row.id}
+              isRowSelected={(row) => row.id === selectedId}
+              groupBy={(row) => row.classId}
+              groupOrder={groupOrder}
+              getGroupMeta={(classId) => ({ label: classNameByClassId.get(classId) ?? classId })}
+              listChrome
             />
           </div>
-          {filtered.length ? (
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <GroupedTable
-                data={filtered}
-                columns={allColumns}
-                getRowKey={(row) => row.id}
-                isRowSelected={(row) => row.id === allSelectedId}
-                listChrome
-              />
-            </div>
-          ) : (
-            <Text color="secondary">No transactions match.</Text>
-          )}
-        </div>
+        ) : (
+          <Text color="secondary">No transactions match.</Text>
+        )}
       </div>
 
       {selected ? (
@@ -224,7 +189,7 @@ export function StudentInvoicesPage({ studentId }: StudentInvoicesPageProps) {
           }}
         >
           <ClassSidebarSection
-            title="Transaction Details"
+            title="Transaction Detail"
             action={
               <IconButton
                 label="Close transaction"

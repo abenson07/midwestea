@@ -10,20 +10,27 @@ import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
 import { Button } from "@/components/patterns/primitives/Button";
 import { Text } from "@/components/patterns/primitives/Text";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { StudentOverviewPage } from "./StudentOverviewPage";
 import { StudentSettingsPage } from "./StudentSettingsPage";
 import { StudentInvoicesPage } from "./StudentInvoicesPage";
+import { StudentPrerequisiteSubmissionsPage } from "./StudentPrerequisiteSubmissionsPage";
 import { StudentMessageModal } from "./StudentMessageModal";
-import { studentById } from "./studentData";
-import type { StudentRecord } from "./types";
+import { studentById, studentPrerequisiteSubmissionRows } from "./studentData";
+import type { StudentEnrollment, StudentRecord } from "./types";
+import { TransactionRowsProvider } from "../payments/useTransactions";
+import type { TransactionRow } from "@/data/mocks/transactions";
+import type { ClassDetail } from "../classes/classMocks";
 
-type StudentDetailView = "overview" | "settings" | "invoices";
+type StudentDetailView = "overview" | "settings" | "invoices" | "prerequisites";
 
 export type StudentDetailDemoProps = {
   studentId: string;
   /** When omitted, the profile stays on demo mocks (`/admin-preview`). */
   student?: StudentRecord;
+  enrollments?: StudentEnrollment[];
+  classDetails?: ClassDetail[];
+  transactions?: TransactionRow[];
 };
 
 function viewFromPath(pathname: string, studentRoot: string): StudentDetailView {
@@ -32,6 +39,12 @@ function viewFromPath(pathname: string, studentRoot: string): StudentDetailView 
   }
   if (pathname === `${studentRoot}/invoices` || pathname.startsWith(`${studentRoot}/invoices/`)) {
     return "invoices";
+  }
+  if (
+    pathname === `${studentRoot}/prerequisites` ||
+    pathname.startsWith(`${studentRoot}/prerequisites/`)
+  ) {
+    return "prerequisites";
   }
   return "overview";
 }
@@ -43,12 +56,40 @@ function hrefForView(studentRoot: string, view: StudentDetailView): string {
 /**
  * Student profile — overview by default. Edit on personal details opens Settings.
  */
-export function StudentDetailDemo({ studentId, student: studentProp }: StudentDetailDemoProps) {
+export function StudentDetailDemo({
+  studentId,
+  student: studentProp,
+  enrollments,
+  classDetails,
+  transactions,
+}: StudentDetailDemoProps) {
+  const live = useIsNewAdminMigrate();
+  const inner = (
+    <StudentDetailDemoInner
+      studentId={studentId}
+      student={studentProp}
+      enrollments={enrollments}
+      classDetails={classDetails}
+    />
+  );
+  if (transactions || live) {
+    return <TransactionRowsProvider rows={transactions ?? []}>{inner}</TransactionRowsProvider>;
+  }
+  return inner;
+}
+
+function StudentDetailDemoInner({
+  studentId,
+  student: studentProp,
+  enrollments,
+  classDetails,
+}: Omit<StudentDetailDemoProps, "transactions">) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
+  const live = useIsNewAdminMigrate();
   const studentRoot = `${basePath}/students/${studentId}`;
-  const student = studentProp ?? studentById(studentId);
+  const student = studentProp ?? (live ? undefined : studentById(studentId));
   const view = viewFromPath(pathname ?? "", studentRoot);
   const [messageOpen, setMessageOpen] = useState(false);
 
@@ -79,7 +120,13 @@ export function StudentDetailDemo({ studentId, student: studentProp }: StudentDe
   }
 
   const topbarTitle =
-    view === "overview" ? student.name : view === "invoices" ? "Invoices" : "Settings";
+    view === "overview"
+      ? student.name
+      : view === "invoices"
+        ? "Invoices"
+        : view === "prerequisites"
+          ? "Prerequisite submissions"
+          : "Settings";
 
   return (
     <div style={{ height: "100%" }}>
@@ -124,11 +171,20 @@ export function StudentDetailDemo({ studentId, student: studentProp }: StudentDe
           />
         ) : view === "invoices" ? (
           <div style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
-            <StudentInvoicesPage studentId={student.id} />
+            <StudentInvoicesPage studentId={student.id} enrollments={enrollments} />
           </div>
+        ) : view === "prerequisites" ? (
+          <StudentPrerequisiteSubmissionsPage
+            rows={live ? [] : studentPrerequisiteSubmissionRows(student.id)}
+          />
         ) : (
           <div style={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
-            <StudentOverviewPage student={student} onEditDetails={() => changeView("settings")} />
+            <StudentOverviewPage
+              student={student}
+              enrollments={enrollments}
+              classDetails={classDetails}
+              onEditDetails={() => changeView("settings")}
+            />
           </div>
         )}
       </FoundationLayout>

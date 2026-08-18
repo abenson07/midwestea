@@ -1,5 +1,15 @@
+import type { StagingClass } from "@/lib/staging/classes";
+import type { StagingEnrollment } from "@/lib/staging/enrollments";
 import type { StagingStudent } from "@/lib/staging/students";
-import type { StudentRecord, StudentRow } from "@/components/patterns/client-templates-migrate/students/types";
+import type {
+  StudentEnrollment,
+  StudentPaymentStatus,
+  StudentRecord,
+  StudentRow,
+} from "@/components/patterns/client-templates-migrate/students/types";
+import type { TransactionRow } from "@/data/mocks/transactions";
+import { getTransactionListStatus } from "@/data/mocks/transaction-status";
+import { todayIsoDate } from "@/lib/dates";
 
 function formatJoinedAt(iso: string | null): string {
   if (!iso) return "";
@@ -11,13 +21,52 @@ function formatJoinedAt(iso: string | null): string {
   });
 }
 
-export function toIdentityListRow(student: StagingStudent): StudentRow {
+function isClassClosed(stagingClass: StagingClass | undefined): boolean {
+  if (!stagingClass?.classEnd) return false;
+  return stagingClass.classEnd < todayIsoDate();
+}
+
+function listPaymentStatus(invoices: TransactionRow[], hasEnrollment: boolean): StudentPaymentStatus {
+  if (!invoices.length) return hasEnrollment ? "pending" : "na";
+  if (invoices.some((invoice) => getTransactionListStatus(invoice) === "past_due")) return "past-due";
+  if (invoices.some((invoice) => getTransactionListStatus(invoice) === "pending")) return "pending";
+  if (invoices.some((invoice) => invoice.transactionStatus === "paid")) return "paid";
+  return "na";
+}
+
+export function toStudentEnrollment(enrollment: StagingEnrollment): StudentEnrollment {
+  return {
+    studentId: enrollment.studentId,
+    classId: enrollment.classId,
+    enrolledAt: formatJoinedAt(enrollment.enrolledAt),
+    status: enrollment.enrollmentStatus === "removed" ? "removed" : "registered",
+  };
+}
+
+export function toIdentityListRow(
+  student: StagingStudent,
+  enrollments: StagingEnrollment[] = [],
+  classes: StagingClass[] = [],
+  invoices: TransactionRow[] = [],
+): StudentRow {
+  const classesById = new Map(classes.map((row) => [row.id, row]));
+  const active = enrollments.filter((enrollment) => {
+    if (enrollment.enrollmentStatus === "removed") return false;
+    return !isClassClosed(classesById.get(enrollment.classId));
+  });
+
   return {
     id: student.id,
     name: student.name,
     email: student.email,
-    classes: [],
-    paymentStatus: "na",
+    classes: active.map((enrollment) => {
+      const detail = classesById.get(enrollment.classId);
+      return {
+        id: enrollment.classId,
+        name: detail?.name || detail?.classCode || "Class",
+      };
+    }),
+    paymentStatus: listPaymentStatus(invoices, enrollments.some((row) => row.enrollmentStatus !== "removed")),
     joinedAt: formatJoinedAt(student.createdAt),
   };
 }

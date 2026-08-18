@@ -16,3 +16,8 @@ export function useAdminBasePath(): AdminBasePath {
   if (pathname?.startsWith("/new-admin-migrate")) return "/new-admin-migrate";
   return "/admin";
 }
+
+/** True on the real-data fork. Shared Demo components must not fall back to fixtures here. */
+export function useIsNewAdminMigrate(): boolean {
+  return useAdminBasePath() === "/new-admin-migrate";
+}

@@ -10,12 +10,14 @@ import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
 import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
 import { Button } from "@/components/patterns/primitives/Button";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Text } from "@/components/patterns/primitives/Text";
 import { formatCalendarMonthDay, todayIsoDate } from "@/lib/dates";
 import { CreateClassModal } from "../catalog/CreateClassModal";
 import {
   catalogTemplateByCode,
   catalogTemplateFromHref,
+  catalogTemplateHref,
   classDetailHref,
   classesForTemplate,
 } from "../catalog/catalogMocks";
@@ -38,12 +40,18 @@ import {
 import { isClassClosed } from "./classTableColumns";
 import { TransactionDetailPanel } from "../payments/TransactionDetailPanel";
 import { TransactionSidePanel } from "../payments/TransactionSidePanel";
-import { useTransactions } from "../payments/useTransactions";
+import { TransactionRowsProvider, useTransactions } from "../payments/useTransactions";
+import type { TransactionRow } from "@/data/mocks/transactions";
 
 type ClassDetailView = "overview" | "settings" | "transactions" | "prerequisites";
 
 export type ClassDetailDemoProps = {
   classId: string;
+  /** When omitted, the profile stays on demo mocks (`/admin-preview`). */
+  classDetail?: ClassDetail;
+  roster?: ClassRosterRow[];
+  transactions?: TransactionRow[];
+  locationNames?: string[];
 };
 
 function viewFromPath(pathname: string, classRoot: string): ClassDetailView {
@@ -123,25 +131,81 @@ function logSettingsActivity(
  * Class detail — overview by default. Edit on class details opens Settings;
  * Settings uses the controls strip for “Back to Class”.
  */
-export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
+export function ClassDetailDemo({
+  classId,
+  classDetail: classDetailProp,
+  roster: rosterProp,
+  transactions,
+  locationNames,
+}: ClassDetailDemoProps) {
+  const live = useIsNewAdminMigrate();
+  const inner = (
+    <ClassDetailDemoInner
+      classId={classId}
+      classDetail={classDetailProp}
+      roster={rosterProp}
+      locationNames={locationNames}
+    />
+  );
+  if (transactions || live) {
+    return <TransactionRowsProvider rows={transactions ?? []}>{inner}</TransactionRowsProvider>;
+  }
+  return inner;
+}
+
+function ClassDetailDemoInner({
+  classId,
+  classDetail: classDetailProp,
+  roster: rosterProp,
+  locationNames,
+}: Omit<ClassDetailDemoProps, "transactions">) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const basePath = useAdminBasePath();
+  const live = useIsNewAdminMigrate();
   const catchAllRoot = `${basePath}/class/${classId}`;
   const classRoot =
     pathname === catchAllRoot || pathname?.startsWith(`${catchAllRoot}/`)
       ? catchAllRoot
       : `${basePath}/${classId}`;
 
-  const [classDetail, setClassDetail] = useState<ClassDetail>(() => classDetailFor(classId));
-  const [roster, setRoster] = useState<ClassRosterRow[]>(() => classRosterFor(classId));
-  const [activity, setActivity] = useState<ClassActivityItem[]>(() => classActivityFor(classId));
+  const [classDetail, setClassDetail] = useState<ClassDetail | null>(
+    () => classDetailProp ?? (live ? null : classDetailFor(classId)),
+  );
+  const [roster, setRoster] = useState<ClassRosterRow[]>(
+    () => rosterProp ?? (live ? [] : classRosterFor(classId)),
+  );
+  const [activity, setActivity] = useState<ClassActivityItem[]>(() =>
+    live ? [] : classActivityFor(classId),
+  );
   const [messageOpen, setMessageOpen] = useState(false);
   const [addStudentOpen, setAddStudentOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [removeStudent, setRemoveStudent] = useState<StudentToRemove | null>(null);
   const { transactions, updateTransaction } = useTransactions();
+
+  if (!classDetail) {
+    return (
+      <div style={{ height: "100%" }}>
+        <FoundationLayout
+          navigation={<LinearSidebar />}
+          header={
+            <CanvasHeader
+              topbar={{
+                title: "Class",
+                breadcrumbs: [{ label: "Classes", onClick: () => router.push(`${basePath}/classes`) }],
+              }}
+            />
+          }
+        >
+          <div style={{ padding: 24 }}>
+            <Text color="secondary">No class matches this profile.</Text>
+          </div>
+        </FoundationLayout>
+      </div>
+    );
+  }
 
   const closed = isClassClosed(classDetail);
   const view = viewFromPath(pathname ?? "", classRoot);
@@ -253,9 +317,15 @@ export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
         {view === "settings" ? (
           <ClassSettingsPage
             classDetail={classDetail}
+            locationNames={locationNames}
             onSave={(next) => {
               setClassDetail(next);
               logSettingsActivity(classDetail, next, logActivity);
+            }}
+            onDeleted={() => {
+              router.push(
+                parentTemplate ? `${basePath}${catalogTemplateHref(parentTemplate)}` : `${basePath}/classes`,
+              );
             }}
           />
         ) : view === "transactions" ? (
@@ -270,11 +340,10 @@ export function ClassDetailDemo({ classId }: ClassDetailDemoProps) {
               activity={activity}
               onEditDetails={closed ? undefined : () => changeView("settings")}
               onAddPrerequisite={(name) => {
-                setClassDetail((prev) =>
-                  prev.prerequisites.includes(name)
-                    ? prev
-                    : { ...prev, prerequisites: [...prev.prerequisites, name] },
-                );
+                setClassDetail((prev) => {
+                  if (!prev || prev.prerequisites.includes(name)) return prev;
+                  return { ...prev, prerequisites: [...prev.prerequisites, name] };
+                });
                 logActivity("update", `Added prerequisite ${name}`);
               }}
               onRemoveStudent={setRemoveStudent}

@@ -20,16 +20,29 @@ import { TransactionsListPage } from "./TransactionsListPage";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { TransactionSidePanel } from "./TransactionSidePanel";
 import { CreateTransactionModal } from "./CreateTransactionModal";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { TRANSACTION_STATUS_FILTER_OPTIONS } from "./transactionColumns";
-import { useTransactions } from "./useTransactions";
+import { TransactionRowsProvider, useTransactions } from "./useTransactions";
+import type { TransactionRow } from "@/data/mocks/transactions";
 
 type PaymentsView = "overview" | "all-transactions" | "past-due";
 
 export type PaymentsDemoProps = {
   navigation?: ReactNode;
+  /** When omitted, the list stays on demo mocks (`/admin-preview`). */
+  rows?: TransactionRow[];
 };
 
-export function PaymentsDemo({ navigation }: PaymentsDemoProps = {}) {
+export function PaymentsDemo({ navigation, rows }: PaymentsDemoProps = {}) {
+  const live = useIsNewAdminMigrate();
+  const inner = <PaymentsDemoInner navigation={navigation} />;
+  if (rows || live) {
+    return <TransactionRowsProvider rows={rows ?? []}>{inner}</TransactionRowsProvider>;
+  }
+  return inner;
+}
+
+function PaymentsDemoInner({ navigation }: { navigation?: ReactNode }) {
   const isMobile = useIsMobileAdmin();
   const router = useRouter();
   const pathname = usePathname();

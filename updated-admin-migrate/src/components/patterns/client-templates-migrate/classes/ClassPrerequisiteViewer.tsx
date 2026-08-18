@@ -6,6 +6,7 @@ import { Text } from "@/components/patterns/primitives/Text";
 import { Button } from "@/components/patterns/primitives/Button";
 import { TextInput } from "@/components/patterns/primitives/TextInput";
 import type { ClassPrerequisiteSubmission } from "./classMocks";
+import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
 
 export type ClassPrerequisiteDecision = "approved" | "rejected";
 
@@ -64,7 +65,7 @@ export function ClassPrerequisiteViewer({
         }}
       >
         <iframe
-          src="/documents/spencer-nash-certificate.pdf#toolbar=0&navpanes=0"
+          src={`/api/new-admin-migrate/prerequisite-submissions/${submission.id}/file#toolbar=0&navpanes=0`}
           title={`${submission.type} — ${submission.student}`}
           style={{ width: "100%", height: "100%", border: "none" }}
         />
@@ -76,9 +77,16 @@ export function ClassPrerequisiteViewer({
             <Text
               size="sm"
               weight="medium"
-              style={{ color: decision === "approved" ? "#27a644" : "var(--linear-color-ink-subtle)" }}
+              style={{
+                color:
+                  decision === "approved"
+                    ? PREREQUISITE_STATUS_COLOR.approved
+                    : PREREQUISITE_STATUS_COLOR.needs_resubmission,
+              }}
             >
-              {decision === "approved" ? "Approved" : "Rejected"}
+              {decision === "approved"
+                ? PREREQUISITE_STATUS_LABEL.approved
+                : PREREQUISITE_STATUS_LABEL.needs_resubmission}
             </Text>
             <Button
               label="Undo"

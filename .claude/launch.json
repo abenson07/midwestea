@@ -10,8 +10,8 @@
     {
       "name": "admin-migrate",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "updated-admin-migrate", "--", "-p", "3101"],
-      "port": 3101
+      "runtimeArgs": ["run", "dev", "--prefix", "updated-admin-migrate", "--", "-p", "3003"],
+      "port": 3003
     }
   ]
 }

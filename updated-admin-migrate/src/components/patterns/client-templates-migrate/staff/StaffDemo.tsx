@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/patterns/primitives/Button";
 import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
 import { AddStaffPersonModal } from "./AddStaffPersonModal";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { addStaffPerson, getStaffRows, updateStaffPerson } from "./staffData";
 import { StaffDetailPanel } from "./StaffDetailPanel";
 import { StaffTable } from "./StaffTable";
@@ -26,7 +27,8 @@ export type StaffDemoProps = {
  * Staff roster for Trainers or Admins — rendered inside the settings shell.
  */
 export function StaffDemo({ view }: StaffDemoProps) {
-  const [rows, setRows] = useState<StaffRow[]>(() => getStaffRows());
+  const live = useIsNewAdminMigrate();
+  const [rows, setRows] = useState<StaffRow[]>(() => (live ? [] : getStaffRows()));
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -41,13 +43,13 @@ export function StaffDemo({ view }: StaffDemoProps) {
 
   function handleAdd(input: Parameters<typeof addStaffPerson>[0]) {
     const created = addStaffPerson(input);
-    setRows(getStaffRows());
+    setRows((prev) => (live ? [...prev, created] : getStaffRows()));
     setSelectedId(created.id);
   }
 
   function savePerson(next: StaffRow) {
     updateStaffPerson(next);
-    setRows(getStaffRows());
+    setRows((prev) => (live ? prev.map((row) => (row.id === next.id ? next : row)) : getStaffRows()));
   }
 
   const emptyLabel =

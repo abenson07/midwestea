@@ -9,6 +9,8 @@ export type MenuItemProps = {
   icon: ReactNode;
   selected?: boolean;
   count?: number;
+  /** Hide `count` until the row is hovered or focused. */
+  countOnHover?: boolean;
   depth?: number;
   onClick?: () => void;
   action?: ReactNode;
@@ -24,6 +26,7 @@ export function MenuItem({
   icon,
   selected = false,
   count,
+  countOnHover = false,
   depth = 0,
   onClick,
   action,
@@ -119,7 +122,11 @@ export function MenuItem({
           </span>
         ) : null}
         {count != null ? (
-          <MenuItemCount value={count} label={`${count} ${label}`} />
+          <MenuItemCount
+            value={count}
+            label={`${count} ${label}`}
+            hiddenUntilHover={countOnHover}
+          />
         ) : null}
         {indicator ? (
           <span

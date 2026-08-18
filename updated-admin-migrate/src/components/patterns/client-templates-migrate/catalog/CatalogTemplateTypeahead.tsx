@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
 import { Text } from "@/components/patterns/primitives/Text";
 import {
   catalogTemplatesOfKind,
@@ -30,6 +31,7 @@ const inputStyle = {
 
 /** Searchable program/course picker with grouped results. */
 export function CatalogTemplateTypeahead({ value, onChange }: CatalogTemplateTypeaheadProps) {
+  const live = useIsNewAdminMigrate();
   const [query, setQuery] = useState(value?.name ?? "");
   const [open, setOpen] = useState(false);
 
@@ -45,9 +47,9 @@ export function CatalogTemplateTypeahead({ value, onChange }: CatalogTemplateTyp
       template.code.toLowerCase().includes(q);
     return GROUPS.map((kind) => ({
       kind,
-      items: catalogTemplatesOfKind(kind).filter(matchesName),
+      items: (live ? [] : catalogTemplatesOfKind(kind)).filter(matchesName),
     })).filter((group) => group.items.length);
-  }, [query]);
+  }, [query, live]);
 
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
