@@ -92,7 +92,7 @@ export const TRANSACTION_LIST_STATUS_LABEL: Record<TransactionListStatus, string
 export const TRANSACTION_STATUS_COLOR: Record<TransactionListStatus, string> = {
   paid: "#27a644",
   past_due: "#eb5757",
-  pending: "#f2c94c",
+  pending: "#8a8f98",
   cancelled: "#8a8f98",
   refunded: "#2d9cdb",
 };

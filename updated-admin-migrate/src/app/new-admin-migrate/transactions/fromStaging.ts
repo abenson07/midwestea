@@ -51,6 +51,7 @@ export function toTransactionRow(
     discountPercent: transaction.discountPercent,
     originalAmountDueCents: transaction.originalAmountDue,
     isActiveClass: isActiveClass(stagingClass),
+    stripeHostedInvoiceUrl: transaction.stripeHostedInvoiceUrl,
   };
 }
 

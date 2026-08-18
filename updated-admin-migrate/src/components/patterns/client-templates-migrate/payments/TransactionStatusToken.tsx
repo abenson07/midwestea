@@ -2,6 +2,7 @@
 
 import {
   TRANSACTION_LIST_STATUS_LABEL,
+  TRANSACTION_STATUS_COLOR,
   getTransactionListStatus,
   type TransactionListStatus,
 } from "@/data/mocks/transaction-status";
@@ -13,18 +14,21 @@ export function TransactionStatusToken({ row }: { row: TransactionRow }) {
 }
 
 export function TransactionStatusPill({ status }: { status: TransactionListStatus }) {
+  const color = TRANSACTION_STATUS_COLOR[status];
   return (
     <span
       style={{
         display: "inline-flex",
         alignItems: "center",
+        width: "fit-content",
         height: 22,
         paddingInline: 8,
         borderRadius: 999,
-        background: "transparent",
-        color: "var(--linear-color-ink-subtle)",
+        background: `${color}1A`,
+        color,
         fontSize: 12,
         fontWeight: 500,
+        lineHeight: "16px",
         whiteSpace: "nowrap",
       }}
     >

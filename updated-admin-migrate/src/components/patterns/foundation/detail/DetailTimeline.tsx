@@ -8,6 +8,8 @@ export type DetailTimelineStep = {
   meta?: string;
   /** Renders a location-pin marker instead of a dot — the current destination. */
   isDestination?: boolean;
+  /** Marker fill/stroke. Defaults to the theme accent. */
+  markerColor?: string;
 };
 
 export type DetailTimelineProps = {
@@ -24,6 +26,7 @@ export function DetailTimeline({ steps }: DetailTimelineProps) {
     <div>
       {steps.map((step, index) => {
         const isLast = index === steps.length - 1;
+        const markerColor = step.markerColor ?? "var(--linear-color-accent)";
         return (
           <div key={`${step.label}-${index}`} style={{ display: "flex", gap: 10 }}>
             <div
@@ -39,7 +42,7 @@ export function DetailTimeline({ steps }: DetailTimelineProps) {
                 <MapPin
                   size={14}
                   strokeWidth={1.75}
-                  style={{ color: "var(--linear-color-accent)", flexShrink: 0 }}
+                  style={{ color: markerColor, flexShrink: 0 }}
                 />
               ) : (
                 <span
@@ -47,7 +50,7 @@ export function DetailTimeline({ steps }: DetailTimelineProps) {
                     width: 8,
                     height: 8,
                     borderRadius: "50%",
-                    background: "var(--linear-color-accent)",
+                    background: markerColor,
                     flexShrink: 0,
                     marginTop: 4,
                   }}

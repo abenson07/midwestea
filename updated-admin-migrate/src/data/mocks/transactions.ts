@@ -33,6 +33,8 @@ export type TransactionRow = {
   originalAmountDueCents: number | null;
   /** Class status is "enrolling"/"active" (open for enrollment or in progress). */
   isActiveClass: boolean;
+  /** Stripe hosted invoice URL when one was issued. Demo fixtures are null. */
+  stripeHostedInvoiceUrl?: string | null;
 };
 
 const PARA = {

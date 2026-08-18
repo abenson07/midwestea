@@ -116,7 +116,7 @@ export function StudentInvoicesPage({ studentId, enrollments: enrollmentsProp }:
         padding: "32px 24px 24px",
         display: "grid",
         gridTemplateColumns: selected
-          ? `repeat(${INVOICES_GRID.left}, minmax(0, 1fr)) minmax(280px, 1fr)`
+          ? `repeat(${INVOICES_GRID.left}, minmax(0, 1fr)) minmax(360px, 1fr)`
           : `repeat(${INVOICES_GRID.columns}, minmax(0, 1fr))`,
         gap: INVOICES_GRID.gap,
         alignItems: "stretch",

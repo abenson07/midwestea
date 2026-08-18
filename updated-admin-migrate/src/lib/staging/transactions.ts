@@ -1,8 +1,10 @@
 import { createStagingAdminClient } from "./adminClient";
 import { isUuid } from "./ids";
 
-const TRANSACTION_SELECT =
+const TRANSACTION_COLUMNS =
   "id, enrollment_id, student_id, class_id, class_type, transaction_type, quantity, transaction_status, due_date, amount_due, amount_paid, invoice_number, payment_date, created_at";
+
+const TRANSACTION_SELECT = `${TRANSACTION_COLUMNS}, stripe_hosted_invoice_url`;
 
 export type StagingTransaction = {
   id: string;
@@ -19,6 +21,7 @@ export type StagingTransaction = {
   invoiceNumber: number | string | null;
   paymentDate: string | null;
   createdAt: string | null;
+  stripeHostedInvoiceUrl: string | null;
   discountPercent: number | null;
   originalAmountDue: number | null;
 };
@@ -45,27 +48,35 @@ function toStagingTransaction(row: Record<string, unknown>): StagingTransaction 
     invoiceNumber: (row.invoice_number as number | string | null) ?? null,
     paymentDate: (row.payment_date as string | null) ?? null,
     createdAt: (row.created_at as string | null) ?? null,
+    stripeHostedInvoiceUrl: (row.stripe_hosted_invoice_url as string | null) ?? null,
     discountPercent: null,
     originalAmountDue: null,
   };
 }
 
+function isMissingHostedInvoiceUrlColumn(message: string): boolean {
+  return message.includes("stripe_hosted_invoice_url") && /does not exist/i.test(message);
+}
+
 export async function listTransactions(
   options: ListTransactionsOptions = {},
 ): Promise<StagingTransaction[]> {
+  if (options.studentId && !isUuid(options.studentId)) return [];
+  if (options.classId && !isUuid(options.classId)) return [];
+
   const supabase = createStagingAdminClient();
-  let query = supabase.from("transactions").select(TRANSACTION_SELECT).order("created_at", { ascending: false });
 
-  if (options.studentId) {
-    if (!isUuid(options.studentId)) return [];
-    query = query.eq("student_id", options.studentId);
-  }
-  if (options.classId) {
-    if (!isUuid(options.classId)) return [];
-    query = query.eq("class_id", options.classId);
-  }
+  const run = (select: string) => {
+    let query = supabase.from("transactions").select(select).order("created_at", { ascending: false });
+    if (options.studentId) query = query.eq("student_id", options.studentId);
+    if (options.classId) query = query.eq("class_id", options.classId);
+    return query;
+  };
 
-  const { data, error } = await query;
+  let { data, error } = await run(TRANSACTION_SELECT);
+  if (error && isMissingHostedInvoiceUrlColumn(error.message)) {
+    ({ data, error } = await run(TRANSACTION_COLUMNS));
+  }
   if (error) {
     throw new Error(error.message);
   }

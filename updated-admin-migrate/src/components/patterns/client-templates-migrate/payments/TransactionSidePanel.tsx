@@ -22,7 +22,7 @@ export function TransactionSidePanel({
         padding: "8px 8px 8px 0",
       }}
     >
-      <OutlinedPanel title="Transaction Detail" onClose={onClose}>
+      <OutlinedPanel title="Transaction Detail" width={360} onClose={onClose}>
         {children}
       </OutlinedPanel>
     </div>
