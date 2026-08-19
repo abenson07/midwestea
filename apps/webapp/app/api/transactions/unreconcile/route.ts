@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { getCurrentAdmin } from '@/lib/logging';
 
 export const runtime = 'nodejs';
 
@@ -9,6 +10,33 @@ export const runtime = 'nodejs';
  */
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Missing or invalid authorization header' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabase = createSupabaseAdminClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const { admin, error: adminError } = await getCurrentAdmin(user.id);
+    if (adminError || !admin) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const { transactionId } = await request.json();
 
     if (!transactionId) {
@@ -17,8 +45,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const supabase = createSupabaseAdminClient();
 
     // Update transaction to set reconciled = false and clear reconciliation_date
     const { error } = await supabase

@@ -57,8 +57,17 @@ export function Sidebar() {
     setIsDownloading(true);
     try {
       console.log('[Sidebar] Exporting transactions to CSV...');
+      const { session } = await getSession();
+      if (!session?.access_token) {
+        alert('Failed to download invoices: Not authenticated');
+        return;
+      }
+
       const csvResponse = await fetch(`/api/export-transactions-csv`, {
         method: 'GET',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
       });
 
       // Check content type to see if it's JSON (no invoices) or CSV

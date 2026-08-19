@@ -1,11 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { getCurrentAdmin } from '@/lib/logging';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ courseCode: string }> }
 ) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Missing or invalid authorization header' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabase = await createSupabaseAdminClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const { admin, error: adminError } = await getCurrentAdmin(user.id);
+    if (adminError || !admin) {
+      return NextResponse.json(
+        { error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const resolvedParams = await params;
     const courseCode = resolvedParams.courseCode;
 
@@ -15,8 +43,6 @@ export async function GET(
         { status: 400 }
       );
     }
-
-    const supabase = await createSupabaseAdminClient();
 
     // Fetch waitlist entries with student information
     // Note: email is fetched separately via auth.admin.listUsers() since Supabase doesn't allow direct joins to auth.users

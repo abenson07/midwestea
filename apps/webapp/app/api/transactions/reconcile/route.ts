@@ -1,20 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { getCurrentAdmin } from '@/lib/logging';
 
 export const runtime = 'nodejs';
 
 /**
  * Reconcile a transaction
  * POST /api/transactions/reconcile
- * 
+ *
  * Body: { transactionId: string }
- * 
+ *
  * Marks a transaction as reconciled by setting:
  * - reconciled = true
  * - reconciliation_date = NOW()
  */
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Missing or invalid authorization header' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const supabase = createSupabaseAdminClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const { admin, error: adminError } = await getCurrentAdmin(user.id);
+    if (adminError || !admin) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { transactionId } = body;
 
@@ -26,8 +54,6 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('[reconcile] Reconciling transaction:', transactionId);
-
-    const supabase = createSupabaseAdminClient();
 
     // Update transaction to mark as reconciled
     const { data, error } = await supabase
