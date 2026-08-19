@@ -8,6 +8,5 @@ export type { SettingsPlaceholderPanelProps } from "./SettingsPlaceholderPanel";
 export { SettingsRow } from "./SettingsRow";
 export type { SettingsRowProps } from "./SettingsRow";
 export { SettingsCardList, settingsCardFieldStyle } from "./SettingsCardList";
-export { AccountSettingsPage } from "./AccountSettingsPage";
 export { SettingsInsetList } from "./SettingsInsetList";
 export type { SettingsInsetListProps } from "./SettingsInsetList";

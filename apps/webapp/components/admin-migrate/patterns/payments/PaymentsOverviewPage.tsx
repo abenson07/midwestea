@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { useAllSponsorships } from "hooks";
 import { ClassContentPage } from "@/components/patterns/client-templates/shared";
 import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
 import { Text } from "@/components/patterns/primitives/Text";
@@ -158,7 +157,6 @@ export type PaymentsOverviewPageProps = {
 export function PaymentsOverviewPage({ onSelectTransaction }: PaymentsOverviewPageProps) {
   const live = useIsNewAdminMigrate();
   const { transactions } = useTransactions();
-  const { sponsorships } = useAllSponsorships();
   const [revenueScope, setRevenueScope] = useState<RevenueScope>("open");
   const [revenueSearch, setRevenueSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState<string[]>([]);
@@ -219,12 +217,10 @@ export function PaymentsOverviewPage({ onSelectTransaction }: PaymentsOverviewPa
   );
 
   const currentYear = new Date().getFullYear();
-  const yearTotals = useMemo(() => {
-    const rows = sponsorships.filter((s) => s.parentYear === currentYear);
-    const sum = (status: string) =>
-      rows.filter((s) => s.status === status).reduce((total, s) => total + (s.amount ?? 0), 0);
-    return { pledged: sum("pledged"), invoiced: sum("invoiced"), paid: sum("paid") };
-  }, [sponsorships, currentYear]);
+  // Zeroed on purpose, not wired to real data yet — was the demo sponsorship
+  // system before this got stripped out. Card stays visible as the UI slot
+  // for whenever this gets hooked up to something real.
+  const yearTotals = { pledged: 0, invoiced: 0, paid: 0 };
 
   return (
     <ClassContentPage>

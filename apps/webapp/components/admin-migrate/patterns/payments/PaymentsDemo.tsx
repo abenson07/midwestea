@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
@@ -10,11 +10,6 @@ import { ViewTab } from "@/components/patterns/foundation/ViewTab";
 import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
 import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
 import { Button } from "@/components/patterns/primitives/Button";
-import {
-  MobileAdminShell,
-  MobileInvoicesPage,
-  useIsMobileAdmin,
-} from "@/components/patterns/client-templates-migrate/mobile";
 import { PaymentsOverviewPage } from "./PaymentsOverviewPage";
 import { TransactionsListPage } from "./TransactionsListPage";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
@@ -43,7 +38,6 @@ export function PaymentsDemo({ navigation, rows }: PaymentsDemoProps = {}) {
 }
 
 function PaymentsDemoInner({ navigation }: { navigation?: ReactNode }) {
-  const isMobile = useIsMobileAdmin();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -58,16 +52,6 @@ function PaymentsDemoInner({ navigation }: { navigation?: ReactNode }) {
     () => transactions.find((row) => row.id === selectedId) ?? null,
     [transactions, selectedId],
   );
-
-  if (isMobile) {
-    return (
-      <MobileAdminShell active="invoices">
-        <Suspense fallback={null}>
-          <MobileInvoicesPage />
-        </Suspense>
-      </MobileAdminShell>
-    );
-  }
 
   function changeView(next: PaymentsView) {
     setView(next);
