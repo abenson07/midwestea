@@ -1,75 +1,114 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Home, Award, CreditCard, LogOut } from "lucide-react";
-import { signOut } from "@/lib/auth";
-import { Logo } from "@midwestea/ui";
+import { usePathname } from "next/navigation";
+import { Home, BookOpen, FileText, User, CreditCard } from "lucide-react";
+import {
+  getMyClassEnrollments,
+  isActiveClassEnrollment,
+  type StudentClassEnrollment,
+} from "@/lib/student-classes";
 
-// Launch scope is intentionally limited to Home, Profile, Certificates, and Billing.
-// Class access, quizzes, and other LMS modules are deferred — don't add
-// nav destinations for them without a deliberate scope decision.
-const navigation = [
+const primaryNav = [
   { name: "Home", href: "/student", icon: Home },
-  { name: "Certificates", href: "/student/certificates", icon: Award },
-  { name: "Billing", href: "/student/billing", icon: CreditCard },
+  { name: "Classes", href: "/student/classes", icon: BookOpen },
+  { name: "Documents", href: "/student/documents", icon: FileText },
+  { name: "Profile", href: "/student/profile", icon: User },
+  { name: "Invoices", href: "/student/invoices", icon: CreditCard },
 ];
+
+function isActiveHref(pathname: string, href: string): boolean {
+  if (href === "/student") return pathname === "/student";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function StudentNav() {
   const pathname = usePathname();
-  const router = useRouter();
+  const [enrollments, setEnrollments] = useState<StudentClassEnrollment[]>([]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/student/login");
-  };
+  useEffect(() => {
+    const load = async () => {
+      const { enrollments: fetched } = await getMyClassEnrollments();
+      setEnrollments(fetched || []);
+    };
+    load();
+  }, []);
+
+  const activeClasses = enrollments.filter((row) => isActiveClassEnrollment(row));
+  const pastClasses = enrollments.filter((row) => !isActiveClassEnrollment(row));
 
   return (
     <>
-      <div className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white h-screen sticky top-0">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <Logo />
-        </div>
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-1 px-3">
-            {navigation.map((item) => {
-              const isActive = pathname === item.href;
+      <div className="hidden md:block">
+        <nav aria-label="Student">
+          <ul className="space-y-1">
+            {primaryNav.map((item) => {
+              const active = isActiveHref(pathname, item.href);
               return (
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive ? "bg-gray-100 text-gray-900" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"}`}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                      active ? "bg-white text-gray-900" : "text-gray-600 hover:bg-white/70 hover:text-gray-900"
+                    }`}
                   >
-                    <item.icon className={`h-5 w-5 ${isActive ? "text-black" : "text-gray-400"}`} />
+                    <item.icon className={`h-5 w-5 ${active ? "text-black" : "text-gray-400"}`} />
                     {item.name}
                   </Link>
+                  {item.href === "/student/classes" && (activeClasses.length > 0 || pastClasses.length > 0) && (
+                    <ul className="mt-1 ml-8 space-y-1">
+                      {activeClasses.map((row) => {
+                        const href = `/student/classes/${row.class.id}`;
+                        const nestedActive = pathname === href;
+                        return (
+                          <li key={row.enrollmentId}>
+                            <Link
+                              href={href}
+                              className={`block truncate rounded-md px-2 py-1 text-xs ${
+                                nestedActive ? "font-medium text-gray-900" : "text-gray-500 hover:text-gray-900"
+                              }`}
+                            >
+                              {row.class.class_name || row.class.course_code || "Class"}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                      {pastClasses.length > 0 && (
+                        <li>
+                          <Link
+                            href="/student/classes#past"
+                            className="block rounded-md px-2 py-1 text-xs text-gray-500 hover:text-gray-900"
+                          >
+                            Past classes
+                          </Link>
+                        </li>
+                      )}
+                    </ul>
+                  )}
                 </li>
               );
             })}
           </ul>
         </nav>
-        <div className="p-4 border-t border-gray-200">
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 w-full px-1 py-1 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </button>
-        </div>
       </div>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-bottom">
-        <div className="flex justify-around items-center h-16 px-2">
-          {navigation.map((item) => {
-            const isActive = pathname === item.href;
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 safe-area-bottom"
+        aria-label="Student"
+      >
+        <div className="flex justify-around items-center h-16 px-1">
+          {primaryNav.map((item) => {
+            const active = isActiveHref(pathname, item.href);
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${isActive ? "text-black" : "text-gray-400"}`}
+                className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${
+                  active ? "text-black" : "text-gray-400"
+                }`}
               >
-                <item.icon className={`h-5 w-5 ${isActive ? "text-black" : "text-gray-400"}`} />
-                <span className="text-xs font-medium">{item.name}</span>
+                <item.icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.name}</span>
               </Link>
             );
           })}

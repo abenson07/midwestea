@@ -37,10 +37,21 @@ const adminCutoverRedirects = [
   { source: "/admin/recommend-courses", destination: "/admin/overview", permanent: true },
 ];
 
+const studentPortalRedirects = [
+  { source: "/student/billing", destination: "/student/invoices", permanent: false },
+  { source: "/student/certificates", destination: "/student/documents", permanent: false },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   async redirects() {
-    return [...programRedirects, ...templateRedirects, ...legacyRedirects, ...adminCutoverRedirects];
+    return [
+      ...programRedirects,
+      ...templateRedirects,
+      ...legacyRedirects,
+      ...adminCutoverRedirects,
+      ...studentPortalRedirects,
+    ];
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {
