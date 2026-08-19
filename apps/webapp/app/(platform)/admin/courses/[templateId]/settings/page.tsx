@@ -6,5 +6,5 @@ export default async function CourseSettingsRedirect({
   params: Promise<{ templateId: string }>;
 }) {
   const { templateId } = await params;
-  redirect(`/new-admin-migrate/settings/courses/${templateId}`);
+  redirect(`/admin/settings/courses/${templateId}`);
 }

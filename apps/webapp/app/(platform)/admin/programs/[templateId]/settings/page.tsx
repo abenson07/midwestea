@@ -6,5 +6,5 @@ export default async function ProgramSettingsRedirect({
   params: Promise<{ templateId: string }>;
 }) {
   const { templateId } = await params;
-  redirect(`/new-admin-migrate/settings/programs/${templateId}`);
+  redirect(`/admin/settings/programs/${templateId}`);
 }
