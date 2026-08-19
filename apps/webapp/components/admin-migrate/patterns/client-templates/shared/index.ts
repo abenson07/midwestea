@@ -2,6 +2,7 @@ export { ClassContentPage } from "./ClassContentPage";
 export { ComingSoon } from "./ComingSoon";
 export type { ComingSoonProps } from "./ComingSoon";
 export { useAdminBasePath, useIsNewAdminMigrate } from "./useAdminBasePath";
+export type { AdminBasePath } from "./useAdminBasePath";
 export type { ClassContentPageProps } from "./ClassContentPage";
 export { EmptyStateCard } from "./EmptyStateCard";
 export { HoverCard } from "./HoverCard";

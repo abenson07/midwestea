@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Mail, Plus, UserPlus } from "lucide-react";
 import { toast } from "sonner";
@@ -184,6 +184,16 @@ function ClassDetailDemoInner({
   const [createOpen, setCreateOpen] = useState(false);
   const [removeStudent, setRemoveStudent] = useState<StudentToRemove | null>(null);
   const { transactions, updateTransaction } = useTransactions();
+
+  useEffect(() => {
+    if (searchParams.get("openAddStudent") !== "1") return;
+    setAddStudentOpen(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("openAddStudent");
+    const query = params.toString();
+    router.replace(`${pathname}${query ? `?${query}` : ""}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume the one-shot param once per navigation, not on every searchParams identity change
+  }, [searchParams]);
 
   if (!classDetail) {
     return (

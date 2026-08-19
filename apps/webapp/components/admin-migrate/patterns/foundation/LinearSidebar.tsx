@@ -53,6 +53,7 @@ import { useDemoModeOptional } from "./DemoModeContext";
 import { useWipFeaturesOptional } from "./WipFeaturesContext";
 import { DemoModeConfirmModal, type DemoModeConfirmModalTarget } from "./DemoModeConfirmModal";
 import { ReportIssueModal } from "./ReportIssueModal";
+import { useCommandPaletteOptional } from "./command-palette";
 import "./sidebar/sidebar.css";
 
 type DemoItem = {
@@ -379,6 +380,7 @@ function LinearSidebarBase({
   const searchParams = useSearchParams();
   const router = useRouter();
   const basePath = useAdminBasePath();
+  const commandPalette = useCommandPaletteOptional();
   const [demoTransition, setDemoTransition] = useState<DemoModeConfirmModalTarget | null>(null);
   const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
   const isMigrate = basePath === "/admin";
@@ -538,6 +540,7 @@ function LinearSidebarBase({
             label="Search"
             variant="ghost"
             icon={<Search size={16} strokeWidth={1.75} />}
+            onClick={commandPalette?.open}
           />
         </SidebarHeaderActions>
       </SidebarHeader>
