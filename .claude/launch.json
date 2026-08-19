@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "apps/webapp", "--", "-p", "3100"],
       "port": 3100
+    },
+    {
+      "name": "webapp-verify",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/webapp", "--", "-p", "3101"],
+      "port": 3101
     }
   ]
 }

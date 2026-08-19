@@ -10,6 +10,7 @@ import { PrerequisiteStepForm } from "@/components/ui/PrerequisiteStepForm";
 
 interface StudentClassRequirementsProps {
   studentId: string;
+  classId?: string;
 }
 
 function summaryColorClass(summary: ClassPrerequisiteSummary): string {
@@ -136,7 +137,7 @@ function ClassMaterialsSection({ summary }: { summary: ClassPrerequisiteSummary 
   return null;
 }
 
-export function StudentClassRequirements({ studentId }: StudentClassRequirementsProps) {
+export function StudentClassRequirements({ studentId, classId }: StudentClassRequirementsProps) {
   const [summaries, setSummaries] = useState<ClassPrerequisiteSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -144,18 +145,19 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
 
   const refresh = useCallback(async () => {
     const { summaries: result } = await getStudentClassPrerequisiteSummaries(studentId);
-    setSummaries(result);
+    const visible = classId ? result.filter((summary) => summary.classId === classId) : result;
+    setSummaries(visible);
     setExpanded((prev) => {
       const next = { ...prev };
-      for (const summary of result) {
+      for (const summary of visible) {
         if (!(summary.classId in next)) {
-          next[summary.classId] = summary.outstandingCount > 0;
+          next[summary.classId] = !!classId || summary.outstandingCount > 0;
         }
       }
       return next;
     });
     setLoading(false);
-  }, [studentId]);
+  }, [studentId, classId]);
 
   useEffect(() => {
     refresh();
@@ -171,13 +173,17 @@ export function StudentClassRequirements({ studentId }: StudentClassRequirements
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-6 mt-6 max-w-lg">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Class requirements</h2>
+    <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        {classId ? "Documents for this class" : "Class requirements"}
+      </h2>
 
       {loading && !summaries && <p className="text-sm text-gray-500">Loading...</p>}
 
       {!loading && summaries && summaries.length === 0 && (
-        <p className="text-sm text-gray-500">You&apos;re not enrolled in any classes yet.</p>
+        <p className="text-sm text-gray-500">
+          {classId ? "No requirements for this class." : "You're not enrolled in any classes yet."}
+        </p>
       )}
 
       {summaries && summaries.length > 0 && (
