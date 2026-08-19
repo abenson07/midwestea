@@ -1,0 +1,5 @@
+/* marketing.css assigns font-heading (PP Neue Corp) to all h1–h6.
+   That face is used in all-caps on the public site; keep the student portal in line. */
+.student-portal :is(h1, h2, h3, h4, h5, h6) {
+  text-transform: uppercase;
+}
