@@ -49,7 +49,7 @@ import {
   WorkspaceMenu,
 } from "./sidebar";
 import { useThemeMode } from "./ThemeContext";
-import { useDemoModeOptional } from "./DemoModeContext";
+import { DEMO_MODE_AVAILABLE, useDemoModeOptional } from "./DemoModeContext";
 import { useWipFeaturesOptional } from "./WipFeaturesContext";
 import { DemoModeConfirmModal, type DemoModeConfirmModalTarget } from "./DemoModeConfirmModal";
 import { ReportIssueModal } from "./ReportIssueModal";
@@ -527,7 +527,7 @@ function LinearSidebarBase({
             }
             onSelect={toggle}
           />
-          {isMigrate ? (
+          {isMigrate && DEMO_MODE_AVAILABLE ? (
             <DropdownItem
               label={demoEnabled ? "Exit demo mode" : "Enter demo mode"}
               icon={<FlaskConical size={16} strokeWidth={1.75} />}
@@ -648,7 +648,7 @@ function LinearSidebarBase({
         ) : null}
       </SidebarScrollArea>
 
-      {isMigrate && demoEnabled ? (
+      {isMigrate && DEMO_MODE_AVAILABLE && demoEnabled ? (
         <DemoModeCard onExitClick={() => requestDemoTransition("live")} />
       ) : null}
 
@@ -671,7 +671,7 @@ function LinearSidebarBase({
         }
       />
 
-      {isMigrate ? (
+      {isMigrate && DEMO_MODE_AVAILABLE ? (
         <DemoModeConfirmModal
           isOpen={demoTransition !== null}
           target={demoTransition ?? "demo"}
