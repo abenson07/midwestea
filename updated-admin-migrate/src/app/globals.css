@@ -1,23 +1,12 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@custom-variant dark (&:is(.dark *));
-
-@theme {
-  --font-*: initial;
+:root {
   /* Fallback name for legacy utilities; real stacks come from next/font on <html>. */
   --font-noto-sans: "Noto Sans", sans-serif;
   --font-mercury-text: var(--font-mercury-body-stack), ui-sans-serif, system-ui, sans-serif;
   --font-mercury-display: var(--font-mercury-body-stack), ui-sans-serif, system-ui, sans-serif;
-
-  --breakpoint-*: initial;
-  --breakpoint-2xsm: 375px;
-  --breakpoint-xsm: 425px;
-  --breakpoint-3xl: 2000px;
-  --breakpoint-sm: 640px;
-  --breakpoint-md: 768px;
-  --breakpoint-lg: 1024px;
-  --breakpoint-xl: 1280px;
-  --breakpoint-2xl: 1536px;
 
   /* Mercury type scale (see design system) */
   --text-mercury-display: 28px;
@@ -217,16 +206,20 @@
 
 /*
   Untitled UI semantic tokens — powers the generated components under
-  src/components/base and src/components/application (e.g. the date-picker).
+  src/components/ui and src/components/patterns (e.g. the date-picker).
   These alias the existing gray/brand/error/warning/success ramps above
-  rather than introducing a second palette, and follow Tailwind v4's
+  rather than introducing a second palette. Ported from Tailwind v4's
   per-utility theme namespaces (--background-color-*, --text-color-*, etc.)
-  so e.g. `bg-primary` and `text-primary` can resolve to different colors.
+  to v3's separate backgroundColor/textColor/borderColor/ringColor config
+  keys in tailwind.config.ts, so e.g. `bg-primary` and `text-primary` can
+  still resolve to different colors.
 */
-@theme {
+:root {
   --text-md: 16px;
   --text-md--line-height: 24px;
 
+  /* Tailwind v4's own default --shadow-xs token (renamed from v3's default "shadow-sm" value) — v3 doesn't expose this as a variable, so it's defined explicitly here to keep the composite below identical. */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-skeuomorphic: 0px 0px 0px 1px rgba(0, 0, 0, 0.18) inset, 0px -2px 0px 0px rgba(0, 0, 0, 0.05) inset;
   --shadow-xs-skeuomorphic: var(--shadow-skeuomorphic), var(--shadow-xs);
 
@@ -274,7 +267,7 @@
   --color-tooltip-supporting-text: var(--color-gray-300);
   --color-focus-ring: var(--color-brand-500);
 
-  /* Per-utility theme namespaces (Tailwind v4 checks these before the generic --color-* above) */
+  /* Per-utility theme namespaces (tailwind.config.ts consumes these for the bg, text, border, ring, and outline utilities specifically) */
   --background-color-primary: var(--color-bg-primary);
   --background-color-primary_hover: var(--color-bg-primary_hover);
   --background-color-secondary: var(--color-bg-secondary);
@@ -416,85 +409,84 @@
   }
 }
 
-@utility menu-item {
-  @apply relative flex items-center w-full gap-3 rounded-mercury-button px-3 py-2 font-medium text-mercury-xs;
-}
-
-@utility menu-item-active {
-  @apply bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300;
-}
-
-@utility menu-item-inactive {
-  @apply text-mercury-ink hover:bg-gray-50 group-hover:text-mercury-ink dark:text-white/80 dark:hover:bg-white/5 dark:hover:text-white/90;
-}
-
-@utility menu-item-icon {
-  @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
-}
-
-@utility menu-item-icon-active {
-  @apply text-brand-600 dark:text-brand-300;
-}
-
-@utility menu-item-icon-inactive {
-  @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
-}
-
-@utility menu-item-arrow {
-  @apply relative;
-}
-
-@utility menu-item-arrow-active {
-  @apply rotate-180 text-brand-600 dark:text-brand-300;
-}
-
-@utility menu-item-arrow-inactive {
-  @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
-}
-
-@utility menu-dropdown-item {
-  @apply relative flex items-center gap-3 rounded-mercury-button px-3 py-2.5 font-medium text-mercury-caption;
-}
-
-@utility menu-dropdown-item-active {
-  @apply bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300;
-}
-
-@utility menu-dropdown-item-inactive {
-  @apply text-mercury-ink hover:bg-gray-50 dark:text-white/80 dark:hover:bg-white/5;
-}
-
-@utility menu-dropdown-badge {
-  @apply block rounded-mercury-pill px-2.5 py-0.5 text-xs font-medium uppercase text-brand-600 dark:text-brand-300;
-}
-
-@utility menu-dropdown-badge-active {
-  @apply bg-brand-100 dark:bg-brand-500/25;
-}
-
-@utility menu-dropdown-badge-inactive {
-  @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/25;
-}
-
-@utility no-scrollbar {
-  /* Chrome, Safari and Opera */
-  &::-webkit-scrollbar {
-    display: none;
+@layer utilities {
+  .menu-item {
+    @apply relative flex items-center w-full gap-3 rounded-mercury-button px-3 py-2 font-medium text-mercury-xs;
   }
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none; /* Firefox */
-}
 
-@utility custom-scrollbar {
-  &::-webkit-scrollbar {
+  .menu-item-active {
+    @apply bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300;
+  }
+
+  .menu-item-inactive {
+    @apply text-mercury-ink hover:bg-gray-50 group-hover:text-mercury-ink dark:text-white/80 dark:hover:bg-white/5 dark:hover:text-white/90;
+  }
+
+  .menu-item-icon {
+    @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
+  }
+
+  .menu-item-icon-active {
+    @apply text-brand-600 dark:text-brand-300;
+  }
+
+  .menu-item-icon-inactive {
+    @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
+  }
+
+  .menu-item-arrow {
+    @apply relative;
+  }
+
+  .menu-item-arrow-active {
+    @apply rotate-180 text-brand-600 dark:text-brand-300;
+  }
+
+  .menu-item-arrow-inactive {
+    @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
+  }
+
+  .menu-dropdown-item {
+    @apply relative flex items-center gap-3 rounded-mercury-button px-3 py-2.5 font-medium text-mercury-caption;
+  }
+
+  .menu-dropdown-item-active {
+    @apply bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300;
+  }
+
+  .menu-dropdown-item-inactive {
+    @apply text-mercury-ink hover:bg-gray-50 dark:text-white/80 dark:hover:bg-white/5;
+  }
+
+  .menu-dropdown-badge {
+    @apply block rounded-mercury-pill px-2.5 py-0.5 text-xs font-medium uppercase text-brand-600 dark:text-brand-300;
+  }
+
+  .menu-dropdown-badge-active {
+    @apply bg-brand-100 dark:bg-brand-500/25;
+  }
+
+  .menu-dropdown-badge-inactive {
+    @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/25;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
     @apply size-1.5;
   }
 
-  &::-webkit-scrollbar-track {
+  .custom-scrollbar::-webkit-scrollbar-track {
     @apply rounded-full;
   }
 
-  &::-webkit-scrollbar-thumb {
+  .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-gray-200 rounded-full dark:bg-gray-700;
   }
 }
@@ -536,7 +528,7 @@
 }
 
 .apexcharts-legend-text {
-  @apply pl-5! !text-gray-700 dark:!text-gray-400;
+  @apply !pl-5 !text-gray-700 dark:!text-gray-400;
 }
 .apexcharts-tooltip-series-group {
   @apply !p-0;
@@ -741,7 +733,7 @@ span.flatpickr-weekday,
   @apply gap-2;
 }
 .fc-button-group .fc-button {
-  @apply flex h-10 w-10 items-center justify-center !rounded-lg border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:!border-gray-200 active:!bg-transparent active:!shadow-none dark:border-gray-800 dark:hover:border-gray-800 dark:hover:bg-gray-900 dark:active:border-gray-800!;
+  @apply flex h-10 w-10 items-center justify-center !rounded-lg border border-gray-200 bg-transparent hover:border-gray-200 hover:bg-gray-50 focus:shadow-none active:!border-gray-200 active:!bg-transparent active:!shadow-none dark:border-gray-800 dark:hover:border-gray-800 dark:hover:bg-gray-900 dark:active:!border-gray-800;
 }
 
 .fc-button-group .fc-button.fc-prev-button:before {
@@ -771,7 +763,7 @@ span.flatpickr-weekday,
   @apply rounded-lg bg-gray-100 p-0.5 dark:bg-gray-900;
 }
 .fc-header-toolbar.fc-toolbar .fc-toolbar-chunk:last-child .fc-button {
-  @apply !h-auto !w-auto rounded-md !border-0 bg-transparent !px-5 !py-2 text-sm font-medium text-gray-500 hover:text-gray-700 focus:shadow-none! dark:text-gray-400;
+  @apply !h-auto !w-auto rounded-md !border-0 bg-transparent !px-5 !py-2 text-sm font-medium text-gray-500 hover:text-gray-700 focus:!shadow-none dark:text-gray-400;
 }
 .fc-header-toolbar.fc-toolbar
   .fc-toolbar-chunk:last-child
