@@ -2,6 +2,7 @@ import { listClasses } from "@/lib/staging/classes";
 import { listCourses } from "@/lib/staging/courses";
 import { countEnrollmentsByClass, listEnrollments } from "@/lib/staging/enrollments";
 import { stagingError, stagingOk } from "@/lib/staging/apiResponse";
+import { requireStagingAdmin } from "@/lib/staging/auth";
 
 export const runtime = "nodejs";
 
@@ -9,7 +10,9 @@ export const runtime = "nodejs";
  * GET /api/new-admin-migrate/classes
  * Class labels from staging (id, code, name, dates, program vs course).
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = await requireStagingAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const [classes, courses, enrollments] = await Promise.all([
       listClasses(),

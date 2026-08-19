@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createStagingAdminClient } from "@/lib/staging/adminClient";
+import { requireStagingAdmin } from "@/lib/staging/auth";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,9 @@ async function countRows(
  * GET /api/new-admin-migrate/health
  * Confirms the fork can reach staging. Returns counts only — no rows.
  */
-export async function GET() {
+export async function GET(request: Request) {
+  const auth = await requireStagingAdmin(request);
+  if (!auth.ok) return auth.response;
   try {
     const supabase = createStagingAdminClient();
     const [studentCount, enrollmentCount, classCount, transactionCount] = await Promise.all([
