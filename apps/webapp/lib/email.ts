@@ -1,6 +1,28 @@
 import { Resend } from 'resend';
 import type { OutstandingInvoice as EnrollmentOutstandingInvoice } from './enrollments';
 import type { OutstandingInvoice as TemplateOutstandingInvoice } from './email-templates';
+import type { PrerequisiteItem } from '../emails/components/PrerequisiteGrid';
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://midwestea.com';
+const DEFAULT_HERO_IMAGE_URL = `${SITE_URL}/images/og-image.jpg`;
+
+/** EmailLayout uses same-origin `/images/...` so /dev/email-preview can load assets. Resend needs an absolute URL. */
+function absolutizeEmailAssetUrls(html: string): string {
+  const base = SITE_URL.replace(/\/$/, '');
+  return html.replaceAll('src="/images/', `src="${base}/images/`);
+}
+
+/**
+ * Prerequisites aren't modeled in the database today — hardcoded placeholder per
+ * product decision, keeping literal Figma wording. Swap via prompt-edit once real
+ * content or real data is ready. See apps/webapp/emails/EMAILS-GUIDE.md.
+ */
+const DEFAULT_PLACEHOLDER_PREREQUISITES: PrerequisiteItem[] = [
+  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
+  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
+  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
+  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
+];
 
 /**
  * Email utility functions for sending transactional emails via Resend
@@ -553,7 +575,7 @@ export async function sendEmail(
           ? options.to
           : options.to.email,
         subject: options.subject,
-        html: options.html,
+        html: absolutizeEmailAssetUrls(options.html),
         text: options.text,
         replyTo: options.replyTo,
         cc: options.cc,
@@ -1006,13 +1028,19 @@ export interface ProgramEnrollmentTransaction {
 export async function sendCourseEnrollmentEmail(
   student: { id: string; first_name: string | null; last_name: string | null },
   enrollment: { id: string; student_id: string; class_id: string },
-  classRecord: { class_name: string | null; course_code: string | null },
+  classRecord: {
+    class_name: string | null;
+    course_code: string | null;
+    class_image?: string | null;
+    class_start_date?: string | Date | null;
+  },
   transaction: CourseEnrollmentTransaction,
   options?: { preview?: boolean }
 ): Promise<EmailSendResult & { previewHtml?: string }> {
   // Import here to avoid circular dependencies
   const { createSupabaseAdminClient } = await import('@midwestea/utils');
-  const { renderCourseEnrollmentTemplate, getCourseEnrollmentSubject } = await import('./email-templates');
+  const { getCourseEnrollmentSubject } = await import('./email-templates');
+  const { renderEnrollmentSuccessfulEmail } = await import('./react-emails');
 
   // Get student email from auth.users
   const supabase = createSupabaseAdminClient();
@@ -1063,20 +1091,24 @@ export async function sendCourseEnrollmentEmail(
   const studentName = `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Student';
   const courseName = classRecord.class_name || 'Course';
   const courseCode = classRecord.course_code || '';
-  const amount = transaction.amount_paid || 0;
   const invoiceNumber = transaction.invoice_number || 0;
-  const paymentDate = transaction.payment_date || new Date();
 
   // Render email template
   let html: string;
   try {
-    html = renderCourseEnrollmentTemplate({
+    html = await renderEnrollmentSuccessfulEmail({
       studentName,
-      courseName,
       courseCode,
-      amount,
-      invoiceNumber,
-      paymentDate,
+      courseName,
+      heroImageUrl: classRecord.class_image || DEFAULT_HERO_IMAGE_URL,
+      startDateLabel: classRecord.class_start_date
+        ? formatDate(classRecord.class_start_date, 'date')
+        : 'your class start date',
+      endDateLabel: 'the end of class',
+      invoicesUrl: `${SITE_URL}/student/invoices`,
+      portalLoginUrl: `${SITE_URL}/student`,
+      prerequisites: DEFAULT_PLACEHOLDER_PREREQUISITES,
+      prerequisiteDueDate: 'DUE DATE HERE',
     });
   } catch (error: any) {
     console.error('[sendCourseEnrollmentEmail] Template rendering error:', error);
@@ -1740,6 +1772,7 @@ export async function sendProgramEnrollmentEmail(
     class_name: string | null; 
     course_code: string | null;
     class_start_date: string | Date | null;
+    class_image?: string | null;
   },
   paidTransaction: ProgramEnrollmentTransaction,
   options?: { preview?: boolean }
@@ -1747,9 +1780,9 @@ export async function sendProgramEnrollmentEmail(
   // Import here to avoid circular dependencies
   const { createSupabaseAdminClient } = await import('@midwestea/utils');
   const { 
-    renderProgramEnrollmentTemplate, 
     getProgramEnrollmentSubject,
   } = await import('./email-templates');
+  const { renderEnrollmentSuccessfulEmail } = await import('./react-emails');
   const { 
     getOutstandingInvoices
   } = await import('./enrollments');
@@ -1848,22 +1881,35 @@ export async function sendProgramEnrollmentEmail(
   const programName = classRecord.class_name || 'Program';
   const courseCode = classRecord.course_code || '';
   const startDate = classRecord.class_start_date || new Date();
-  const paidAmount = amountPaid;
   const invoiceNumber = paidTransaction.invoice_number || 0;
-  const paymentDate = paidTransaction.payment_date || new Date();
 
   // Render email template
   let html: string;
   try {
-    html = renderProgramEnrollmentTemplate({
+    const totalOutstanding = outstandingInvoices.reduce(
+      (total, invoice) => total + invoice.quantity * invoice.amountDue,
+      0
+    );
+
+    html = await renderEnrollmentSuccessfulEmail({
       studentName,
-      programName,
       courseCode,
-      startDate,
-      paidAmount,
-      invoiceNumber,
-      paymentDate,
-      outstandingInvoices,
+      courseName: programName,
+      heroImageUrl: classRecord.class_image || DEFAULT_HERO_IMAGE_URL,
+      startDateLabel: formatDate(startDate, 'date'),
+      endDateLabel: 'the end of class',
+      remainingCost: outstandingInvoices.length > 0 ? formatCurrency(totalOutstanding) : undefined,
+      installments:
+        outstandingInvoices.length > 0
+          ? outstandingInvoices.map((invoice, index) => ({
+              label: index === 0 ? 'First installment' : 'Second installment',
+              date: formatDate(invoice.dueDate, 'date'),
+            }))
+          : undefined,
+      invoicesUrl: `${SITE_URL}/student/invoices`,
+      portalLoginUrl: `${SITE_URL}/student`,
+      prerequisites: DEFAULT_PLACEHOLDER_PREREQUISITES,
+      prerequisiteDueDate: 'DUE DATE HERE',
     });
   } catch (error: any) {
     console.error('[sendProgramEnrollmentEmail] Template rendering error:', error);

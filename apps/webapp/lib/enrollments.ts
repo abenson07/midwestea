@@ -368,7 +368,7 @@ export async function findClassWithCourse(classId: string): Promise<{
   // Also fetch registration_fee and price for amount calculations
   const { data: classRecord, error: classError } = await supabase
     .from('classes')
-    .select('id, class_id, class_name, course_code, class_start_date, registration_fee, price, charge_full_amount_at_registration')
+    .select('id, class_id, class_name, course_code, class_image, class_start_date, registration_fee, price, charge_full_amount_at_registration')
     .eq('class_id', classId)
     .maybeSingle();
 
