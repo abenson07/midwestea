@@ -1,18 +1,27 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Inter } from "next/font/google";
 import { usePathname, useRouter } from "next/navigation";
-import { Sidebar } from "@/components/Sidebar";
-import { MobileHeader } from "@/components/MobileHeader";
-import { MobileNav } from "@/components/MobileNav";
+import { Toaster } from "sonner";
 import { getSession } from "@/lib/auth";
 import { getAdminDocumentTitle } from "@/lib/admin/page-title";
 import { AdminAccessRequired } from "./admin-access-required";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { ThemeProvider, DemoModeProvider } from "@/components/admin-migrate/patterns/foundation";
+import { WipFeaturesProvider } from "@/components/admin-migrate/patterns/foundation/WipFeaturesContext";
+import { OpenClassesProvider } from "@/lib/admin-migrate/OpenClassesContext";
+import type { StagingOpenClassGroups } from "@/lib/admin-migrate/openClasses";
+import { themeInitScript } from "@/theme/themeInit";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export function AdminShell({
     children,
+    openClasses,
 }: {
     children: React.ReactNode;
+    openClasses: StagingOpenClassGroups;
 }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -88,18 +97,33 @@ export function AdminShell({
         return <AdminAccessRequired userEmail={userEmail} />;
     }
 
+    // Sidebar isn't rendered here — each page brings its own via
+    // FoundationLayout (defaults to LinearSidebar). This shell only
+    // provides the wrapping context: the admin-migrate-root isolation
+    // boundary (see isolation.css) plus the same provider stack the source
+    // app's root layout used.
     return (
-        <div className="flex h-screen bg-gray-50">
-            <MobileHeader />
-            <Suspense fallback={<div className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white h-screen" />}>
-                <Sidebar />
-            </Suspense>
-            <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
-                <div className="max-w-7xl mx-auto px-4 py-4 md:px-8 md:py-8">
-                    {children}
-                </div>
-            </main>
-            <MobileNav />
+        <div
+            className={`admin-migrate-root ${inter.variable}`}
+            style={{
+                height: "100vh",
+                fontFamily: "var(--font-inter), system-ui, sans-serif",
+            }}
+        >
+            {/* Not in <head> (this is a nested layout, not the app's root) so it
+                runs slightly later than ideal, but still scoped to admin-only —
+                putting it in the shared root layout would affect every route. */}
+            <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+            <QueryProvider>
+                <ThemeProvider>
+                    <WipFeaturesProvider defaultEnabled={true}>
+                        <DemoModeProvider defaultEnabled={false}>
+                            <OpenClassesProvider value={openClasses}>{children}</OpenClassesProvider>
+                        </DemoModeProvider>
+                    </WipFeaturesProvider>
+                </ThemeProvider>
+                <Toaster richColors position="bottom-right" />
+            </QueryProvider>
         </div>
     );
 }

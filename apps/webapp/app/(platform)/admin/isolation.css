@@ -1,0 +1,28 @@
+/*
+ * Unlayered on purpose: Tailwind's `@layer base` rules in the app-wide
+ * globals.css always lose to any unlayered CSS regardless of specificity,
+ * so these overrides neutralize that bleed for everything under
+ * .admin-migrate-root without touching globals.css or any other route.
+ */
+.admin-migrate-root,
+.admin-migrate-root *,
+.admin-migrate-root ::before,
+.admin-migrate-root ::after {
+  border-color: initial;
+}
+
+.admin-migrate-root h1,
+.admin-migrate-root h2,
+.admin-migrate-root h3,
+.admin-migrate-root h4,
+.admin-migrate-root h5,
+.admin-migrate-root h6 {
+  font: inherit;
+  color: inherit;
+  letter-spacing: normal;
+}
+
+.admin-migrate-root {
+  background: var(--linear-color-background, #09090b);
+  color: inherit;
+}

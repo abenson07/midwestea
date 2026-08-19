@@ -39,7 +39,7 @@ export const settingsTechnicalNavSection: PatternNavSection = {
   title: "Technical",
   items: [
     { id: "logs", label: "Logs", icon: ScrollText },
-    { id: "payouts", label: "Payouts", icon: Wallet },
+    { id: "reconcile", label: "Reconcile", icon: Wallet },
     { id: "download-invoices", label: "Download invoices", icon: Download },
   ],
 };

@@ -19,7 +19,7 @@ import { SettingsSideNav } from "./SettingsSideNav";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { ProfilePanel } from "./ProfilePanel";
 import { LogsPage } from "./LogsPage";
-import { PayoutsPage } from "./PayoutsPage";
+import { ReconcilePage } from "./ReconcilePage";
 import { DownloadInvoicesPage } from "./DownloadInvoicesPage";
 
 const INSET_IDS = new Set([
@@ -28,7 +28,7 @@ const INSET_IDS = new Set([
   "prerequisites",
   "locations",
   "logs",
-  "payouts",
+  "reconcile",
   "download-invoices",
 ]);
 
@@ -89,7 +89,7 @@ function SettingsBody({
   if (navId === "prerequisites") return <PrerequisitesDemo rows={prerequisites} />;
   if (navId === "locations") return <LocationsDemo rows={locations} />;
   if (navId === "logs") return <LogsPage />;
-  if (navId === "payouts") return <PayoutsPage />;
+  if (navId === "reconcile") return <ReconcilePage />;
   if (navId === "download-invoices") return <DownloadInvoicesPage />;
 
   const programMatch = navId.match(/^programs\/(.+)$/);

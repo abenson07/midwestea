@@ -42,7 +42,8 @@ export type TransactionRow = {
  * used as a demo-mode fallback (PaymentsDemo only reads real `rows` in the
  * live app; this array was never meant to render there). Dropped rather
  * than carried over so nothing here can ever accidentally display as real
- * data. payouts.ts and download-invoices.ts derive from this array, so
- * zeroing it here empties those too.
+ * data. download-invoices.ts derives from this array, so zeroing it here
+ * empties that too. (payouts.ts was removed — Reconcile now reads real
+ * transactions via lib/payments.ts instead.)
  */
 export const sampleTransactions: TransactionRow[] = [];
