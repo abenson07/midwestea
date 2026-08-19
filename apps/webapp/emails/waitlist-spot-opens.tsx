@@ -52,7 +52,7 @@ export default function WaitlistSpotOpens({
         </BodyLine>
       </BodyText>
       <PrimaryButton href={registerUrl}>
-        Join the team and get your {className} certification
+        Secure your spot in this class
       </PrimaryButton>
     </EmailLayout>
   );

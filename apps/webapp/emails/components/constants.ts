@@ -26,7 +26,7 @@ export const EMAIL_FONTS = {
 
 export const FOOTER_INFO = {
   companyName: 'MidwestEA',
-  supportEmail: 'support@midwestea.com',
+  supportEmail: 'sbrooks@midwestea.com',
   address: '8108 Pleasant Valley Rd, Pleasant Valley, MO, United States',
   facebookUrl:
     'https://www.facebook.com/p/Midwest-Emergency-Academy-61571290473533/',

@@ -13,7 +13,7 @@ import {
   Text,
 } from '@react-email/components';
 import * as React from 'react';
-import { EMAIL_COLORS, EMAIL_FONTS, FOOTER_INFO, EMAIL_CONTENT_WIDTH, SITE_URL } from './constants';
+import { EMAIL_COLORS, EMAIL_FONTS, FOOTER_INFO, EMAIL_CONTENT_WIDTH } from './constants';
 
 interface EmailLayoutProps {
   previewText: string;
@@ -64,10 +64,12 @@ export function EmailLayout({ previewText, children }: EmailLayoutProps) {
             backgroundColor: EMAIL_COLORS.background,
           }}
         >
-          {/* Logo header — real lockup asset, public/images/Company-Logo.svg */}
+          {/* Logo header — PNG, not SVG: Gmail/Outlook ignore SVG in <img>.
+              Relative path so /dev/email-preview loads it from this app; sendEmail
+              rewrites to an absolute URL before handing HTML to Resend. */}
           <Section style={{ padding: '31px 24px 32px', textAlign: 'center' }}>
             <Img
-              src={`${SITE_URL}/images/Company-Logo.svg`}
+              src="/images/Company-Logo.png"
               alt="MidwestEA — Emergency Academy"
               width={153}
               height={49}

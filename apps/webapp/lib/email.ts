@@ -6,6 +6,12 @@ import type { PrerequisiteItem } from '../emails/components/PrerequisiteGrid';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://midwestea.com';
 const DEFAULT_HERO_IMAGE_URL = `${SITE_URL}/images/og-image.jpg`;
 
+/** EmailLayout uses same-origin `/images/...` so /dev/email-preview can load assets. Resend needs an absolute URL. */
+function absolutizeEmailAssetUrls(html: string): string {
+  const base = SITE_URL.replace(/\/$/, '');
+  return html.replaceAll('src="/images/', `src="${base}/images/`);
+}
+
 /**
  * Prerequisites aren't modeled in the database today — hardcoded placeholder per
  * product decision, keeping literal Figma wording. Swap via prompt-edit once real
@@ -569,7 +575,7 @@ export async function sendEmail(
           ? options.to
           : options.to.email,
         subject: options.subject,
-        html: options.html,
+        html: absolutizeEmailAssetUrls(options.html),
         text: options.text,
         replyTo: options.replyTo,
         cc: options.cc,

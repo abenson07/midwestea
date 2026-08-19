@@ -21,8 +21,9 @@ export default function WaitlistSuccessful({
   studentName,
   courseName,
   heroImageUrl,
-  supportUrl = 'mailto:support@midwestea.com',
+  supportUrl,
 }: WaitlistSuccessfulProps) {
+  const resolvedSupportUrl = supportUrl?.trim() || 'mailto:sbrooks@midwestea.com';
   return (
     <EmailLayout previewText={`You're on the waitlist for ${courseName}`}>
       <Heading size={48}>You&apos;re on the list</Heading>
@@ -35,7 +36,7 @@ export default function WaitlistSuccessful({
         </BodyLine>
         <BodyLine>
           If you have any questions,{' '}
-          <Link href={supportUrl} style={{ color: EMAIL_COLORS.text, textDecoration: 'underline' }}>
+          <Link href={resolvedSupportUrl} style={{ color: EMAIL_COLORS.text, textDecoration: 'underline' }}>
             contact support here.
           </Link>
         </BodyLine>
@@ -48,4 +49,5 @@ WaitlistSuccessful.PreviewProps = {
   studentName: 'Jane Smith',
   courseName: 'Advanced Emergency Medical Technician',
   heroImageUrl: 'https://placehold.co/1280x720/191920/f7f6f3?text=MidwestEA',
+  supportUrl: 'mailto:sbrooks@midwestea.com',
 } satisfies WaitlistSuccessfulProps;
