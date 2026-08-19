@@ -1,5 +1,10 @@
 export { LinearSidebar } from "./LinearSidebar";
-export { DemoModeProvider, useDemoMode, useDemoModeOptional } from "./DemoModeContext";
+export {
+  DEMO_MODE_AVAILABLE,
+  DemoModeProvider,
+  useDemoMode,
+  useDemoModeOptional,
+} from "./DemoModeContext";
 export type { DemoModeProviderProps } from "./DemoModeContext";
 export { DemoModeConfirmModal } from "./DemoModeConfirmModal";
 export type {
