@@ -13,6 +13,7 @@ import {
   settingsCardFieldStyle,
 } from "@/components/admin-migrate/patterns/settings/SettingsCardList";
 import { LocationSelect } from "@/components/admin-migrate/patterns/locations";
+import { Checkbox } from "@/components/admin-migrate/patterns/primitives/Checkbox";
 import {
   CATALOG_CLASS_TYPES,
   catalogKindForClass,
@@ -20,6 +21,8 @@ import {
   type CatalogClassType,
 } from "../catalog/catalogMocks";
 import { isClassOnline, type ClassDetail, type ClassExternalLink } from "./classMocks";
+import { updateClass } from "@/lib/classes";
+import { parseDisplayCents, parseLeadingInt } from "@/lib/admin-migrate/display-parsers";
 
 const rowInputStyle: CSSProperties = {
   boxSizing: "border-box",
@@ -83,10 +86,33 @@ export function ClassSettingsPage({
 
   async function handleSave() {
     setSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    onSave(draft);
+    const empty = (value: string) => (!value || value === "—" ? null : value);
+    const result = await updateClass(
+      classDetail.id,
+      empty(draft.enrollmentStart),
+      empty(draft.enrollmentClose),
+      empty(draft.classStart),
+      empty(draft.classEnd),
+      isClassOnline(draft.classFormat),
+      draft.classFormat,
+      undefined,
+      empty(draft.classLength),
+      parseLeadingInt(draft.certificationLength),
+      parseLeadingInt(draft.registrationLimit),
+      parseDisplayCents(draft.price),
+      parseDisplayCents(draft.registrationFee),
+      empty(draft.location),
+      undefined,
+      undefined,
+      draft.chargeFullAmountAtRegistration === true,
+    );
     setSaving(false);
-    toast.success("Class settings saved — demo mode, saved locally only");
+    if (!result.success) {
+      toast.error(result.error || "Failed to save class settings");
+      return;
+    }
+    onSave(draft);
+    toast.success("Class settings saved");
   }
 
   function handleDelete() {
@@ -275,6 +301,19 @@ export function ClassSettingsPage({
                   />
                 </>
               ) : null}
+              <Divider />
+              <SettingsRow
+                label="Charge full amount at registration"
+                description="Registration fee + tuition, charged at checkout"
+                control={
+                  <Checkbox
+                    label="Charge full amount (registration fee + tuition) at registration"
+                    isLabelHidden
+                    value={draft.chargeFullAmountAtRegistration === true}
+                    onChange={(next) => patch({ chargeFullAmountAtRegistration: next })}
+                  />
+                }
+              />
             </VStack>
           </Card>
         </VStack>

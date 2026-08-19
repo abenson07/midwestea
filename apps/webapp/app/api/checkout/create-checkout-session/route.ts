@@ -89,14 +89,14 @@ export async function POST(request: NextRequest) {
     try {
       let { data, error: classError } = await supabase
         .from('classes')
-        .select('product_id, registration_fee, id, class_id')
+        .select('product_id, registration_fee, price, charge_full_amount_at_registration, id, class_id')
         .eq('class_id', classId)
         .maybeSingle();
 
       if (!data && !classError) {
         const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
           .from('classes')
-          .select('product_id, registration_fee, id, class_id')
+          .select('product_id, registration_fee, price, charge_full_amount_at_registration, id, class_id')
           .ilike('class_id', classId)
           .maybeSingle();
 
@@ -143,6 +143,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const unitAmount = classRecord.charge_full_amount_at_registration
+      ? classRecord.registration_fee + (classRecord.price || 0)
+      : classRecord.registration_fee;
+
     let customerId: string;
     try {
       const customer = await Promise.race([
@@ -179,12 +183,13 @@ export async function POST(request: NextRequest) {
 
       const sessionResult = await createStripeCheckoutSessionWithFetch(
         customerId,
-        { productId: classRecord.product_id, unitAmount: classRecord.registration_fee },
+        { productId: classRecord.product_id, unitAmount },
         successUrl,
         cancelUrl,
         {
           full_name: fullName,
           class_id: classId,
+          charge_full_amount_at_registration: String(!!classRecord.charge_full_amount_at_registration),
         },
         stripeSecretKey
       );

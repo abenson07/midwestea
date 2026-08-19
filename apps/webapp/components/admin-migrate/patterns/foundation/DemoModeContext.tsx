@@ -20,6 +20,9 @@ const DemoModeContext = createContext<DemoModeContextValue | null>(null);
 
 const STORAGE_KEY = "admin-migrate-demo-mode";
 
+/** Flip to true to restore the sidebar toggle, confirm modal, and `?demo=` URL override. */
+export const DEMO_MODE_AVAILABLE = false;
+
 function readStoredEnabled(defaultEnabled: boolean): boolean {
   if (typeof window === "undefined") return defaultEnabled;
   const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -51,11 +54,13 @@ export function DemoModeProvider({
   const [hydrated, setHydrated] = useState(false);
 
   const setEnabled = useCallback((next: boolean) => {
+    if (!DEMO_MODE_AVAILABLE) return;
     setEnabledState(next);
     writeStoredEnabled(next);
   }, []);
 
   const toggle = useCallback(() => {
+    if (!DEMO_MODE_AVAILABLE) return;
     setEnabledState((current) => {
       const next = !current;
       writeStoredEnabled(next);
@@ -65,18 +70,25 @@ export function DemoModeProvider({
 
   // Hydrate from localStorage, then honor one-shot ?demo=1|0 and strip the param.
   useEffect(() => {
-    let next = readStoredEnabled(defaultEnabled);
     const url = new URL(window.location.href);
     const param = url.searchParams.get("demo");
-    if (param === "1" || param === "true" || param === "on") {
-      next = true;
-      writeStoredEnabled(true);
-    } else if (param === "0" || param === "false" || param === "off") {
-      next = false;
+
+    if (!DEMO_MODE_AVAILABLE) {
       writeStoredEnabled(false);
+      setEnabledState(false);
+      setHydrated(true);
+    } else {
+      let next = readStoredEnabled(defaultEnabled);
+      if (param === "1" || param === "true" || param === "on") {
+        next = true;
+        writeStoredEnabled(true);
+      } else if (param === "0" || param === "false" || param === "off") {
+        next = false;
+        writeStoredEnabled(false);
+      }
+      setEnabledState(next);
+      setHydrated(true);
     }
-    setEnabledState(next);
-    setHydrated(true);
 
     if (param != null) {
       url.searchParams.delete("demo");
@@ -86,7 +98,11 @@ export function DemoModeProvider({
   }, [defaultEnabled]);
 
   const value = useMemo(
-    () => ({ enabled: hydrated ? enabled : defaultEnabled, setEnabled, toggle }),
+    () => ({
+      enabled: DEMO_MODE_AVAILABLE && (hydrated ? enabled : defaultEnabled),
+      setEnabled,
+      toggle,
+    }),
     [hydrated, enabled, defaultEnabled, setEnabled, toggle],
   );
 

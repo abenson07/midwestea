@@ -48,6 +48,7 @@ export interface Class {
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
+  charge_full_amount_at_registration: boolean;
   product_id: string | null;
   webflow_item_id: string | null;
   wf_class_link: string | null;
@@ -245,7 +246,8 @@ export async function createClass(
   registrationFee?: number | null,
   productId?: string | null,
   location?: string | null,
-  locationId?: string | null
+  locationId?: string | null,
+  chargeFullAmountAtRegistration?: boolean | null
 ): Promise<ClassResponse> {
   try {
     console.log('[Client] Starting class creation...');
@@ -290,6 +292,7 @@ export async function createClass(
         productId,
         location,
         locationId,
+        chargeFullAmountAtRegistration,
       }),
     });
 
@@ -352,7 +355,8 @@ export async function updateClass(
   registrationFee?: number | null,
   location?: string | null,
   locationId?: string | null,
-  className?: string | null
+  className?: string | null,
+  chargeFullAmountAtRegistration?: boolean | null
 ): Promise<ClassResponse> {
   try {
     const supabase = await createSupabaseClient();
@@ -384,6 +388,7 @@ export async function updateClass(
         location,
         locationId,
         className,
+        chargeFullAmountAtRegistration,
       }),
     });
 

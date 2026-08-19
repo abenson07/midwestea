@@ -4,8 +4,16 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { StudentNav } from "./StudentNav";
+import { Navigation } from "@/components/marketing/navigation";
+import type { BannerEnrollmentItem } from "@/lib/marketing/banner-enrollment";
 
-export function StudentShell({ children }: { children: React.ReactNode }) {
+export function StudentShell({
+  children,
+  bannerItems = [],
+}: {
+  children: React.ReactNode;
+  bannerItems?: BannerEnrollmentItem[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -37,9 +45,9 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
 
   if (!isAuthPage && isCheckingAuth) {
     return (
-      <div className="flex h-screen bg-gray-50 items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-b-2 border-gray-900" />
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -55,13 +63,21 @@ export function StudentShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <StudentNav />
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 py-6 md:px-8 md:py-10">
-          {children}
+    <div className="min-h-screen bg-neutral-lightest pb-20 md:pb-0">
+      <Navigation bannerItems={bannerItems} />
+      <div className="mx-auto w-full max-w-6xl px-4 pt-[calc(var(--mea-nav-height)+1.5rem)] pb-10 md:px-8">
+        <div className="md:grid md:grid-cols-6 md:gap-8">
+          <aside className="hidden md:col-span-1 md:block">
+            <div className="sticky top-[calc(var(--mea-nav-height)+1rem)]">
+              <StudentNav />
+            </div>
+          </aside>
+          <main className="md:col-span-5">{children}</main>
         </div>
-      </main>
+      </div>
+      <div className="md:hidden">
+        <StudentNav />
+      </div>
     </div>
   );
 }

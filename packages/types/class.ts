@@ -25,6 +25,7 @@ export type Class = {
   stripe_product_id: string | null;
   price: number | null;
   registration_fee: number | null;
+  charge_full_amount_at_registration: boolean;
   stripe_payment_link: string | null;
   webflow_item_id: string | null;
   wf_class_link: string | null;

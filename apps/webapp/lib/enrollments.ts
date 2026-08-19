@@ -360,6 +360,7 @@ export async function findClassWithCourse(classId: string): Promise<{
   classStartDate: string | null;
   registrationFee: number | null;
   price: number | null;
+  chargeFullAmountAtRegistration: boolean;
 }> {
   const supabase = createSupabaseAdminClient();
 
@@ -367,7 +368,7 @@ export async function findClassWithCourse(classId: string): Promise<{
   // Also fetch registration_fee and price for amount calculations
   const { data: classRecord, error: classError } = await supabase
     .from('classes')
-    .select('id, class_id, class_name, course_code, class_image, class_start_date, registration_fee, price')
+    .select('id, class_id, class_name, course_code, class_image, class_start_date, registration_fee, price, charge_full_amount_at_registration')
     .eq('class_id', classId)
     .maybeSingle();
 
@@ -408,6 +409,7 @@ export async function findClassWithCourse(classId: string): Promise<{
     classStartDate: (classRecord as any).class_start_date || null,
     registrationFee: (classRecord as any).registration_fee || null,
     price: (classRecord as any).price || null,
+    chargeFullAmountAtRegistration: (classRecord as any).charge_full_amount_at_registration || false,
   };
 }
 
@@ -711,6 +713,51 @@ export async function createInvoiceSchedule(params: {
   return expectedTypes
     .map((type) => [...existing, ...created].find((t) => t.transaction_type === type))
     .filter((t): t is Transaction => t !== undefined);
+}
+
+export async function createFullPaymentTransaction(params: {
+  enrollmentId: string;
+  studentId: string;
+  classId: string;
+  courseType: 'course' | 'program' | null;
+  registrationFee: number | null;
+  price: number | null;
+  stripePaymentIntentId: string;
+  amountTotal: number;
+}): Promise<Transaction[]> {
+  const { enrollmentId, studentId, classId, courseType, registrationFee, price, stripePaymentIntentId, amountTotal } = params;
+  const now = new Date().toISOString();
+
+  const supabase = createSupabaseAdminClient();
+  const { data: existingRows, error: existingError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('enrollment_id', enrollmentId);
+
+  if (existingError) {
+    throw new Error(`Failed to check existing transactions: ${existingError.message}`);
+  }
+
+  const existing = (existingRows || []) as Transaction[];
+  if (existing.some((t) => t.transaction_type === 'registration_fee')) {
+    // Already recorded (retry of an already-processed webhook event) — return as-is, create nothing.
+    return existing.filter((t) => t.transaction_type === 'registration_fee');
+  }
+
+  const nextInvoiceNumber = await getNextTransactionInvoiceNumber();
+  const fullAmountDue = (registrationFee || 0) + (price || 0);
+
+  const paidInFull = await createTransaction({
+    enrollmentId, studentId, classId,
+    classType: courseType === 'program' ? 'program' : 'course',
+    transactionType: 'registration_fee', quantity: 1,
+    stripePaymentIntentId, transactionStatus: 'paid',
+    paymentDate: now, dueDate: now,
+    amountDue: fullAmountDue, amountPaid: amountTotal,
+    invoiceNumber: nextInvoiceNumber,
+  });
+
+  return [paidInFull];
 }
 
 /**

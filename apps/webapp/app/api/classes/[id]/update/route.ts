@@ -90,6 +90,7 @@ export async function PUT(
       location,
       locationId,
       className,
+      chargeFullAmountAtRegistration,
     } = body;
 
     // First, get the current class to check for webflow_item_id and course_uuid
@@ -140,6 +141,9 @@ export async function PUT(
       updateData.location = location;
     }
     if (className !== undefined) updateData.class_name = className;
+    if (chargeFullAmountAtRegistration !== undefined) {
+      updateData.charge_full_amount_at_registration = chargeFullAmountAtRegistration;
+    }
 
     // Update class in Supabase
     const { data: updatedClass, error: updateError } = await supabase

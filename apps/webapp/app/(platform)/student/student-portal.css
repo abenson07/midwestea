@@ -1,0 +1,5 @@
+/* marketing.css assigns font-heading (PP Neue Corp) to all h1–h6.
+   Only page titles should be all-caps; section headings stay sentence case. */
+.student-portal h1 {
+  text-transform: uppercase;
+}

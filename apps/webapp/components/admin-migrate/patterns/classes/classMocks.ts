@@ -48,6 +48,7 @@ export type ClassDetail = {
   certificationLength: string;
   price: string;
   registrationFee: string;
+  chargeFullAmountAtRegistration?: boolean;
   prerequisites: string[];
   externalLinks?: ClassExternalLink[];
   /** The program or course template this class was created from. */
@@ -637,6 +638,7 @@ export function classDetailFor(classId: string): ClassDetail {
       certificationLength: "—",
       price: "—",
       registrationFee: "—",
+      chargeFullAmountAtRegistration: false,
       prerequisites: [],
     }
   );
