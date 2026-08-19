@@ -7,9 +7,11 @@ import { CircleUserRound } from "lucide-react";
 import { getSession, signOut } from "@/lib/auth";
 import { getStudentById } from "@/lib/students";
 
+type AccountState = "loading" | "guest" | "student";
+
 export function AccountMenu() {
   const router = useRouter();
-  const [isStudent, setIsStudent] = useState(false);
+  const [state, setState] = useState<AccountState>("loading");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -17,11 +19,11 @@ export function AccountMenu() {
     const load = async () => {
       const { session } = await getSession();
       if (!session) {
-        setIsStudent(false);
+        setState("guest");
         return;
       }
       const { student } = await getStudentById(session.user.id);
-      setIsStudent(!!student);
+      setState(student ? "student" : "guest");
     };
     load();
   }, []);
@@ -44,7 +46,25 @@ export function AccountMenu() {
     };
   }, [open]);
 
-  if (!isStudent) return null;
+  if (state === "loading") {
+    return <div className="h-7 w-16" aria-hidden />;
+  }
+
+  if (state === "guest") {
+    return (
+      <>
+        <Link href="/student/login" className="hidden px-4 py-6 text-base font-semibold lg:inline">
+          Log in
+        </Link>
+        <Link
+          href="/student/login"
+          className="mea-heading-h4 mt-4 block uppercase hover:text-mea-red-darker lg:hidden"
+        >
+          Log in
+        </Link>
+      </>
+    );
+  }
 
   const handleSignOut = async () => {
     setOpen(false);
@@ -64,7 +84,7 @@ export function AccountMenu() {
         <CircleUserRound className="h-7 w-7" />
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-neutral-lighter bg-white py-1 shadow-lg">
+        <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border border-neutral-lighter bg-white py-1 shadow-lg max-lg:left-0 max-lg:right-auto">
           <Link
             href="/student"
             className="block px-4 py-2 text-sm font-medium text-text hover:bg-neutral-lightest"
