@@ -6,6 +6,7 @@ export type Enrollment = {
   class_id: string; // UUID, references classes.id
   enrollment_status: string | null; // default: 'registered'
   onboarding_complete: boolean | null; // default: false
+  outcome: string | null; // 'Graduated' | 'Failed' | 'Dropped', set on certificate issuance
   enrolled_at: string | null; // timestamp with time zone
   updated_at: string | null; // timestamp with time zone
 };

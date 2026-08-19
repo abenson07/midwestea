@@ -1,6 +1,8 @@
+import type { StagingCertificate } from "@/lib/admin-migrate/certificates";
 import type { StagingClass } from "@/lib/admin-migrate/classes";
 import type { StagingEnrollment } from "@/lib/admin-migrate/enrollments";
 import type { StagingStudent } from "@/lib/admin-migrate/students";
+import type { PastClassStatus } from "@/components/admin-migrate/patterns/students/types";
 import type {
   StudentEnrollment,
   StudentPaymentStatus,
@@ -34,12 +36,24 @@ function listPaymentStatus(invoices: TransactionRow[], hasEnrollment: boolean): 
   return "na";
 }
 
-export function toStudentEnrollment(enrollment: StagingEnrollment): StudentEnrollment {
+const PAST_CLASS_STATUSES: PastClassStatus[] = ["Graduated", "Failed", "Dropped"];
+
+function toPastClassStatus(outcome: string | null): PastClassStatus | undefined {
+  return PAST_CLASS_STATUSES.find((status) => status === outcome);
+}
+
+export function toStudentEnrollment(
+  enrollment: StagingEnrollment,
+  certificate?: StagingCertificate,
+): StudentEnrollment {
   return {
     studentId: enrollment.studentId,
     classId: enrollment.classId,
     enrolledAt: formatJoinedAt(enrollment.enrolledAt),
     status: enrollment.enrollmentStatus === "removed" ? "removed" : "registered",
+    enrollmentId: enrollment.id,
+    outcome: toPastClassStatus(enrollment.outcome),
+    certificateHref: certificate?.status === "issued" ? certificate.downloadUrl ?? undefined : undefined,
   };
 }
 
