@@ -1,1 +1,0 @@
-export { CoursesDemo } from "./CoursesDemo";

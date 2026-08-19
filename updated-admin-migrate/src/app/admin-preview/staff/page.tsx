@@ -1,5 +1,0 @@
-import { redirect } from "next/navigation";
-
-export default function StaffRedirect() {
-  redirect("/admin-preview/settings/trainers");
-}
