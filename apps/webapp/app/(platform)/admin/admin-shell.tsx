@@ -10,6 +10,7 @@ import { AdminAccessRequired } from "./admin-access-required";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider, DemoModeProvider } from "@/components/admin-migrate/patterns/foundation";
 import { WipFeaturesProvider } from "@/components/admin-migrate/patterns/foundation/WipFeaturesContext";
+import { CommandPaletteProvider } from "@/components/admin-migrate/patterns/foundation/command-palette";
 import { OpenClassesProvider } from "@/lib/admin-migrate/OpenClassesContext";
 import type { StagingOpenClassGroups } from "@/lib/admin-migrate/openClasses";
 import { themeInitScript } from "@/theme/themeInit";
@@ -118,7 +119,9 @@ export function AdminShell({
                 <ThemeProvider>
                     <WipFeaturesProvider defaultEnabled={true}>
                         <DemoModeProvider defaultEnabled={false}>
-                            <OpenClassesProvider value={openClasses}>{children}</OpenClassesProvider>
+                            <OpenClassesProvider value={openClasses}>
+                                <CommandPaletteProvider>{children}</CommandPaletteProvider>
+                            </OpenClassesProvider>
                         </DemoModeProvider>
                     </WipFeaturesProvider>
                 </ThemeProvider>

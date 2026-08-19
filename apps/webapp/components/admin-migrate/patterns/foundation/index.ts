@@ -41,4 +41,5 @@ export type {
 export * from "./sidebar";
 export * from "./mixed-content";
 export * from "./side-content";
+export * from "./command-palette";
 
