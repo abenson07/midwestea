@@ -66,12 +66,8 @@ export function StudentsDemo({ rows: rowsProp }: StudentsDemoProps) {
     [rows, view, search],
   );
 
-  const emptyLabel =
-    view === "current"
-      ? "No currently enrolled students match the current search."
-      : view === "past-due"
-        ? "No past due students match the current search."
-        : "No students match the current search.";
+  const noun = view === "current" ? "currently enrolled students" : view === "past-due" ? "past due students" : "students";
+  const emptyLabel = search ? `No ${noun} match "${search}".` : `No ${noun} yet.`;
 
   return (
     <div style={{ height: "100%" }}>

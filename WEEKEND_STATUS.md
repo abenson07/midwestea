@@ -1,92 +1,75 @@
-# Weekend Plan — Aug 14, 2026
+# Weekend Plan — Aug 19, 2026 status
 
-Almost none of this summer's work has actually reached `main`. It's all sitting, finished or nearly finished, on separate long-lived branches that were never opened as PRs against `main`. This doc is the working order to fix that and land the three new pieces of work on top. Section 1 is the actual sequence — work top to bottom. Section 2 is reference material (what's in each project/branch) — read it when a step in Section 1 needs more context, not in order.
+Rewritten to show only what's left. Everything previously listed as done (`staging` reset, `685-tiered-enrollment` merge, `invoicing-work` merge, `external-learning-links` rebase/merge/renumber, the BEN-1517 admin cutover) has been verified merged into `origin/staging` and is dropped from this list — see git/GitHub verification below each remaining item and Section 2 for full project state.
 
 ---
 
 ## 1. Do this, in this order
 
-**1. Finish the E2E test checklist on `685-tiered-enrollment`** (Linear: BEN-1283–1394, mostly still Backlog/Todo). This one branch covers Enrollment Prerequisites, Invoicing, and Student Accounts, so this test pass validates all three at once before anything merges.
+**1. Finish the E2E test checklist on `685-tiered-enrollment`** (Linear: BEN-1283–1394). Covers Enrollment Prerequisites, Invoicing, and Student Accounts at once.
+   - Current count: **112 tickets — 68 Done, 5 Ready to Review, 10 Todo, 29 Backlog.** 44 remaining.
 
-*(Aug 15 update: `685-tiered-enrollment` — not the unnumbered `tiered-enrollment` — is now the confirmed canonical branch. Verified via full content diff, not just ancestor checks: it's a strict superset of `683-`, `684-`, `686-`, `687-tiered-enrollment`, and the unnumbered `tiered-enrollment`. See `README.md` at the repo root. The other five branches are being kept alive deliberately for now as a safety net, not deleted. Everywhere below that says `tiered-enrollment`, read it as `685-tiered-enrollment`.)*
+**2. Merge `landing-pages` → `staging`**, if you want those 4 pages (Continuing Education, Career Changer, Station Chief, Student Success Story) live this weekend.
+   - Confirmed not yet merged: `landing-pages` is 10 commits ahead of `staging`, no PR ever opened. No migration overlap with anything else, should merge clean.
 
-**2. Reset `staging` to current `main`'s tip.** It's 50 commits behind `main` and tracking nothing real — don't build on top of it as-is.
+**3. Smoke-test `staging` end to end.**
+   - Should include the admin cutover (BEN-1517, merged via PR #16 on Aug 19) since it hasn't had a full pass yet — the doc's original click-through only covered Overview, Students, Transactions, Classes, Settings.
 
-**3. Merge `685-tiered-enrollment` → `staging`.**
-   - This will conflict on `apps/webapp/lib/stripe.ts` and `apps/webapp/app/api/checkout/create-checkout-session/route.ts`. `main` already has commit `2c80a2d` (charges the live `registration_fee` dynamically); `685-tiered-enrollment` was forked before that fix and still has the old stale-`stripe_price_id` version (confirmed directly — this bug was hit live during testing).
-   - **Resolve by keeping `staging`'s (the `2c80a2d`/dynamic-price) version.** This matters beyond just this merge — BEN-1516 (step 6) is planned as a direct extension of the dynamic-price code, so getting this backwards breaks that plan too.
+**4. Open one PR: `staging` → `main`.** Once merged, apply migrations 16 through 32 to production Supabase manually.
+   - Confirmed no PR exists yet (checked `gh pr list --base main`, none open or ever opened from `staging`).
+   - Migrations 33–36 (PR #15, admin auth-gap fixes) already merged straight to `main` and are live on production — not part of this batch.
+   - Migration 37 (BEN-1516, below) isn't built yet — will need its own manual apply after step 5.
 
-**4. Merge `invoicing-work` → `staging`.** This is a no-op — `685-tiered-enrollment` is already a strict superset of it (confirmed: identical content on every shared file). Kept as a step purely for the paper trail.
+**5. Build BEN-1516 — pay full tuition + registration fee at registration.** Fully planned (exact files, decisions, test plan, done checklist written into the ticket). **Not built yet** — Linear still shows Todo.
+   - Migration slot is **37**. Depends on the dynamic-price checkout code already in `staging` (confirmed present).
 
-**5. Rebase `external-learning-links` onto `staging`, renumber its migrations `20`/`21` → `31`/`32`, then merge it in.**
-   - Its migrations collide with invoicing's: both branches independently created `20_...sql`/`21_...sql` with different content. Renumbering during the rebase is what avoids a silent collision in production.
-   - Do this rebase now, not earlier — you need `staging`'s actual state (post steps 3–4) to know which numbers are free.
-
-*(Aug 18 update: done — but landed as `31`/`32`, not `30`/`31` as originally planned. `685-tiered-enrollment` separately claimed `30` for its own late-added `allow_prerequisite_review_log_actions` migration (BEN-868), so `external-learning-links` shifted up by one. See the migration map in Section 3.)*
-
-**6. Build BEN-1516 — pay full tuition + registration fee at registration.** Fully planned already (full implementation plan is written into the ticket: exact files, decisions, test plan, done checklist). **Not built yet.**
-   - **BEN-1516's migration is `37`**, not `32` as originally planned — updated directly on the ticket.
-   - Depends on step 3's conflict having been resolved correctly (needs the dynamic-price checkout code in place).
-
-*(Aug 18 update: the `32` slot didn't survive contact with reality. Step 5 actually landed `external-learning-links` on `31`/`32`, not `30`/`31` (see above). Then `33` was claimed too, by `fix/admin-auth-gap` — PR #15, an unplanned security fix merging straight to `main`, not through `staging`. Net result: BEN-1516 moved to `34`.)*
-
-*(Aug 19 update: `34` didn't survive either — PR #15 grew from one migration to four (`33`–`36`) before it merged. BEN-1516 moves again, to `37`. See the migration map in Section 3.)*
-
-**7. Build BEN-1515 — student dashboard redesign.** Also fully planned, broken into 7 build-ordered sub-issues, each with its own written plan. Build in this exact order:
+**6. Build BEN-1515 — student dashboard redesign.** Fully planned, 7 build-ordered sub-issues, each with its own written plan. All still **Backlog/Todo** in Linear — nothing built. Build in this exact order:
    `BEN-1521 → 1522 → 1523 → 1524 → 1525 → 1526 → 1527`
    (1521 is foundational — nothing else can mount the real site navbar into the student area until sign-out lives there instead of the old sidebar. 1522 is the big one: rebuilding the shell itself.)
 
-**8. Close out your two personal certificate tickets:** BEN-1156 (hook up class closing/certificate issuing) and BEN-1155 (use real certificate data). These are the only genuinely unfinished pieces of Student Accounts & Login.
+**7. Close out your two personal certificate tickets:** BEN-1156 (hook up class closing/certificate issuing) and BEN-1155 (use real certificate data). Both still **Backlog**. These are the only genuinely unfinished pieces of Student Accounts & Login outside the dashboard redesign.
 
-**9. Merge `landing-pages` → `staging`**, if you want those 4 pages (Continuing Education, Career Changer, Station Chief, Student Success Story) live this weekend. No migration overlap with anything above, should merge clean.
+**8. Decide what to do with BEN-1518/1519/1520.** These described follow-on work for the original rebase-based admin plan (`admin-layout-migration` → finish component migration → redesign pass → PR/merge). That branch was abandoned and BEN-1517 shipped instead via a from-scratch rebuild (`updated-admin-migrate`) cut over directly into `apps/webapp/app/(platform)/admin`. All three are still sitting in **Backlog**, unchanged — they need a deliberate call (retitle/rescope against the real admin, or cancel) rather than being built as originally written.
 
-**10. Smoke-test `staging` end to end.**
-
-**11. Open one PR: `staging` → `main`.** Once merged, apply migrations 16 through 32 to production Supabase manually.
-
-**12. Admin UI migration reconciliation (BEN-1517) — done, Aug 19.** The original plan here (rebase `admin-layout-migration` onto `staging`) never happened — that branch was abandoned instead, and a fresh admin UI was built from scratch (`updated-admin-migrate`, wired to real staging data section by section, tracked in its own `new-admin-migrate.md`), then cut over into `apps/webapp/app/(platform)/admin`, replacing the old admin entirely. Verified via live browser click-through against real data (Overview, Students, Transactions, Classes, Settings). `admin-layout-migration` is deleted (local + `origin`, fully superseded, never merged anywhere). `updated-admin-migrate/`, `apps/admin-preview/`, `demo-export/` are deleted too — all dead weight once their code was copied in. `new-admin-migrate` branch is kept permanently as a recovery checkpoint. BEN-1518/1519/1520 described follow-on work for the old rebase-based plan and are superseded along with it — worth a status check on those tickets, not addressed here.
-
-**Explicitly out of scope this weekend** (no code exists, don't expect to start): Transactional Emails project entirely; the reminder/upsell automation half of Re-engagement & Marketing (BEN-820–830, BEN-692/693); the national-certification-results half of External Integrations (BEN-1080/1081/671).
+**Explicitly out of scope this weekend** (no code exists, don't expect to start): Transactional Emails project entirely (0%, unchanged); the reminder/upsell automation half of Re-engagement & Marketing (BEN-820–830, BEN-692/693); the national-certification-results half of External Integrations (BEN-1080/1081/671, all still Todo/Backlog).
 
 ---
 
-## 2. Appendix: what's in each project
+## 2. Appendix: what's in each project (current status)
 
-### Enrollment Prerequisites System (Linear: 54% shown, code further along than that)
-- **Branch:** `685-tiered-enrollment` — this is the actual canonical branch (corrected Aug 15; the original version of this doc had it backwards). `683-` and `687-tiered-enrollment` are literal git ancestors of it. `684-`, `686-tiered-enrollment`, and the unnumbered `tiered-enrollment` were checked via full content diff and confirmed to have nothing `685-tiered-enrollment` lacks. All five non-`685` branches in this family are being kept alive for now as a safety net rather than deleted — see `README.md`.
-- 91 files, ~11,500 lines vs. `main`. Adds migrations 24–29 (prerequisite catalog, template assignment, class snapshots, student credentials).
-- BEN-683 through BEN-687 (the five feature epics) are all **Ready to Review**, most sub-tasks Done. BEN-1441 ("post-payment prerequisite flow redesign") has a matching commit (Aug 6) but its Linear status was never updated — code exists, ticket just wasn't moved.
+### Enrollment Prerequisites System (Linear: 71.1%, up from 54%)
+- **Branch:** `685-tiered-enrollment`, merged into `staging` via step 3 of the prior plan — confirmed: `staging` contains its tip.
+- Epics BEN-683, 684, 686, 687 are **Ready to Review**; BEN-685 itself is **Done**.
+- Remaining work here is entirely the E2E checklist (Section 1, step 1) — no unbuilt code.
 
-### Invoicing & Registration (Linear: 98%)
-- **Branch:** `invoicing-work` — superseded by six individual PRs (#1–#6) that were opened against `invoicing-work` itself (not `main`), then closed once folded in. That's why GitHub shows them "closed, not merged" — not a red flag.
-- 56 files vs. `main`. Adds migrations 20–23 (refund columns, Stripe invoice columns, discounts, invoice-number sequence fix).
-- BEN-1232 ("fix `transactions.invoice_number` generation") shows Backlog in Linear but the fix already exists — found in a local-only, never-pushed branch (`tiered-invoicing`) and it's already folded into `685-tiered-enrollment`. Not yet in `invoicing-work` itself, but irrelevant once `685-tiered-enrollment` merges.
-- Closed PR #6 (refund handling) notes a migration needs manual application before that feature works end-to-end — worth rereading that PR body once you're in this territory.
-- **BEN-1516** (new, fully planned) lives here — see Section 1, step 6.
+### Invoicing & Registration (Linear: 96.7%, down slightly from 98% — BEN-1516 added new scope)
+- **Branch:** `invoicing-work`, merged (no-op, already a strict subset of `685-tiered-enrollment`) into `staging`.
+- **BEN-1516** (pay full tuition + fee at registration) is the only unbuilt piece — see Section 1, step 5.
+- BEN-1232 (`transactions.invoice_number` generation fix) still shows **Backlog** in Linear, but the fix already shipped as part of `685-tiered-enrollment`'s merge — ticket just needs its status updated, no code to write.
+- Closed PR #6 (refund handling) still notes a migration needing manual application before that feature works end-to-end — reread that PR body before touching refunds.
 
-### Student Accounts & Login (Linear: 89%)
-- **Branch:** `student-accounts-login` — fully contained inside `685-tiered-enrollment`, so merging `685-tiered-enrollment` covers this too.
-- Adds passwordless OTP login, student profile self-editing, certificate download, migrations 16–19.
-- BEN-1156 and BEN-1155 (yours — see Section 1, step 8) are the only real gaps.
-- **BEN-1515** (new, fully planned, 7 sub-issues) lives here — see Section 1, step 7. The one architectural catch it surfaced: the public site navbar and the student portal's nav are currently two disconnected systems (the portal is its own full-height sidebar shell). Getting "one navbar everywhere" means relocating some shared CSS (fonts, nav height variable) out of the marketing-only section so both areas can reach it — called out explicitly in BEN-1522 so it doesn't get missed mid-build.
+### Student Accounts & Login (Linear: 61.5%, down from 89% — BEN-1515's 7 sub-issues were added as new scope, diluting the %)
+- **Branch:** `student-accounts-login`, fully contained inside `685-tiered-enrollment`, already in `staging`.
+- Passwordless OTP login, profile self-editing, certificate download — all shipped.
+- Remaining: **BEN-1156, BEN-1155** (Section 1, step 7) and all of **BEN-1515/1521–1527** (Section 1, step 6), all still Backlog/Todo.
 
-### External Integrations — Platinum ED & JB Learning (Linear: 52.5%)
-- **Branch:** `external-learning-links`, built on `1190-external-learning-links` (which *is* merged, but only into `external-learning-links`, not `main`).
-- Adds admin-managed external learning links per course/class, migrations 20–21 — renumbered to 31–32 in Section 1, step 5.
-- BEN-1190 Done, BEN-1189 Ready to Review, BEN-1193 ("validate links across two class enrollments") Todo — outstanding QA.
-- BEN-1080/1081/671 (recording/submitting national cert exam results) — Todo/Backlog, no branch found. Not started; out of scope this weekend (see Section 1 footer).
+### External Integrations — Platinum ED & JB Learning (Linear: 52.5%, unchanged)
+- **Branch:** `external-learning-links`, merged into `staging` (renumbered migrations 20/21 → 31/32).
+- BEN-1190 **Done**. BEN-1189 still **Ready to Review** (not yet actually verified/closed). BEN-1193 (validate links across two class enrollments) still **Todo** — outstanding QA, not code.
+- BEN-1080/1081/671 (national cert exam results) — still Todo/Backlog, no branch, out of scope this weekend (unchanged).
 
-### Re-engagement & Marketing Campaigns (Linear: 6%)
-- **Branch:** `landing-pages` — 143 files, mostly new landing-page template components. Covers the 4 "Ready to Review" tickets (Continuing Education, Career Changer, Station Chief, Student Success Story).
-- Everything else in this project (expiration reminders, post-completion upsell — BEN-820–830, BEN-692/693) is all Backlog with no code anywhere. Genuinely early; out of scope this weekend.
+### Re-engagement & Marketing Campaigns (Linear: 5.9%, unchanged)
+- **Branch:** `landing-pages` — 10 commits ahead of `staging`, not yet merged, no PR opened. See Section 1, step 2.
+- Everything else (expiration reminders, post-completion upsell — BEN-820–830, BEN-692/693) still Backlog, no code, out of scope this weekend.
 
-### Admin UI Migration (new Linear project, created this pass)
-- **Branch:** `admin-layout-migration` — real work existed with zero Linear tracking before this weekend. Now tracked with BEN-1517–1520.
-- A real-data build of a new admin UI on the "Linear Kit" design system: new sidebar, grouped-table, dropdown, icon-button components, mock data, an `admin-migrate` route. 408 files, ~32,600 lines vs. `main`. Last commit **July 30** — three weeks stale, forked from an old point in the invoicing work (13 commits behind `685-tiered-enrollment`).
-- Order once you get to it: BEN-1517 (reconcile/rebase) → BEN-1518 (finish component migration) → BEN-1519 (redesign pass) → BEN-1520 (PR + merge). No PR has ever existed for this branch.
+### Admin UI Migration (Linear: 25%, up from 0% — BEN-1517 landed)
+- **BEN-1517 is Done** (Aug 19). The original rebase plan (`admin-layout-migration` onto `staging`) was abandoned; a fresh admin UI was built from scratch (`updated-admin-migrate`), wired section-by-section to real staging data, then cut over into `apps/webapp/app/(platform)/admin`, replacing the old admin entirely. Merged via [PR #16](https://github.com/abenson07/midwestea/pull/16) (`1517-admin-cutover` → `staging`), Aug 19.
+- Old branches cleaned up: `admin-layout-migration` deleted (local + origin, never merged anywhere). `updated-admin-migrate/`, `apps/admin-preview/`, `demo-export/` deleted as dead weight once copied in. `new-admin-migrate` kept permanently as a recovery checkpoint.
+- Follow-up fixes landed on top before merge: Settings > Profile was showing hardcoded demo data instead of the real admin (fixed), two type errors that were breaking the production build (fixed).
+- **BEN-1518/1519/1520 remain Backlog, unchanged** — see Section 1, step 8 for why they need a decision rather than direct execution.
 
-### Transactional Emails (Linear: 0%)
-- No branch, no code anywhere in the repo. Two tickets already Canceled (password reset question, cross-project ownership question) — some scoping happened, no build. Out of scope this weekend.
+### Transactional Emails (Linear: 0%, unchanged)
+- No branch, no code anywhere in the repo. Out of scope this weekend.
 
 ---
 
@@ -95,36 +78,36 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 | Range | Owner | Status |
 |---|---|---|
 | 00–15 | already on `main` | shipped |
-| 16–19 | certificates / student portal (identical across `685-tiered-enrollment`, `invoicing-work`, `student-accounts-login`, `external-learning-links`) | lands with `685-tiered-enrollment` merge (step 3) |
-| 20–23 | refund columns, Stripe invoice columns, discounts, invoice-number fix (`invoicing-work` / `685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
-| 24–29 | prerequisite catalog, templates, class snapshots, student credentials (`685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
-| **30** | `allow_prerequisite_review_log_actions` (BEN-868, late addition on `685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
-| 20–21 *(original)* → **31–32** | external learning link columns (`external-learning-links`) | renumbered + merged in step 5 — **do not apply the original 20/21 files from this branch, only the renumbered ones** |
-| **33–36** | admin auth-gap RLS fixes on `admins`/`logs`/`email_logs`/`invoices_to_import`/`students`/`enrollments`/`payments`/`transactions`/`waitlist` (PR #15, `fix/admin-auth-gap` — unplanned, not part of this plan; grew from one migration to four before merging) | merged straight to `main`, not through `staging` — already applied to both staging and production Supabase |
-| **37** | `charge_full_amount_at_registration` on `classes` (BEN-1516) | build in step 6 — bumped from `34` (Aug 19), which collided once PR #15 grew to 33–36 |
+| 16–19 | certificates / student portal | in `staging`, not yet on `main` |
+| 20–23 | refund columns, Stripe invoice columns, discounts, invoice-number fix | in `staging`, not yet on `main` |
+| 24–29 | prerequisite catalog, templates, class snapshots, student credentials | in `staging`, not yet on `main` |
+| 30 | `allow_prerequisite_review_log_actions` (BEN-868) | in `staging`, not yet on `main` |
+| 31–32 | external learning link columns (renumbered from 20/21) | in `staging`, not yet on `main` |
+| 33–36 | admin auth-gap RLS fixes (PR #15, `fix/admin-auth-gap`) | **already merged straight to `main` and live on production** |
+| 37 | `charge_full_amount_at_registration` on `classes` (BEN-1516) | not built yet — Section 1, step 5 |
 
-Apply 16–32 to production Supabase manually after the `staging` → `main` PR merges (step 11). Migrations 33–36 already shipped separately via PR #15's own merge to `main` and are live on production. Migration 37 applies once BEN-1516 is built.
+Apply 16–32 to production Supabase manually after the `staging` → `main` PR merges (Section 1, step 4). Migration 37 applies once BEN-1516 is built.
 
 ---
 
-## 4. Appendix: new Linear items this pass
+## 4. Appendix: Linear items from the original planning pass
 
 | ID | Title | Project | Status |
 |---|---|---|---|
-| BEN-1515 | Redesign student dashboard: 1-column nav + 4-column content grid | Student Accounts & Login | L1, split into BEN-1521–1527 |
-| BEN-1516 | Add class setting to collect full tuition + registration fee at registration | Invoicing & Registration | Fully planned |
-| BEN-1517 | Reconcile admin-layout-migration branch with main line of work | Admin UI Migration *(new)* | Backlog |
-| BEN-1518 | Finish migrating remaining admin pages onto Linear Kit components | Admin UI Migration | Backlog |
-| BEN-1519 | Redesign outstanding admin pages on the new Linear Kit layout | Admin UI Migration | Backlog |
-| BEN-1520 | Open PR and merge admin-layout-migration into main | Admin UI Migration | Backlog |
-| BEN-1521 | Add account avatar + sign-out menu to the site navbar | Student Accounts & Login (sub of 1515) | Fully planned |
-| BEN-1522 | Rebuild student shell: site navbar + breadcrumb + 6-column inset grid | Student Accounts & Login (sub of 1515) | Fully planned |
-| BEN-1523 | Migrate Account Overview into the new shell | Student Accounts & Login (sub of 1515) | Fully planned |
-| BEN-1524 | Migrate Profile into the new shell | Student Accounts & Login (sub of 1515) | Fully planned |
-| BEN-1525 | Migrate Certificates into the new shell | Student Accounts & Login (sub of 1515) | Fully planned |
-| BEN-1526 | Migrate Billing into the new shell | Student Accounts & Login (sub of 1515) | Fully planned |
-| BEN-1527 | Reconcile mobile navigation under the new shell | Student Accounts & Login (sub of 1515) | Fully planned |
+| BEN-1515 | Redesign student dashboard: 1-column nav + 4-column content grid | Student Accounts & Login | Backlog |
+| BEN-1516 | Add class setting to collect full tuition + registration fee at registration | Invoicing & Registration | Todo |
+| BEN-1517 | Reconcile admin-layout-migration branch with main line of work | Admin UI Migration | **Done** |
+| BEN-1518 | Finish migrating remaining admin pages onto Linear Kit components | Admin UI Migration | Backlog — needs rescope decision |
+| BEN-1519 | Redesign outstanding admin pages on the new Linear Kit layout | Admin UI Migration | Backlog — needs rescope decision |
+| BEN-1520 | Open PR and merge admin-layout-migration into main | Admin UI Migration | Backlog — needs rescope decision |
+| BEN-1521 | Add account avatar + sign-out menu to the site navbar | Student Accounts & Login (sub of 1515) | Todo |
+| BEN-1522 | Rebuild student shell: site navbar + breadcrumb + 6-column inset grid | Student Accounts & Login (sub of 1515) | Todo |
+| BEN-1523 | Migrate Account Overview into the new shell | Student Accounts & Login (sub of 1515) | Todo |
+| BEN-1524 | Migrate Profile into the new shell | Student Accounts & Login (sub of 1515) | Todo |
+| BEN-1525 | Migrate Certificates into the new shell | Student Accounts & Login (sub of 1515) | Todo |
+| BEN-1526 | Migrate Billing into the new shell | Student Accounts & Login (sub of 1515) | Todo |
+| BEN-1527 | Reconcile mobile navigation under the new shell | Student Accounts & Login (sub of 1515) | Todo |
 
-BEN-1516 and BEN-1521–1527 each carry a full implementation plan (exact files, decisions, test plan, done checklist) written directly into the ticket — not just a title. No code has been written for any of them yet.
+BEN-1516 and BEN-1521–1527 each still carry their full implementation plans (exact files, decisions, test plan, done checklist) written directly into the ticket.
 
-No code was changed to produce this document.
+This document was regenerated by checking live git/GitHub state (`gh pr list`, `git merge-base`, branch diffs) and live Linear ticket/project status — not by re-reading the prior version's claims.

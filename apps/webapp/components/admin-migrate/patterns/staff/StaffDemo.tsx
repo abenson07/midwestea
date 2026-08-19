@@ -21,14 +21,18 @@ function matchesSearch(row: StaffRow, search: string): boolean {
 
 export type StaffDemoProps = {
   view: StaffView;
+  /** Real admin rows, fetched server-side — only meaningful for view="admin". Trainers has no real data source yet. */
+  admins?: StaffRow[];
 };
 
 /**
  * Staff roster for Trainers or Admins — rendered inside the settings shell.
  */
-export function StaffDemo({ view }: StaffDemoProps) {
+export function StaffDemo({ view, admins }: StaffDemoProps) {
   const live = useIsNewAdminMigrate();
-  const [rows, setRows] = useState<StaffRow[]>(() => (live ? [] : getStaffRows()));
+  const [rows, setRows] = useState<StaffRow[]>(() =>
+    live ? (view === "admin" ? (admins ?? []) : []) : getStaffRows(),
+  );
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -52,10 +56,8 @@ export function StaffDemo({ view }: StaffDemoProps) {
     setRows((prev) => (live ? prev.map((row) => (row.id === next.id ? next : row)) : getStaffRows()));
   }
 
-  const emptyLabel =
-    view === "trainers"
-      ? "No trainers match the current search."
-      : "No admins match the current search.";
+  const noun = view === "trainers" ? "trainers" : "admins";
+  const emptyLabel = search ? `No ${noun} match "${search}".` : `No ${noun} yet.`;
 
   return (
     <>

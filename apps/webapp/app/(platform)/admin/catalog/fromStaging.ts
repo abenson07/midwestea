@@ -1,3 +1,4 @@
+import type { StagingAdmin } from "@/lib/admin-migrate/admins";
 import type { StagingCourse } from "@/lib/admin-migrate/courses";
 import type { StagingLocation } from "@/lib/admin-migrate/locations";
 import type { StagingPrerequisiteType, StagingTemplatePrerequisite } from "@/lib/admin-migrate/prerequisites";
@@ -13,6 +14,7 @@ import type {
   PrerequisiteInputType,
   PrerequisiteRow,
 } from "@/components/admin-migrate/patterns/prerequisites/types";
+import type { StaffRow } from "@/components/admin-migrate/patterns/staff/types";
 
 export function formatCentsDisplay(cents: number | null | undefined): string {
   if (cents == null) return "—";
@@ -93,6 +95,10 @@ export function toCatalogTemplate(
     prerequisites,
     externalLinks: externalLinksFor(course),
   };
+}
+
+export function toStaffRow(admin: StagingAdmin): StaffRow {
+  return { id: admin.id, name: admin.displayName, email: admin.email, roles: ["admin"] };
 }
 
 export function toLocationRow(location: StagingLocation): LocationRow {
