@@ -7,19 +7,14 @@ import {
   Box,
   BookOpen,
   Bug,
-  CalendarDays,
-  FileText,
   GraduationCap,
   HelpCircle,
   Inbox,
   LayoutDashboard,
   LayoutGrid,
-  Mail,
-  Megaphone,
   FlaskConical,
   Moon,
   MoreHorizontal,
-  Plus,
   Search,
   Settings,
   Star,
@@ -33,20 +28,14 @@ import {
   Dropdown,
   DropdownItem,
 } from "@/components/patterns/shared/dropdown";
-import { useEvents, useStories, useCurrentPerson, useFavorites } from "hooks";
-import { getCurrentPersonId } from "@/lib/people/currentPerson";
-import { clearDemoStore, newDemoId, upsertDemoEntity } from "@/lib/demo/demoStore";
+import { clearDemoStore } from "@/lib/demo/demoStore";
+import { useCurrentAdmin } from "@/lib/admin-migrate/useCurrentAdmin";
 import { normalizeRoute } from "@/lib/favorites/normalizeRoute";
 import { getBestMatchingHref } from "@/lib/nav/getBestMatchingHref";
-import { AddPromotionModal } from "@/components/patterns/client-templates/events/AddPromotionModal";
-import { NewEventModal } from "@/components/patterns/client-templates/events/NewEventModal";
-import { NewStoryModal } from "@/components/patterns/client-templates/content/NewStoryModal";
 import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
 import { useStagingOpenClasses } from "@/lib/staging/useOpenClasses";
 import { splitOpenClassNav, type StagingOpenClass } from "@/lib/staging/openClasses";
 import { ClassNavHoverCard } from "./sidebar/ClassNavHoverCard";
-import type { EventPromotionType, EventSummary } from "@/data/mocks/events";
-import type { Story } from "@/data/mocks/content";
 import {
   DemoModeCard,
   MenuItem,
@@ -347,91 +336,6 @@ function OpenClassNavSection({
   );
 }
 
-/**
- * Real-data create modals for /admin — split out so `useStories`/`useEvents`
- * (react-query hooks) are only ever mounted inside /admin's QueryClientProvider,
- * never inside admin-preview, which has none and must stay free of real Supabase calls.
- */
-function MigrateCreateModals({
-  isNewStoryOpen,
-  onCloseNewStory,
-  isNewEventOpen,
-  onCloseNewEvent,
-  hrefFor,
-}: {
-  isNewStoryOpen: boolean;
-  onCloseNewStory: () => void;
-  isNewEventOpen: boolean;
-  onCloseNewEvent: () => void;
-  hrefFor: (path: string) => string;
-}) {
-  const router = useRouter();
-  const { create: createStory } = useStories({ autoFetch: false });
-  const { create: createEvent } = useEvents({ autoFetch: false });
-  const { enabled: demo } = useDemoModeOptional();
-
-  async function handleCreateStory(story: Omit<Story, "id">) {
-    if (demo) {
-      const id = newDemoId("story");
-      upsertDemoEntity("stories", {
-        id,
-        title: story.title,
-        status: story.status,
-        body: story.body || "",
-        author: story.author,
-      });
-      toast.success("Story created — demo mode, saved locally only");
-      router.push(hrefFor(`/content?view=stories&selected=${id}`));
-      return;
-    }
-    const authorId = await getCurrentPersonId();
-    const created = await createStory({
-      title: story.title,
-      author_id: authorId,
-      status: story.status === "Published" ? "published" : "draft",
-      body: story.body || "",
-    });
-    if (created) router.push(hrefFor(`/content?view=stories&selected=${created.id}`));
-  }
-
-  async function handleCreateEvent(event: Omit<EventSummary, "id">) {
-    if (demo) {
-      const id = newDemoId("evt");
-      upsertDemoEntity("events", {
-        id,
-        title: event.title,
-        date: event.date,
-        location: event.location,
-        committee: event.committee,
-        description: event.description,
-      });
-      toast.success("Event created — demo mode, saved locally only");
-      router.push(hrefFor(`/events/${id}`));
-      return;
-    }
-    const startsAt = event.date ? new Date(`${event.date}T00:00:00`).toISOString() : new Date().toISOString();
-    const created = await createEvent({
-      name: event.title,
-      starts_at: startsAt,
-      committee: event.committee,
-      field_data: {
-        location: event.location,
-        description: event.description,
-        committee: event.committee,
-        kind: "council",
-      },
-    });
-    if (created) router.push(hrefFor(`/events/${created.id}`));
-  }
-
-  return (
-    <>
-      <NewStoryModal isOpen={isNewStoryOpen} onClose={onCloseNewStory} onCreate={handleCreateStory} />
-      <NewEventModal isOpen={isNewEventOpen} onClose={onCloseNewEvent} onCreate={handleCreateEvent} />
-    </>
-  );
-}
-
 export type LinearSidebarProps = {
   onSettingsClick?: () => void;
 };
@@ -446,44 +350,17 @@ type LinearSidebarFavorite = {
 /**
  * Linear-style sidebar composed from named sidebar primitives.
  *
- * Favorites are real, Supabase-backed data (`useFavorites`), but that hook
- * uses react-query — which only has a `QueryClientProvider` mounted under
- * `/admin`, not `/admin-preview` (a frozen pattern library). So real
- * favorites are fetched in this thin wrapper, gated to /admin, and
- * passed down as plain props to the presentational sidebar below — same
- * isolation approach as `MigrateCreateModals` for useEvents/useStories.
+ * Favorites are stubbed to an empty list for now — useFavorites() came from
+ * the removed demo "hooks" package (react-query-backed, Supabase-stored).
+ * Left wired as real props/UI rather than deleted, so a real
+ * Supabase-backed favorites hook can be dropped in later without touching
+ * this component's structure.
  */
 export function LinearSidebar(props: LinearSidebarProps = {}) {
   return (
     <Suspense fallback={null}>
-      <LinearSidebarInner {...props} />
+      <LinearSidebarBase {...props} favorites={[]} onRemoveFavorite={undefined} />
     </Suspense>
-  );
-}
-
-/**
- * Split out so `useSearchParams()` (used deep inside `LinearSidebarBase` for
- * active-route matching) is always covered by a Suspense boundary, regardless
- * of whether the ~40 call sites across admin-preview/admin remember to wrap
- * it themselves — this component is rendered on nearly every admin page, so
- * a missed wrapper anywhere fails static prerendering at build time.
- */
-function LinearSidebarInner(props: LinearSidebarProps) {
-  const basePath = useAdminBasePath();
-  if (basePath === "/admin") {
-    return <LinearSidebarWithFavorites {...props} />;
-  }
-  return <LinearSidebarBase {...props} favorites={[]} onRemoveFavorite={undefined} />;
-}
-
-function LinearSidebarWithFavorites(props: LinearSidebarProps) {
-  const { favorites, removeFavorite } = useFavorites();
-  return (
-    <LinearSidebarBase
-      {...props}
-      favorites={favorites}
-      onRemoveFavorite={(route: string) => void removeFavorite(route)}
-    />
   );
 }
 
@@ -502,21 +379,19 @@ function LinearSidebarBase({
   const searchParams = useSearchParams();
   const router = useRouter();
   const basePath = useAdminBasePath();
-  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
-  const [isNewStoryOpen, setIsNewStoryOpen] = useState(false);
-  const [isNewEventOpen, setIsNewEventOpen] = useState(false);
-  const [promotionModalType, setPromotionModalType] = useState<EventPromotionType | null>(null);
   const [demoTransition, setDemoTransition] = useState<DemoModeConfirmModalTarget | null>(null);
   const [isReportIssueOpen, setIsReportIssueOpen] = useState(false);
   const isMigrate = basePath === "/admin";
-  const { person: currentPerson } = useCurrentPerson();
-  const displayName = currentPerson?.full_name || "Kyle Brower";
+  const { admin: currentAdmin } = useCurrentAdmin();
+  const displayName = currentAdmin?.display_name || "Kyle Brower";
   const initials = initialsFromName(displayName);
   // admin-preview is a frozen pattern library, not shipped as-is — only /admin
   // needs its WIP items (committees/inbox/overview) hidden until opted in.
   const showWipItems = !isMigrate || wipFeaturesEnabled;
-  const hideInbox = basePath === "/new-admin-migrate";
-  const hideFixtureNav = basePath === "/new-admin-migrate";
+  // Real everywhere except the frozen /admin-preview demo — not just
+  // /new-admin-migrate, so this stays correct once at the real /admin home too.
+  const hideInbox = basePath !== "/admin-preview";
+  const hideFixtureNav = basePath !== "/admin-preview";
   const stagingOpenClasses = useStagingOpenClasses(hideFixtureNav);
   const visibleGroup1Items = (showWipItems
     ? group1Items
@@ -621,11 +496,6 @@ function LinearSidebarBase({
     basePath,
   ]);
 
-  function openCreateOption(next: () => void) {
-    setIsCreateMenuOpen(false);
-    next();
-  }
-
   return (
     <div
       style={{
@@ -669,41 +539,6 @@ function LinearSidebarBase({
             variant="ghost"
             icon={<Search size={16} strokeWidth={1.75} />}
           />
-          <Dropdown
-            label="Create"
-            placement="below"
-            alignment="end"
-            open={isCreateMenuOpen}
-            onOpenChange={setIsCreateMenuOpen}
-            trigger={
-              <SidebarIconButton
-                label="Create new issue"
-                variant="primary"
-                icon={<Plus size={16} strokeWidth={1.75} />}
-              />
-            }
-          >
-            <DropdownItem
-              label="New Story"
-              icon={<FileText size={16} strokeWidth={1.75} />}
-              onSelect={() => openCreateOption(() => setIsNewStoryOpen(true))}
-            />
-            <DropdownItem
-              label="New Event"
-              icon={<CalendarDays size={16} strokeWidth={1.75} />}
-              onSelect={() => openCreateOption(() => setIsNewEventOpen(true))}
-            />
-            <DropdownItem
-              label="New Email"
-              icon={<Mail size={16} strokeWidth={1.75} />}
-              onSelect={() => openCreateOption(() => setPromotionModalType("email"))}
-            />
-            <DropdownItem
-              label="New Social Post"
-              icon={<Megaphone size={16} strokeWidth={1.75} />}
-              onSelect={() => openCreateOption(() => setPromotionModalType("social"))}
-            />
-          </Dropdown>
         </SidebarHeaderActions>
       </SidebarHeader>
 
@@ -833,25 +668,6 @@ function LinearSidebarBase({
         }
       />
 
-      {isMigrate ? (
-        <MigrateCreateModals
-          isNewStoryOpen={isNewStoryOpen}
-          onCloseNewStory={() => setIsNewStoryOpen(false)}
-          isNewEventOpen={isNewEventOpen}
-          onCloseNewEvent={() => setIsNewEventOpen(false)}
-          hrefFor={hrefFor}
-        />
-      ) : (
-        <>
-          <NewStoryModal isOpen={isNewStoryOpen} onClose={() => setIsNewStoryOpen(false)} />
-          <NewEventModal isOpen={isNewEventOpen} onClose={() => setIsNewEventOpen(false)} />
-        </>
-      )}
-      <AddPromotionModal
-        type={promotionModalType}
-        onClose={() => setPromotionModalType(null)}
-        onAdd={() => {}}
-      />
       {isMigrate ? (
         <DemoModeConfirmModal
           isOpen={demoTransition !== null}

@@ -38,13 +38,15 @@ function Divider() {
 export function PreferencesPanel() {
   const { mode, setMode } = useThemeMode();
   const basePath = useAdminBasePath();
+  // Real everywhere except the frozen /admin-preview demo — not just
+  // /new-admin-migrate, so this stays correct once at the real /admin home too.
   const homeViewOptions =
-    basePath === "/new-admin-migrate"
+    basePath !== "/admin-preview"
       ? HOME_VIEW_OPTIONS.filter((option) => option.id !== "inbox")
       : HOME_VIEW_OPTIONS;
   const [homeView, setHomeView] = useState<HomeViewId>(() => {
     const stored = typeof window === "undefined" ? "overview" : readHomeView();
-    return stored === "inbox" && basePath === "/new-admin-migrate" ? "overview" : stored;
+    return stored === "inbox" && basePath !== "/admin-preview" ? "overview" : stored;
   });
 
   function handleHomeViewChange(next: HomeViewId) {

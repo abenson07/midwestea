@@ -17,7 +17,13 @@ export function useAdminBasePath(): AdminBasePath {
   return "/admin";
 }
 
-/** True on the real-data fork. Shared Demo components must not fall back to fixtures here. */
+/**
+ * True whenever real staging/production data should be used instead of
+ * fixtures — i.e. everywhere except the frozen `/admin-preview` demo.
+ * Deliberately `!== "/admin-preview"` rather than `=== "/new-admin-migrate"`:
+ * this needs to stay true once the real-data build lands at its final
+ * `/admin` home too, not just during the `/new-admin-migrate` staging step.
+ */
 export function useIsNewAdminMigrate(): boolean {
-  return useAdminBasePath() === "/new-admin-migrate";
+  return useAdminBasePath() !== "/admin-preview";
 }

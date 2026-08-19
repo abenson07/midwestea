@@ -11,8 +11,6 @@ export type { HoverTooltipProps } from "./HoverTooltip";
 export type { EmptyStateCardProps } from "./EmptyStateCard";
 export { InvoiceStatusToken } from "./InvoiceStatusToken";
 export type { InvoiceStatusTokenProps } from "./InvoiceStatusToken";
-export { MarkAsPaidControl } from "./MarkAsPaidControl";
-export type { MarkAsPaidControlProps } from "./MarkAsPaidControl";
 export { OutlinedPanel } from "./OutlinedPanel";
 export type { OutlinedPanelProps } from "./OutlinedPanel";
 export { PropertyChip, PropertyChipRow } from "./PropertyChip";

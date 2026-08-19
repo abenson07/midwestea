@@ -1,5 +1,4 @@
 export { LinearSidebar } from "./LinearSidebar";
-export { MigrateSidebar } from "./MigrateSidebar";
 export { DemoModeProvider, useDemoMode, useDemoModeOptional } from "./DemoModeContext";
 export type { DemoModeProviderProps } from "./DemoModeContext";
 export { DemoModeConfirmModal } from "./DemoModeConfirmModal";
