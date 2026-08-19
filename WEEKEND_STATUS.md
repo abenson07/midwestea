@@ -25,10 +25,12 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 *(Aug 18 update: done — but landed as `31`/`32`, not `30`/`31` as originally planned. `685-tiered-enrollment` separately claimed `30` for its own late-added `allow_prerequisite_review_log_actions` migration (BEN-868), so `external-learning-links` shifted up by one. See the migration map in Section 3.)*
 
 **6. Build BEN-1516 — pay full tuition + registration fee at registration.** Fully planned already (full implementation plan is written into the ticket: exact files, decisions, test plan, done checklist). **Not built yet.**
-   - **BEN-1516's migration is `34`**, not `32` as originally planned — updated directly on the ticket.
+   - **BEN-1516's migration is `37`**, not `32` as originally planned — updated directly on the ticket.
    - Depends on step 3's conflict having been resolved correctly (needs the dynamic-price checkout code in place).
 
-*(Aug 18 update: the `32` slot didn't survive contact with reality. Step 5 actually landed `external-learning-links` on `31`/`32`, not `30`/`31` (see above). Then `33` was claimed too, by `fix/admin-auth-gap` — PR #15, an unplanned security fix merging straight to `main`, not through `staging`. Net result: BEN-1516 moves to `34`. See the migration map in Section 3.)*
+*(Aug 18 update: the `32` slot didn't survive contact with reality. Step 5 actually landed `external-learning-links` on `31`/`32`, not `30`/`31` (see above). Then `33` was claimed too, by `fix/admin-auth-gap` — PR #15, an unplanned security fix merging straight to `main`, not through `staging`. Net result: BEN-1516 moved to `34`.)*
+
+*(Aug 19 update: `34` didn't survive either — PR #15 grew from one migration to four (`33`–`36`) before it merged. BEN-1516 moves again, to `37`. See the migration map in Section 3.)*
 
 **7. Build BEN-1515 — student dashboard redesign.** Also fully planned, broken into 7 build-ordered sub-issues, each with its own written plan. Build in this exact order:
    `BEN-1521 → 1522 → 1523 → 1524 → 1525 → 1526 → 1527`
@@ -42,7 +44,7 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 
 **11. Open one PR: `staging` → `main`.** Once merged, apply migrations 16 through 32 to production Supabase manually.
 
-**12. Start the admin UI migration reconciliation (BEN-1517).** Rebase `admin-layout-migration` onto `staging` now that it's current. This is a bigger lift than everything else here — treat it as "start this weekend, finish later," not something to close out by Sunday. BEN-1518 (finish component migration) → BEN-1519 (redesign pass) → BEN-1520 (PR + merge) follow after, later.
+**12. Admin UI migration reconciliation (BEN-1517) — done, Aug 19.** The original plan here (rebase `admin-layout-migration` onto `staging`) never happened — that branch was abandoned instead, and a fresh admin UI was built from scratch (`updated-admin-migrate`, wired to real staging data section by section, tracked in its own `new-admin-migrate.md`), then cut over into `apps/webapp/app/(platform)/admin`, replacing the old admin entirely. Verified via live browser click-through against real data (Overview, Students, Transactions, Classes, Settings). `admin-layout-migration` is deleted (local + `origin`, fully superseded, never merged anywhere). `updated-admin-migrate/`, `apps/admin-preview/`, `demo-export/` are deleted too — all dead weight once their code was copied in. `new-admin-migrate` branch is kept permanently as a recovery checkpoint. BEN-1518/1519/1520 described follow-on work for the old rebase-based plan and are superseded along with it — worth a status check on those tickets, not addressed here.
 
 **Explicitly out of scope this weekend** (no code exists, don't expect to start): Transactional Emails project entirely; the reminder/upsell automation half of Re-engagement & Marketing (BEN-820–830, BEN-692/693); the national-certification-results half of External Integrations (BEN-1080/1081/671).
 
@@ -98,10 +100,10 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 | 24–29 | prerequisite catalog, templates, class snapshots, student credentials (`685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
 | **30** | `allow_prerequisite_review_log_actions` (BEN-868, late addition on `685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
 | 20–21 *(original)* → **31–32** | external learning link columns (`external-learning-links`) | renumbered + merged in step 5 — **do not apply the original 20/21 files from this branch, only the renumbered ones** |
-| **33** | admin auth-gap RLS fix on `admins`/`logs`/`email_logs`/`invoices_to_import` (PR #15, `fix/admin-auth-gap` — unplanned, not part of this plan) | open PR, merges straight to `main`, not through `staging` |
-| **34** | `charge_full_amount_at_registration` on `classes` (BEN-1516) | build in step 6 — bumped from `32` (Aug 18) |
+| **33–36** | admin auth-gap RLS fixes on `admins`/`logs`/`email_logs`/`invoices_to_import`/`students`/`enrollments`/`payments`/`transactions`/`waitlist` (PR #15, `fix/admin-auth-gap` — unplanned, not part of this plan; grew from one migration to four before merging) | merged straight to `main`, not through `staging` — already applied to both staging and production Supabase |
+| **37** | `charge_full_amount_at_registration` on `classes` (BEN-1516) | build in step 6 — bumped from `34` (Aug 19), which collided once PR #15 grew to 33–36 |
 
-Apply 16–32 and 34 to production Supabase manually after the `staging` → `main` PR merges (step 11). Migration 33 ships separately via PR #15's own merge to `main`, on its own timeline.
+Apply 16–32 to production Supabase manually after the `staging` → `main` PR merges (step 11). Migrations 33–36 already shipped separately via PR #15's own merge to `main` and are live on production. Migration 37 applies once BEN-1516 is built.
 
 ---
 
