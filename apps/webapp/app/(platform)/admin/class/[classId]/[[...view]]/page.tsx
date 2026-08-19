@@ -1,4 +1,5 @@
 import { ClassDetailDemo } from "@/components/admin-migrate/patterns/classes";
+import { listCertificates } from "@/lib/admin-migrate/certificates";
 import { getClassById } from "@/lib/admin-migrate/classes";
 import { listCourses } from "@/lib/admin-migrate/courses";
 import { listEnrollments } from "@/lib/admin-migrate/enrollments";
@@ -17,7 +18,7 @@ export default async function ClassCatchAllRoute({
   const { classId } = await params;
   const stagingClass = await getClassById(classId);
   const resolvedClassId = stagingClass?.id;
-  const [enrollments, classTransactions, courses, locations, classPrereqs, prereqTypes] =
+  const [enrollments, classTransactions, courses, locations, classPrereqs, prereqTypes, certificates] =
     await Promise.all([
       resolvedClassId ? listEnrollments({ classId: resolvedClassId }) : Promise.resolve([]),
       resolvedClassId ? listTransactions({ classId: resolvedClassId }) : Promise.resolve([]),
@@ -25,7 +26,9 @@ export default async function ClassCatchAllRoute({
       listLocations(),
       resolvedClassId ? listClassPrerequisites(resolvedClassId) : Promise.resolve([]),
       listPrerequisiteTypes(),
+      resolvedClassId ? listCertificates({ classId: resolvedClassId }) : Promise.resolve([]),
     ]);
+  const certificateByEnrollmentId = new Map(certificates.map((row) => [row.enrollmentId, row]));
 
   const course =
     stagingClass?.courseUuid
@@ -45,7 +48,13 @@ export default async function ClassCatchAllRoute({
   const studentsById = new Map(students.map((student) => [student.id, student]));
   const roster = enrollments
     .filter((enrollment) => enrollment.enrollmentStatus !== "removed" && studentsById.has(enrollment.studentId))
-    .map((enrollment) => toRosterRow(enrollment, studentsById.get(enrollment.studentId)!));
+    .map((enrollment) =>
+      toRosterRow(
+        enrollment,
+        studentsById.get(enrollment.studentId)!,
+        certificateByEnrollmentId.get(enrollment.id),
+      ),
+    );
   const transactions = mapTransactionRows(
     classTransactions,
     students,

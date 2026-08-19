@@ -38,8 +38,12 @@ export type StudentEnrollment = {
   classId: string;
   enrolledAt: string;
   status: EnrollmentStatus;
+  /** The underlying enrollments.id — required to generate a certificate for this row. */
+  enrollmentId?: string;
   /** Outcome once the class is closed. */
   outcome?: PastClassStatus;
+  /** Set once a certificate has been generated for this enrollment. */
+  certificateHref?: string;
 };
 
 export type StudentDocumentKind = "upload" | "issued";

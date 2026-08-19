@@ -162,6 +162,7 @@ export function StudentOverviewPage({
         </div>
         <StudentClassesSection
           studentId={student.id}
+          studentName={student.name}
           enrollments={enrollments}
           classDetails={classDetails}
           onSelectClass={setSelectedClassId}

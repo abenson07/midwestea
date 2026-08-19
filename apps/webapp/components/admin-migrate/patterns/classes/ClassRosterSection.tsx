@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState, type MouseEvent } from "react";
-import { Bell, ClipboardCheck } from "lucide-react";
+import { Bell, ClipboardCheck, FileCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
-import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { Checkbox } from "@/components/admin-migrate/patterns/primitives/Checkbox";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
 import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
 import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
@@ -104,13 +105,38 @@ function buildColumns(
   showPrerequisites?: boolean,
   onReviewPrerequisite?: (studentId: string) => void,
   invoices?: TransactionRow[],
+  selectedForCertificate?: Set<string>,
+  onToggleSelectForCertificate?: (id: string) => void,
+  onGenerateCertificateForRow?: (row: ClassRosterRow) => void,
 ): TableColumn<ClassRosterRow>[] {
   function selectIfStudent(row: ClassRosterRow) {
     return row.role === "Student" ? () => onSelectStudent?.(row.id) : undefined;
   }
 
   const even = proportional(1);
-  const columns: TableColumn<ClassRosterRow>[] = [
+  const columns: TableColumn<ClassRosterRow>[] = [];
+
+  if (onToggleSelectForCertificate) {
+    columns.push({
+      key: "select",
+      header: "",
+      width: pixel(36),
+      align: "start",
+      renderCell: (row) =>
+        row.role === "Student" && row.enrollmentId ? (
+          <span onClick={stopRowClick}>
+            <Checkbox
+              label={`Select ${row.name}`}
+              isLabelHidden
+              value={selectedForCertificate?.has(row.id) ?? false}
+              onChange={() => onToggleSelectForCertificate(row.id)}
+            />
+          </span>
+        ) : null,
+    });
+  }
+
+  columns.push(
     {
       key: "name",
       header: "Name",
@@ -141,7 +167,7 @@ function buildColumns(
         </RowClickCell>
       ),
     },
-  ];
+  );
 
   if (showPrerequisites && classId) {
     columns.push({
@@ -210,20 +236,35 @@ function buildColumns(
       header: "Certificate",
       width: even,
       align: "start",
-      renderCell: (row) =>
-        row.certificateHref ? (
-          <a
-            href={row.certificateHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(event) => event.stopPropagation()}
-            style={certificateLinkStyle}
-          >
-            View PDF
-          </a>
-        ) : (
-          <span style={{ color: "var(--linear-color-ink-subtle)" }}>—</span>
-        ),
+      renderCell: (row) => {
+        if (row.certificateHref) {
+          return (
+            <a
+              href={row.certificateHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(event) => event.stopPropagation()}
+              style={certificateLinkStyle}
+            >
+              View PDF
+            </a>
+          );
+        }
+        if (row.role !== "Student" || !row.enrollmentId) {
+          return <span style={{ color: "var(--linear-color-ink-subtle)" }}>—</span>;
+        }
+        return (
+          <span onClick={stopRowClick}>
+            <Button
+              label="Generate certificate"
+              variant="secondary"
+              size="sm"
+              icon={<FileCheck size={13} strokeWidth={1.75} />}
+              onClick={() => onGenerateCertificateForRow?.(row)}
+            />
+          </span>
+        );
+      },
     });
   }
 
@@ -238,6 +279,10 @@ export type ClassRosterSectionProps = {
   onReviewPrerequisite?: (studentId: string) => void;
   showCertificates?: boolean;
   showPrerequisites?: boolean;
+  selectedForCertificate?: Set<string>;
+  onToggleSelectForCertificate?: (id: string) => void;
+  onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
+  onGenerateCertificateForSelected?: () => void;
 };
 
 export function ClassRosterSection({
@@ -248,6 +293,10 @@ export function ClassRosterSection({
   onReviewPrerequisite,
   showCertificates = false,
   showPrerequisites = false,
+  selectedForCertificate,
+  onToggleSelectForCertificate,
+  onGenerateCertificateForRow,
+  onGenerateCertificateForSelected,
 }: ClassRosterSectionProps) {
   const { transactions } = useTransactions();
   const [search, setSearch] = useState("");
@@ -264,8 +313,22 @@ export function ClassRosterSection({
         showPrerequisites,
         onReviewPrerequisite,
         transactions,
+        selectedForCertificate,
+        onToggleSelectForCertificate,
+        onGenerateCertificateForRow,
       ),
-    [onSelectStudent, selectedStudentId, showCertificates, classId, showPrerequisites, onReviewPrerequisite, transactions],
+    [
+      onSelectStudent,
+      selectedStudentId,
+      showCertificates,
+      classId,
+      showPrerequisites,
+      onReviewPrerequisite,
+      transactions,
+      selectedForCertificate,
+      onToggleSelectForCertificate,
+      onGenerateCertificateForRow,
+    ],
   );
 
   const filteredRows = useMemo(() => {
@@ -295,14 +358,25 @@ export function ClassRosterSection({
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Text weight="semibold">Students</Text>
-        <ListToolbar
-          searchValue={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search students…"
-          filterGroups={[
-            { label: "Status", options: STATUS_OPTIONS, selected: statusFilter, onChange: setStatusFilter },
-          ]}
-        />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {selectedForCertificate && selectedForCertificate.size > 0 ? (
+            <Button
+              label={`Generate certificates (${selectedForCertificate.size})`}
+              variant="secondary"
+              size="sm"
+              icon={<FileCheck size={13} strokeWidth={1.75} />}
+              onClick={() => onGenerateCertificateForSelected?.()}
+            />
+          ) : null}
+          <ListToolbar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search students…"
+            filterGroups={[
+              { label: "Status", options: STATUS_OPTIONS, selected: statusFilter, onChange: setStatusFilter },
+            ]}
+          />
+        </div>
       </div>
       <GroupedTable
         data={filteredRows}

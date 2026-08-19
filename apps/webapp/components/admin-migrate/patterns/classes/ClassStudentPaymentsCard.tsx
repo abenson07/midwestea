@@ -40,6 +40,7 @@ export type ClassStudentPaymentsCardProps = {
   onClose: () => void;
   onRemove: (student: StudentToRemove) => void;
   onReviewPrerequisite?: (submissionId: string) => void;
+  onGenerateCertificate?: (student: ClassRosterRow) => void;
 };
 
 const SUMMARY_COLOR: Record<EnrollmentInvoiceSummary, string> = {
@@ -223,6 +224,7 @@ export function ClassStudentPaymentsCard({
   onClose,
   onRemove,
   onReviewPrerequisite,
+  onGenerateCertificate,
 }: ClassStudentPaymentsCardProps) {
   const router = useRouter();
   const basePath = useAdminBasePath();
@@ -313,6 +315,27 @@ export function ClassStudentPaymentsCard({
             toast.message(`Student profile for ${student.name} isn’t wired yet — demo mode`);
           }}
         />
+        {student.certificateHref ? (
+          <Button
+            label="View certificate"
+            variant="secondary"
+            width="100%"
+            onClick={() => window.open(student.certificateHref, "_blank", "noopener,noreferrer")}
+          />
+        ) : (
+          <Button
+            label="Generate certificate for this person"
+            variant="secondary"
+            width="100%"
+            onClick={() => {
+              if (live && student.enrollmentId) {
+                onGenerateCertificate?.(student);
+                return;
+              }
+              toast.message(`Certificate generation for ${student.name} isn’t wired yet — demo mode`);
+            }}
+          />
+        )}
         <Button
           label="Remove student"
           variant="ghost"

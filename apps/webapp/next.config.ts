@@ -44,6 +44,7 @@ const studentPortalRedirects = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["@react-pdf/renderer"],
   async redirects() {
     return [
       ...programRedirects,

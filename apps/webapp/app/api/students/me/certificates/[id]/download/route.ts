@@ -56,11 +56,16 @@ export async function GET(
       return NextResponse.json({ success: false, error: 'Certificate file not available' }, { status: 404 });
     }
 
-    const fileResponse = await fetch(certificate.file_url);
-    if (!fileResponse.ok) {
+    // file_url is a private object path in the `certificates` bucket (not a
+    // fetchable URL) — download through the caller's own authenticated
+    // client so storage RLS ("Students read own certificate files") applies.
+    const { data: fileBlob, error: downloadError } = await supabase.storage
+      .from('certificates')
+      .download(certificate.file_url);
+    if (downloadError || !fileBlob) {
       return NextResponse.json({ success: false, error: 'Failed to retrieve certificate file' }, { status: 502 });
     }
-    const fileBuffer = Buffer.from(await fileResponse.arrayBuffer());
+    const fileBuffer = Buffer.from(await fileBlob.arrayBuffer());
 
     return new NextResponse(fileBuffer, {
       status: 200,
