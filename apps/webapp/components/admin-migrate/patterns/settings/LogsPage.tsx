@@ -65,7 +65,7 @@ export function LogsPage() {
       onSearchChange={setSearch}
       searchPlaceholder="Search logs…"
       isEmpty={filtered.length === 0}
-      emptyLabel="No log entries match the current search."
+      emptyLabel={search ? `No log entries match "${search}".` : "No log entries yet."}
     >
       <GroupedTable
         data={filtered}

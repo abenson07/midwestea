@@ -101,12 +101,9 @@ export function ClassesDemo({ rows: rowsProp, enrolledCounts }: ClassesDemoProps
     return view === "open" ? open : past;
   }, [rowsProp, live, view, search, kindFilter]);
 
-  const emptyLabel =
-    view === "open"
-      ? "No open classes match the current filters."
-      : view === "closed"
-        ? "No closed classes match the current filters."
-        : "No classes match the current filters.";
+  const noun = view === "open" ? "open classes" : view === "closed" ? "closed classes" : "classes";
+  const hasActiveFilter = search.length > 0 || kindFilter.length > 0;
+  const emptyLabel = hasActiveFilter ? `No ${noun} match the current filters.` : `No ${noun} yet.`;
 
   return (
     <div style={{ height: "100%" }}>

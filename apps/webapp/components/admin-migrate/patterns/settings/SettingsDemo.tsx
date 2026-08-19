@@ -15,6 +15,7 @@ import { LocationsDemo } from "@/components/admin-migrate/patterns/locations";
 import type { LocationRow } from "@/components/admin-migrate/patterns/locations/types";
 import { PrerequisitesDemo } from "@/components/admin-migrate/patterns/prerequisites";
 import type { PrerequisiteRow } from "@/components/admin-migrate/patterns/prerequisites/types";
+import type { StaffRow } from "@/components/admin-migrate/patterns/staff/types";
 import { SettingsSideNav } from "./SettingsSideNav";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { ProfilePanel } from "./ProfilePanel";
@@ -76,16 +77,18 @@ function SettingsBody({
   templates,
   locations,
   prerequisites,
+  admins,
 }: {
   navId: string;
   templates?: CatalogTemplate[];
   locations?: LocationRow[];
   prerequisites?: PrerequisiteRow[];
+  admins?: StaffRow[];
 }) {
   if (navId === "profile") return <ProfilePanel />;
   if (navId === "preferences") return <PreferencesPanel />;
   if (navId === "trainers") return <StaffDemo view="trainers" />;
-  if (navId === "admins") return <StaffDemo view="admin" />;
+  if (navId === "admins") return <StaffDemo view="admin" admins={admins} />;
   if (navId === "prerequisites") return <PrerequisitesDemo rows={prerequisites} />;
   if (navId === "locations") return <LocationsDemo rows={locations} />;
   if (navId === "logs") return <LogsPage />;
@@ -108,9 +111,10 @@ export type SettingsDemoProps = {
   templates?: CatalogTemplate[];
   locations?: LocationRow[];
   prerequisites?: PrerequisiteRow[];
+  admins?: StaffRow[];
 };
 
-export function SettingsDemo({ templates, locations, prerequisites }: SettingsDemoProps = {}) {
+export function SettingsDemo({ templates, locations, prerequisites, admins }: SettingsDemoProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
@@ -138,6 +142,7 @@ export function SettingsDemo({ templates, locations, prerequisites }: SettingsDe
             templates={templates}
             locations={locations}
             prerequisites={prerequisites}
+            admins={admins}
           />
         ) : isCatalog ? (
           <div style={{ height: "100%", minHeight: 0, overflow: "auto" }}>
@@ -147,6 +152,7 @@ export function SettingsDemo({ templates, locations, prerequisites }: SettingsDe
               templates={templates}
               locations={locations}
               prerequisites={prerequisites}
+              admins={admins}
             />
           </div>
         ) : (
@@ -166,6 +172,7 @@ export function SettingsDemo({ templates, locations, prerequisites }: SettingsDe
                 templates={templates}
                 locations={locations}
                 prerequisites={prerequisites}
+                admins={admins}
               />
             </div>
           </div>
