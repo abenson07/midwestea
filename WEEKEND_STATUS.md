@@ -18,13 +18,17 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 
 **4. Merge `invoicing-work` → `staging`.** This is a no-op — `685-tiered-enrollment` is already a strict superset of it (confirmed: identical content on every shared file). Kept as a step purely for the paper trail.
 
-**5. Rebase `external-learning-links` onto `staging`, renumber its migrations `20`/`21` → `30`/`31`, then merge it in.**
+**5. Rebase `external-learning-links` onto `staging`, renumber its migrations `20`/`21` → `31`/`32`, then merge it in.**
    - Its migrations collide with invoicing's: both branches independently created `20_...sql`/`21_...sql` with different content. Renumbering during the rebase is what avoids a silent collision in production.
    - Do this rebase now, not earlier — you need `staging`'s actual state (post steps 3–4) to know which numbers are free.
 
-**6. Build BEN-1516 — pay full tuition + registration fee at registration.** Fully planned already (full implementation plan is written into the ticket: exact files, decisions, test plan, done checklist).
-   - Its plan assumed migration `30` was free; step 5 just claimed `30`/`31`. **Bump BEN-1516's migration to `32`** before writing that SQL file.
+*(Aug 18 update: done — but landed as `31`/`32`, not `30`/`31` as originally planned. `685-tiered-enrollment` separately claimed `30` for its own late-added `allow_prerequisite_review_log_actions` migration (BEN-868), so `external-learning-links` shifted up by one. See the migration map in Section 3.)*
+
+**6. Build BEN-1516 — pay full tuition + registration fee at registration.** Fully planned already (full implementation plan is written into the ticket: exact files, decisions, test plan, done checklist). **Not built yet.**
+   - **BEN-1516's migration is `34`**, not `32` as originally planned — updated directly on the ticket.
    - Depends on step 3's conflict having been resolved correctly (needs the dynamic-price checkout code in place).
+
+*(Aug 18 update: the `32` slot didn't survive contact with reality. Step 5 actually landed `external-learning-links` on `31`/`32`, not `30`/`31` (see above). Then `33` was claimed too, by `fix/admin-auth-gap` — PR #15, an unplanned security fix merging straight to `main`, not through `staging`. Net result: BEN-1516 moves to `34`. See the migration map in Section 3.)*
 
 **7. Build BEN-1515 — student dashboard redesign.** Also fully planned, broken into 7 build-ordered sub-issues, each with its own written plan. Build in this exact order:
    `BEN-1521 → 1522 → 1523 → 1524 → 1525 → 1526 → 1527`
@@ -66,7 +70,7 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 
 ### External Integrations — Platinum ED & JB Learning (Linear: 52.5%)
 - **Branch:** `external-learning-links`, built on `1190-external-learning-links` (which *is* merged, but only into `external-learning-links`, not `main`).
-- Adds admin-managed external learning links per course/class, migrations 20–21 — renumbered to 30–31 in Section 1, step 5.
+- Adds admin-managed external learning links per course/class, migrations 20–21 — renumbered to 31–32 in Section 1, step 5.
 - BEN-1190 Done, BEN-1189 Ready to Review, BEN-1193 ("validate links across two class enrollments") Todo — outstanding QA.
 - BEN-1080/1081/671 (recording/submitting national cert exam results) — Todo/Backlog, no branch found. Not started; out of scope this weekend (see Section 1 footer).
 
@@ -91,11 +95,13 @@ Almost none of this summer's work has actually reached `main`. It's all sitting,
 | 00–15 | already on `main` | shipped |
 | 16–19 | certificates / student portal (identical across `685-tiered-enrollment`, `invoicing-work`, `student-accounts-login`, `external-learning-links`) | lands with `685-tiered-enrollment` merge (step 3) |
 | 20–23 | refund columns, Stripe invoice columns, discounts, invoice-number fix (`invoicing-work` / `685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
-| 20–21 *(original)* → **30–31** | external learning link columns (`external-learning-links`) | renumbered + merged in step 5 — **do not apply the original 20/21 files from this branch, only the renumbered ones** |
 | 24–29 | prerequisite catalog, templates, class snapshots, student credentials (`685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
-| **32** | `charge_full_amount_at_registration` on `classes` (BEN-1516) | build in step 6 |
+| **30** | `allow_prerequisite_review_log_actions` (BEN-868, late addition on `685-tiered-enrollment`) | lands with `685-tiered-enrollment` merge (step 3) |
+| 20–21 *(original)* → **31–32** | external learning link columns (`external-learning-links`) | renumbered + merged in step 5 — **do not apply the original 20/21 files from this branch, only the renumbered ones** |
+| **33** | admin auth-gap RLS fix on `admins`/`logs`/`email_logs`/`invoices_to_import` (PR #15, `fix/admin-auth-gap` — unplanned, not part of this plan) | open PR, merges straight to `main`, not through `staging` |
+| **34** | `charge_full_amount_at_registration` on `classes` (BEN-1516) | build in step 6 — bumped from `32` (Aug 18) |
 
-Apply 16–32 to production Supabase manually after the `staging` → `main` PR merges (step 11).
+Apply 16–32 and 34 to production Supabase manually after the `staging` → `main` PR merges (step 11). Migration 33 ships separately via PR #15's own merge to `main`, on its own timeline.
 
 ---
 
