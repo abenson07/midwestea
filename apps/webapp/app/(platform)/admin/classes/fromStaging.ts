@@ -39,6 +39,7 @@ export function toClassDetail(
     ),
     price: formatCentsDisplay(stagingClass.price ?? course?.price),
     registrationFee: formatCentsDisplay(stagingClass.registrationFee ?? course?.registrationFee),
+    chargeFullAmountAtRegistration: stagingClass.chargeFullAmountAtRegistration,
     prerequisites: options.prerequisites ?? [],
     externalLinks: externalLinksFor(stagingClass) ?? (course ? externalLinksFor(course) : undefined),
     template: course

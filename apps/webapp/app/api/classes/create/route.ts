@@ -88,6 +88,7 @@ export async function POST(request: NextRequest) {
       productId,
       location,
       locationId,
+      chargeFullAmountAtRegistration,
     } = body;
 
     // Validate required fields
@@ -146,6 +147,7 @@ export async function POST(request: NextRequest) {
         location: locationNameResolved,
         location_id: locationIdResolved,
         wf_class_link: wfClassLink,
+        charge_full_amount_at_registration: chargeFullAmountAtRegistration === true,
       })
       .select()
       .single();

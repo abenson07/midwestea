@@ -9,6 +9,7 @@ import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextIn
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { Grid } from "@/components/admin-migrate/patterns/primitives/Grid";
 import { LocationSelect } from "@/components/admin-migrate/patterns/locations";
+import { Checkbox } from "@/components/admin-migrate/patterns/primitives/Checkbox";
 import { subtractIsoDays, todayIsoDate } from "@/lib/dates";
 import { isClassOnline, registerCreatedClass, type ClassDetail } from "../classes/classMocks";
 import { CatalogTemplateTypeahead } from "./CatalogTemplateTypeahead";
@@ -22,6 +23,9 @@ import {
   type CatalogClassType,
   type CatalogTemplate,
 } from "./catalogMocks";
+import { createClass } from "@/lib/classes";
+import { isUuid } from "@/lib/admin-migrate/ids";
+import { parseDisplayCents, parseLeadingInt } from "@/lib/admin-migrate/display-parsers";
 
 export type CreateClassModalProps = {
   isOpen: boolean;
@@ -44,6 +48,7 @@ type FormState = {
   registrationLimit: string;
   classFormat: CatalogClassType;
   location: string;
+  chargeFullAmountAtRegistration: boolean;
 };
 
 const fieldLabelStyle = { fontSize: 12, color: "var(--linear-color-ink-subtle)" } as const;
@@ -87,6 +92,7 @@ function emptyForm(template?: CatalogTemplate | null): FormState {
     registrationLimit: template?.registrationLimit ?? "",
     classFormat: template?.defaultClassFormat ?? "Hybrid",
     location: template?.defaultLocation ?? "—",
+    chargeFullAmountAtRegistration: false,
   };
 }
 
@@ -100,6 +106,7 @@ export function CreateClassModal({
   const locked = Boolean(lockedTemplate);
   const [form, setForm] = useState<FormState>(() => emptyForm(lockedTemplate));
   const [error, setError] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const selectedTemplate = lockedTemplate ?? CATALOG_TEMPLATES[form.templateId] ?? null;
   const online = isCatalogClassOnline(form.classFormat);
@@ -132,7 +139,7 @@ export function CreateClassModal({
     }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!selectedTemplate) {
       setError("Choose a program or course");
       return;
@@ -144,8 +151,8 @@ export function CreateClassModal({
 
     const count = existingClassCount ?? classesForTemplate(selectedTemplate.code).length;
     const classCode = nextClassCode(selectedTemplate.code, count);
-    const created: ClassDetail = {
-      id: `created-${selectedTemplate.id}-${Date.now()}`,
+    const empty = (value: string) => (!value || value === "—" ? null : value);
+    const createdBase: Omit<ClassDetail, "id"> & { id?: string } = {
       classCode,
       courseCode: selectedTemplate.code,
       title: selectedTemplate.name,
@@ -161,6 +168,7 @@ export function CreateClassModal({
       certificationLength: form.certificationLength,
       price: form.price,
       registrationFee: isCourse ? selectedTemplate.registrationFee : form.registrationFee,
+      chargeFullAmountAtRegistration: form.chargeFullAmountAtRegistration,
       prerequisites: [...selectedTemplate.prerequisites],
       externalLinks: [],
       template: {
@@ -168,6 +176,54 @@ export function CreateClassModal({
         name: selectedTemplate.name,
         href: catalogTemplateHref(selectedTemplate),
       },
+    };
+
+    if (isUuid(selectedTemplate.id)) {
+      setCreating(true);
+      const result = await createClass(
+        selectedTemplate.id,
+        selectedTemplate.name,
+        selectedTemplate.code,
+        classCode,
+        online ? null : empty(form.enrollmentStart),
+        online ? null : empty(form.enrollmentClose),
+        online ? null : empty(form.classStart),
+        online ? null : empty(form.classEnd),
+        isClassOnline(form.classFormat),
+        form.classFormat,
+        null,
+        empty(selectedTemplate.classLength),
+        parseLeadingInt(form.certificationLength),
+        online ? null : parseLeadingInt(form.registrationLimit),
+        parseDisplayCents(form.price),
+        parseDisplayCents(isCourse ? selectedTemplate.registrationFee : form.registrationFee),
+        selectedTemplate.stripeProductId ?? null,
+        isClassOnline(form.classFormat) ? null : empty(form.location),
+        null,
+        form.chargeFullAmountAtRegistration,
+      );
+      setCreating(false);
+      if (!result.success || !result.class) {
+        setError(result.error || "Failed to create class");
+        return;
+      }
+      const created: ClassDetail = {
+        ...createdBase,
+        id: result.class.id,
+        classCode: result.class.class_id || classCode,
+        chargeFullAmountAtRegistration:
+          result.class.charge_full_amount_at_registration === true,
+      };
+      registerCreatedClass(created);
+      onCreated(created);
+      toast.success(`${created.title} created`);
+      onClose();
+      return;
+    }
+
+    const created: ClassDetail = {
+      ...createdBase,
+      id: `created-${selectedTemplate.id}-${Date.now()}`,
     };
 
     registerCreatedClass(created);
@@ -185,7 +241,11 @@ export function CreateClassModal({
       footer={
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", width: "100%" }}>
           <Button label="Cancel" variant="ghost" onClick={onClose} />
-          <Button label="Create" variant="primary" onClick={handleSubmit} />
+          <Button
+            label={creating ? "Creating…" : "Create"}
+            variant="primary"
+            onClick={() => void handleSubmit()}
+          />
         </div>
       }
     >
@@ -305,6 +365,13 @@ export function CreateClassModal({
               </label>
             ) : null}
           </Grid>
+          <Checkbox
+            label="Charge full amount (registration fee + tuition) at registration"
+            value={form.chargeFullAmountAtRegistration}
+            onChange={(chargeFullAmountAtRegistration) =>
+              patch({ chargeFullAmountAtRegistration })
+            }
+          />
         </AccordionSection>
 
         {error ? (

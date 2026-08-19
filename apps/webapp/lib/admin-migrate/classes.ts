@@ -2,7 +2,7 @@ import { createStagingAdminClient } from "./adminClient";
 import { isUuid } from "./ids";
 
 const CLASS_SELECT =
-  "id, class_id, class_name, course_code, course_uuid, enrollment_start, enrollment_close, class_start_date, class_close_date, location, programming_offering, length_of_class, certification_length, registration_limit, price, registration_fee, jb_learning_label, jb_learning_url, platinum_ed_label, platinum_ed_url";
+  "id, class_id, class_name, course_code, course_uuid, enrollment_start, enrollment_close, class_start_date, class_close_date, location, programming_offering, length_of_class, certification_length, registration_limit, price, registration_fee, charge_full_amount_at_registration, jb_learning_label, jb_learning_url, platinum_ed_label, platinum_ed_url";
 
 type ClassRow = {
   id: string;
@@ -21,6 +21,7 @@ type ClassRow = {
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
+  charge_full_amount_at_registration: boolean | null;
   jb_learning_label: string | null;
   jb_learning_url: string | null;
   platinum_ed_label: string | null;
@@ -44,6 +45,7 @@ export type StagingClass = {
   registrationLimit: number | null;
   price: number | null;
   registrationFee: number | null;
+  chargeFullAmountAtRegistration: boolean;
   jbLearningLabel: string | null;
   jbLearningUrl: string | null;
   platinumEdLabel: string | null;
@@ -68,6 +70,7 @@ function toStagingClass(row: ClassRow): StagingClass {
     registrationLimit: row.registration_limit,
     price: row.price,
     registrationFee: row.registration_fee,
+    chargeFullAmountAtRegistration: row.charge_full_amount_at_registration === true,
     jbLearningLabel: row.jb_learning_label,
     jbLearningUrl: row.jb_learning_url,
     platinumEdLabel: row.platinum_ed_label,
