@@ -57,7 +57,7 @@ export function SettingsSideNav({
     >
       <SidebarHeader>
         <MenuItem
-          label="Back to app"
+          label="Back"
           icon={<ArrowLeft size={16} strokeWidth={1.75} />}
           onClick={onBack}
         />
