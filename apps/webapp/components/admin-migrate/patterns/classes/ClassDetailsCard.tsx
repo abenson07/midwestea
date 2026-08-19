@@ -66,6 +66,9 @@ export function ClassDetailsCard({ classDetail, onEditDetails }: ClassDetailsCar
           {classDetail.publishStatus === "published" ? "Published" : "Draft"}
         </PropertyRow>
         <PropertyRow label="Registration">{classDetail.registrationFee}</PropertyRow>
+        <PropertyRow label="Pay in full at registration">
+          {classDetail.chargeFullAmountAtRegistration ? "Yes" : "No"}
+        </PropertyRow>
         <PropertyRow label="Tuition">{classDetail.price}</PropertyRow>
         <PropertyRow label="Class size">{classDetail.registrationLimit}</PropertyRow>
         <PropertyRow label="Type">{classDetail.classFormat}</PropertyRow>

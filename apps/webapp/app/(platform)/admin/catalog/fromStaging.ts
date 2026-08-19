@@ -15,6 +15,9 @@ import type {
   PrerequisiteRow,
 } from "@/components/admin-migrate/patterns/prerequisites/types";
 import type { StaffRow } from "@/components/admin-migrate/patterns/staff/types";
+import { parseDisplayCents, parseLeadingInt } from "@/lib/admin-migrate/display-parsers";
+
+export { parseDisplayCents, parseLeadingInt };
 
 export function formatCentsDisplay(cents: number | null | undefined): string {
   if (cents == null) return "—";

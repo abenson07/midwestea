@@ -12,6 +12,7 @@ import {
   findClassWithCourse,
   getClassType,
   createInvoiceSchedule,
+  createFullPaymentTransaction,
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
   updateStudentStripeCustomerId,
@@ -300,7 +301,8 @@ export async function POST(request: NextRequest) {
         courseType, 
         classStartDate,
         registrationFee,
-        price
+        price,
+        chargeFullAmountAtRegistration,
       } = await findClassWithCourse(classId);
       console.log('[webhook] Class found:', classRecord.id, 'Type:', courseType);
 
@@ -308,18 +310,29 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      const transactions = await createInvoiceSchedule({
-        enrollmentId: enrollment.id,
-        studentId: student.id,
-        classId: classRecord.id,
-        courseType,
-        classStartDate,
-        registrationFee,
-        price,
-        stripePaymentIntentId: paymentIntentId,
-        stripeCustomerId: customerId,
-        amountTotal,
-      });
+      const transactions = chargeFullAmountAtRegistration
+        ? await createFullPaymentTransaction({
+            enrollmentId: enrollment.id,
+            studentId: student.id,
+            classId: classRecord.id,
+            courseType,
+            registrationFee,
+            price,
+            stripePaymentIntentId: paymentIntentId,
+            amountTotal,
+          })
+        : await createInvoiceSchedule({
+            enrollmentId: enrollment.id,
+            studentId: student.id,
+            classId: classRecord.id,
+            courseType,
+            classStartDate,
+            registrationFee,
+            price,
+            stripePaymentIntentId: paymentIntentId,
+            stripeCustomerId: customerId,
+            amountTotal,
+          });
       console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
 
       // Step 6: Send enrollment confirmation email (async, non-blocking)
@@ -738,7 +751,8 @@ export async function POST(request: NextRequest) {
         courseType, 
         classStartDate,
         registrationFee,
-        price
+        price,
+        chargeFullAmountAtRegistration,
       } = await findClassWithCourse(classId);
       console.log('[webhook] Class found:', classRecord.id, 'Type:', courseType);
 
@@ -746,18 +760,29 @@ export async function POST(request: NextRequest) {
       const enrollment = await createEnrollment(student.id, classRecord.id);
       console.log('[webhook] Enrollment created:', enrollment.id);
 
-      const transactions = await createInvoiceSchedule({
-        enrollmentId: enrollment.id,
-        studentId: student.id,
-        classId: classRecord.id,
-        courseType,
-        classStartDate,
-        registrationFee,
-        price,
-        stripePaymentIntentId: paymentIntentId,
-        stripeCustomerId: customerId,
-        amountTotal,
-      });
+      const transactions = chargeFullAmountAtRegistration
+        ? await createFullPaymentTransaction({
+            enrollmentId: enrollment.id,
+            studentId: student.id,
+            classId: classRecord.id,
+            courseType,
+            registrationFee,
+            price,
+            stripePaymentIntentId: paymentIntentId,
+            amountTotal,
+          })
+        : await createInvoiceSchedule({
+            enrollmentId: enrollment.id,
+            studentId: student.id,
+            classId: classRecord.id,
+            courseType,
+            classStartDate,
+            registrationFee,
+            price,
+            stripePaymentIntentId: paymentIntentId,
+            stripeCustomerId: customerId,
+            amountTotal,
+          });
       console.log('[webhook] Invoice schedule created:', transactions.map(t => ({ id: t.id, type: t.transaction_type, invoice_number: t.invoice_number })));
 
       // Step 6: Send enrollment confirmation email (async, non-blocking)
