@@ -394,6 +394,7 @@ export async function POST(request: NextRequest) {
                   class_name: classRecord.class_name,
                   course_code: classRecord.course_code,
                   class_start_date: classStartDate,
+                  class_image: classRecord.class_image,
                 },
                 transactionData
               );
@@ -831,6 +832,7 @@ export async function POST(request: NextRequest) {
                   class_name: classRecord.class_name,
                   course_code: classRecord.course_code,
                   class_start_date: classStartDate,
+                  class_image: classRecord.class_image,
                 },
                 transactionData
               );

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { sendWaitlistSuccessfulEmail } from '@/lib/react-emails';
 
 /**
  * Submit waitlist form
@@ -197,6 +198,29 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`[Waitlist] Successfully added user ${userId} to waitlist for course ${courseCode}`);
+
+    // Send the waitlist confirmation email (best-effort — don't fail the request if it errors)
+    try {
+      const { data: course } = await supabase
+        .from('courses')
+        .select('course_name, course_image')
+        .eq('course_code', courseCode.toUpperCase())
+        .single();
+
+      const emailResult = await sendWaitlistSuccessfulEmail(email, {
+        studentName: trimmedFullName || 'Student',
+        courseName: course?.course_name || courseCode,
+        heroImageUrl:
+          course?.course_image ||
+          'https://midwestea.com/images/og-image.jpg',
+      });
+
+      if (!emailResult.success) {
+        console.error('[Waitlist] Failed to send confirmation email:', emailResult.error);
+      }
+    } catch (emailError: any) {
+      console.error('[Waitlist] Error sending confirmation email:', emailError.message);
+    }
 
     return NextResponse.json({
       success: true,
