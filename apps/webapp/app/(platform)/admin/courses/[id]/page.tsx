@@ -114,7 +114,15 @@ function CourseDetailContent() {
         if (!course || !course.course_code) return;
         setLoadingWaitlist(true);
         try {
-            const response = await fetch(`/api/waitlist/by-course-code/${course.course_code}`);
+            const supabase = await createSupabaseClient();
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                console.error('Error fetching waitlist: Not authenticated');
+                return;
+            }
+            const response = await fetch(`/api/waitlist/by-course-code/${course.course_code}`, {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
             if (response.ok) {
                 const result = await response.json();
                 setWaitlistEntries(result.waitlist || []);

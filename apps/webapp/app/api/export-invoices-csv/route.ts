@@ -1,20 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { getCurrentAdmin } from '@/lib/logging';
 
 export const runtime = 'nodejs';
 
 /**
  * Export invoices_to_import table to CSV
  * GET /api/export-invoices-csv
- * 
+ *
  * Returns a CSV file with the following columns:
  * InvoiceNo, Customer, InvoiceDate, DueDate, Item, ItemDescription, ItemQuantity, ItemRate, ItemAmount
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[export-invoices-csv] Starting CSV export...');
-    
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Missing or invalid authorization header' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     const supabase = createSupabaseAdminClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const { admin, error: adminError } = await getCurrentAdmin(user.id);
+    if (adminError || !admin) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    console.log('[export-invoices-csv] Starting CSV export...');
     console.log('[export-invoices-csv] Supabase client created');
 
     // Query all invoices from invoices_to_import table

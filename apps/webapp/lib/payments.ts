@@ -610,11 +610,18 @@ export async function reconcileTransaction(
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     console.log("[reconcileTransaction] Reconciling transaction:", transactionId);
-    
+
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
     const response = await fetch(`/api/transactions/reconcile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ transactionId }),
     });
@@ -642,11 +649,18 @@ export async function undoReconciliation(
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     console.log("[undoReconciliation] Undoing reconciliation for transaction:", transactionId);
-    
+
+    const supabase = await createSupabaseClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
     const response = await fetch(`/api/transactions/unreconcile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({ transactionId }),
     });

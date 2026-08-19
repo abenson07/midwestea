@@ -7,6 +7,7 @@ import { MobileHeader } from "@/components/MobileHeader";
 import { MobileNav } from "@/components/MobileNav";
 import { getSession } from "@/lib/auth";
 import { getAdminDocumentTitle } from "@/lib/admin/page-title";
+import { AdminAccessRequired } from "./admin-access-required";
 
 export function AdminShell({
     children,
@@ -16,6 +17,8 @@ export function AdminShell({
     const pathname = usePathname();
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+    const [userEmail, setUserEmail] = useState<string | undefined>(undefined);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     const isAuthPage = pathname === "/admin/login" || pathname === "/admin/otp";
@@ -27,6 +30,7 @@ export function AdminShell({
     useEffect(() => {
         if (isAuthPage) {
             setIsAuthenticated(false);
+            setIsAdmin(false);
             setIsCheckingAuth(false);
             return;
         }
@@ -35,12 +39,26 @@ export function AdminShell({
             setIsCheckingAuth(true);
             const { session, error } = await getSession();
 
-            if (session && !error) {
-                setIsAuthenticated(true);
-            } else {
+            if (!session || error) {
                 setIsAuthenticated(false);
+                setIsAdmin(false);
                 router.push("/admin/login");
+                setIsCheckingAuth(false);
+                return;
             }
+
+            setIsAuthenticated(true);
+            setUserEmail(session.user?.email ?? undefined);
+
+            try {
+                const response = await fetch("/api/admin/me", {
+                    headers: { Authorization: `Bearer ${session.access_token}` },
+                });
+                setIsAdmin(response.ok);
+            } catch {
+                setIsAdmin(false);
+            }
+
             setIsCheckingAuth(false);
         };
 
@@ -64,6 +82,10 @@ export function AdminShell({
 
     if (!isAuthenticated) {
         return null;
+    }
+
+    if (!isAdmin) {
+        return <AdminAccessRequired userEmail={userEmail} />;
     }
 
     return (

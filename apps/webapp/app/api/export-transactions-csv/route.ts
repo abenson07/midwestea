@@ -1,20 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { getCurrentAdmin } from '@/lib/logging';
 
 export const runtime = 'nodejs';
 
 /**
  * Export transactions to CSV
  * GET /api/export-transactions-csv
- * 
+ *
  * Queries transactions where downloaded = false, joins with students and classes,
  * generates CSV, marks transactions as downloaded = true, and returns CSV file.
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[export-transactions-csv] Starting CSV export...');
-    
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Missing or invalid authorization header' },
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
     const supabase = createSupabaseAdminClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const { admin, error: adminError } = await getCurrentAdmin(user.id);
+    if (adminError || !admin) {
+      return NextResponse.json(
+        { success: false, error: 'Admin access required' },
+        { status: 403 }
+      );
+    }
+
+    console.log('[export-transactions-csv] Starting CSV export...');
     console.log('[export-transactions-csv] Supabase client created');
 
     // Query transactions where downloaded = false, with joins to students and classes
