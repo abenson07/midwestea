@@ -21,6 +21,8 @@ const legacyRedirects = [
 // moved to a differently-named segment. Keeps old bookmarks/links out of
 // a 404 instead of porting the old page.
 const adminCutoverRedirects = [
+  { source: "/new-admin-migrate", destination: "/admin", permanent: true },
+  { source: "/new-admin-migrate/:path*", destination: "/admin/:path*", permanent: true },
   // Order matters: specific segments must come before the :id wildcard below.
   { source: "/admin/classes/add", destination: "/admin/classes", permanent: true },
   // Negative-lookahead excludes the real /admin/classes/open and /classes/closed list routes.
