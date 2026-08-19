@@ -1,0 +1,68 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Modal } from "@/components/patterns/shared/Modal";
+import { Button } from "@/components/patterns/primitives/Button";
+
+export type ClassMessageAllModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+};
+
+/** Broadcast compose — opened from the class topbar. */
+export function ClassMessageAllModal({ isOpen, onClose }: ClassMessageAllModalProps) {
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (isOpen) setMessage("");
+  }, [isOpen]);
+
+  function handleSend() {
+    const body = message.trim();
+    if (!body) {
+      toast.error("Write a message before sending");
+      return;
+    }
+    toast.success("Message sent to all students — demo mode, not delivered");
+    setMessage("");
+    onClose();
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Message all students"
+      width={480}
+      footer={
+        <>
+          <Button label="Cancel" variant="secondary" onClick={onClose} />
+          <Button label="Send" variant="primary" onClick={handleSend} />
+        </>
+      }
+    >
+      <textarea
+        value={message}
+        onChange={(event) => setMessage(event.target.value)}
+        placeholder="Write a message to everyone enrolled in this class…"
+        rows={6}
+        autoFocus
+        style={{
+          boxSizing: "border-box",
+          width: "100%",
+          minHeight: 140,
+          resize: "vertical",
+          padding: 12,
+          borderRadius: "var(--linear-radius-md)",
+          border: "var(--linear-border-width) solid var(--linear-color-hairline)",
+          background: "var(--linear-color-canvas)",
+          color: "var(--linear-color-ink)",
+          fontSize: 13,
+          fontFamily: "inherit",
+          lineHeight: 1.45,
+        }}
+      />
+    </Modal>
+  );
+}
