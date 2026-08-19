@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Home, BookOpen, FileText, User, CreditCard } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Home, BookOpen, FileText, User, CreditCard, LogOut } from "lucide-react";
+import { signOut } from "@/lib/auth";
 import {
   getMyClassEnrollments,
   isActiveClassEnrollment,
@@ -25,7 +26,9 @@ function isActiveHref(pathname: string, href: string): boolean {
 
 export function StudentNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const [enrollments, setEnrollments] = useState<StudentClassEnrollment[]>([]);
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -37,6 +40,12 @@ export function StudentNav() {
 
   const activeClasses = enrollments.filter((row) => isActiveClassEnrollment(row));
   const pastClasses = enrollments.filter((row) => !isActiveClassEnrollment(row));
+
+  const handleConfirmSignOut = async () => {
+    setConfirmingSignOut(false);
+    await signOut();
+    router.push("/student/login");
+  };
 
   return (
     <>
@@ -89,6 +98,16 @@ export function StudentNav() {
                 </li>
               );
             })}
+            <li className="pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmingSignOut(true)}
+                className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-600 hover:bg-white/70 hover:text-gray-900"
+              >
+                <LogOut className="h-5 w-5 text-gray-400" />
+                Log out
+              </button>
+            </li>
           </ul>
         </nav>
       </div>
@@ -114,6 +133,37 @@ export function StudentNav() {
           })}
         </div>
       </nav>
+      {confirmingSignOut && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sign-out-title"
+            className="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg"
+          >
+            <h2 id="sign-out-title" className="text-lg font-semibold text-gray-900">
+              Log out?
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">You will need to sign in again to see your account.</p>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmingSignOut(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSignOut}
+                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
