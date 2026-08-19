@@ -31,9 +31,9 @@ export const OPEN_CLASS_NAV_LIMIT = 5;
  * - ending-soon: classes wrapping up first
  * - starting-soon: in session first, then the next start date
  */
-export const OPEN_CLASS_PRIORITY = "most-enrolled" as const;
+export type OpenClassPriority = "most-enrolled" | "ending-soon" | "starting-soon";
 
-export type OpenClassPriority = typeof OPEN_CLASS_PRIORITY;
+export const OPEN_CLASS_PRIORITY: OpenClassPriority = "most-enrolled";
 
 export type OpenClassSource = {
   id: string;

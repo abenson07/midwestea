@@ -81,5 +81,5 @@ export async function listTransactions(
     throw new Error(error.message);
   }
 
-  return (data ?? []).map((row) => toStagingTransaction(row as Record<string, unknown>));
+  return (data ?? []).map((row) => toStagingTransaction(row as unknown as Record<string, unknown>));
 }
