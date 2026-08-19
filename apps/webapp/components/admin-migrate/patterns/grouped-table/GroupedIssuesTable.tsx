@@ -1,13 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
-import { Avatar } from "@/components/patterns/primitives/Avatar";
+import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
 import { Calendar, Circle, MoreHorizontal } from "lucide-react";
 import {
   pixel,
   proportional,
   type TableColumn,
-} from "@/components/patterns/primitives/table";
+} from "@/components/admin-migrate/patterns/primitives/table";
 import {
   sampleGroupedIssues,
   type GroupedIssueRow,

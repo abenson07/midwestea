@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { IconButton } from "@/components/patterns/shared/IconButton";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { ClassSidebarSection } from "../classes/ClassSidebarSection";
 import { TransactionDetailPanel } from "../payments/TransactionDetailPanel";
 import { useTransactions } from "../payments/useTransactions";

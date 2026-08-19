@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import { Card } from "@/components/patterns/primitives/Card";
-import { Heading, Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { useThemeMode, type ThemeMode } from "@/components/patterns/foundation/ThemeContext";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
+import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { useThemeMode, type ThemeMode } from "@/components/admin-migrate/patterns/foundation/ThemeContext";
+import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
 import {
   HOME_VIEW_OPTIONS,
   isHomeViewId,

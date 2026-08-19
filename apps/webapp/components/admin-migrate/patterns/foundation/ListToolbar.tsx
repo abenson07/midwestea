@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { ListFilter, Search } from "lucide-react";
-import { Dropdown, DropdownItem, DropdownSeparator, DropdownSubmenu } from "@/components/patterns/shared/dropdown";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Dropdown, DropdownItem, DropdownSeparator, DropdownSubmenu } from "@/components/admin-migrate/patterns/shared/dropdown";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 
 export type ListToolbarFilterOption = {
   value: string;

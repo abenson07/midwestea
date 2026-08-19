@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Text } from "@/components/patterns/primitives/Text";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
 import type { ClassDetail } from "./classMocks";
 import { useTransactions } from "../payments/useTransactions";
 import {

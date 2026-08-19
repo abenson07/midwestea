@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { Button } from "@/components/patterns/primitives/Button";
-import { Text } from "@/components/patterns/primitives/Text";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { allClassDetails, catalogKindForClass, catalogTemplateByCode } from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
-import { isClassClosed } from "@/components/patterns/client-templates-migrate/classes/classTableColumns";
-import { STUDENT_RECORDS } from "@/components/patterns/client-templates-migrate/students/studentData";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { allClassDetails, catalogKindForClass, catalogTemplateByCode } from "@/components/admin-migrate/patterns/catalog/catalogMocks";
+import { isClassClosed } from "@/components/admin-migrate/patterns/classes/classTableColumns";
+import { STUDENT_RECORDS } from "@/components/admin-migrate/patterns/students/studentData";
 import { endOfLocalDayIso } from "@/data/mocks/transaction-status";
 import type { TransactionRow, TransactionType } from "@/data/mocks/transactions";
 

@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
-import { Card } from "@/components/patterns/primitives/Card";
-import { Badge } from "@/components/patterns/primitives/Badge";
-import { HStack, VStack } from "@/components/patterns/primitives/Stack";
-import { Icon } from "@/components/patterns/primitives/Icon";
-import { Text } from "@/components/patterns/primitives/Text";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
+import { Badge } from "@/components/admin-migrate/patterns/primitives/Badge";
+import { HStack, VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { Icon } from "@/components/admin-migrate/patterns/primitives/Icon";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
 
 export type ProgramCardData = {
   id: string;

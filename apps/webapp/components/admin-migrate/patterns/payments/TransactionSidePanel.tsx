@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { OutlinedPanel } from "@/components/patterns/client-templates/shared";
+import { OutlinedPanel } from "@/components/admin-migrate/patterns/client-templates/shared";
 
 export function TransactionSidePanel({
   children,

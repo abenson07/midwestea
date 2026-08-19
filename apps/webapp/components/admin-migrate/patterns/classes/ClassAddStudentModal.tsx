@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { Button } from "@/components/patterns/primitives/Button";
-import { TextInput } from "@/components/patterns/primitives/TextInput";
-import { Text } from "@/components/patterns/primitives/Text";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { STUDENT_ROWS } from "../students/studentData";
 import type { ClassRosterRow } from "./classMocks";
 

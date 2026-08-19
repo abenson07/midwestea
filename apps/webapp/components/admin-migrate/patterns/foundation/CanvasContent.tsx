@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { GroupedIssuesTable } from "@/components/patterns/grouped-table/GroupedIssuesTable";
-import { MixedContentView } from "@/components/patterns/foundation/mixed-content";
+import { GroupedIssuesTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedIssuesTable";
+import { MixedContentView } from "@/components/admin-migrate/patterns/foundation/mixed-content";
 
 /**
  * Canvas body variants for Foundation.

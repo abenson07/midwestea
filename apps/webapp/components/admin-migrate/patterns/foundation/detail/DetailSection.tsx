@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { Text } from "@/components/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 
 export type DetailSectionProps = {
   /** Optional section header. Omit for an ungrouped run of rows (e.g. plain facts). */

@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Pencil } from "lucide-react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 import { ClassSidebarSection } from "../classes/ClassSidebarSection";
 import type { CatalogTemplate } from "./catalogMocks";
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { ListItem } from "@/components/patterns/primitives/List";
+import { ListItem } from "@/components/admin-migrate/patterns/primitives/List";
 
 export type SideContentFieldProps = {
   label: string;

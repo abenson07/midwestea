@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { Button } from "@/components/patterns/primitives/Button";
-import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { SettingsInsetList } from "@/components/admin-migrate/patterns/settings/SettingsInsetList";
 import { LocationDetailPanel } from "./LocationDetailPanel";
 import { AddLocationModal } from "./AddLocationModal";
 import { INITIAL_LOCATION_ROWS, hasMapsUrl, locationFieldDisplay } from "./locationData";

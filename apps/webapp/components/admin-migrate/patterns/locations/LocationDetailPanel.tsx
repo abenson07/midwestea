@@ -2,12 +2,12 @@
 
 import { useState, type CSSProperties } from "react";
 import { X } from "lucide-react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { TextInput } from "@/components/patterns/primitives/TextInput";
-import { Button } from "@/components/patterns/primitives/Button";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
-import { IconButton } from "@/components/patterns/shared/IconButton";
-import { DetailActionBar } from "@/components/patterns/foundation/detail";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { DetailActionBar } from "@/components/admin-migrate/patterns/foundation/detail";
 import { StateAutocomplete } from "./StateAutocomplete";
 import { normalizeMapsUrl } from "./locationData";
 import type { LocationRow } from "./types";

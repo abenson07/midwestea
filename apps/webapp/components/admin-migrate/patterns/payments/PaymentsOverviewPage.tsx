@@ -2,15 +2,14 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ClassContentPage } from "@/components/patterns/client-templates/shared";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { Text } from "@/components/patterns/primitives/Text";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { formatUsd } from "@/components/billing/invoiceUtils";
-import { ViewTab } from "@/components/patterns/foundation/ViewTab";
-import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
+import { ClassContentPage } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { ViewTab } from "@/components/admin-migrate/patterns/foundation/ViewTab";
+import { ViewTabs } from "@/components/admin-migrate/patterns/foundation/ViewTabs";
+import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
 import {
   getTransactionDisplayStatus,
   getTransactionListStatus,
@@ -22,10 +21,14 @@ import {
   type ClassRevenueRow,
   type RevenueScope,
 } from "./classRevenue";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { catalogTemplatesOfKind } from "../catalog/catalogMocks";
 import { buildPastDueTransactionColumns } from "./transactionColumns";
 import { useTransactions } from "./useTransactions";
+
+function formatUsd(amountCents: number): string {
+  return `$${(amountCents / 100).toFixed(2)}`;
+}
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (

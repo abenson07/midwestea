@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { GraduationCap, BookOpen, CalendarClock } from "lucide-react";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { formatCalendarMonthDay } from "@/lib/dates";
 import {
   closedClassDateLabel,

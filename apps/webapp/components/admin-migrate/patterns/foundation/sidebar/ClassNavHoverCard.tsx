@@ -1,12 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { HoverCard } from "@/components/patterns/client-templates/shared";
+import { HoverCard } from "@/components/admin-migrate/patterns/client-templates/shared";
 import {
   openClassHoverDateLabel,
   openClassStudentLabel,
   type StagingOpenClass,
-} from "@/lib/staging/openClasses";
+} from "@/lib/admin-migrate/openClasses";
 
 export function ClassNavHoverCard({
   item,

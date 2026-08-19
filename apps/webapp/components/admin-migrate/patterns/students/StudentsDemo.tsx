@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { ViewTab } from "@/components/patterns/foundation/ViewTab";
-import { ViewTabs } from "@/components/patterns/foundation/ViewTabs";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
-import { Text } from "@/components/patterns/primitives/Text";
-import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { FoundationLayout } from "@/components/admin-migrate/patterns/foundation/FoundationLayout";
+import { CanvasHeader } from "@/components/admin-migrate/patterns/foundation/CanvasHeader";
+import { LinearSidebar } from "@/components/admin-migrate/patterns/foundation/LinearSidebar";
+import { ViewTab } from "@/components/admin-migrate/patterns/foundation/ViewTab";
+import { ViewTabs } from "@/components/admin-migrate/patterns/foundation/ViewTabs";
+import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { STUDENT_ROWS } from "./studentData";
 import { StudentsTable } from "./StudentsTable";
 import { matchesStudentsView, type StudentRow, type StudentsView } from "./types";

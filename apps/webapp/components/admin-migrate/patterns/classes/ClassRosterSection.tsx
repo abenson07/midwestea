@@ -3,13 +3,13 @@
 import { useMemo, useState, type MouseEvent } from "react";
 import { Bell, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
-import { Avatar } from "@/components/patterns/primitives/Avatar";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Button } from "@/components/patterns/primitives/Button";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
+import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
 import {
   rosterPaymentStatusFor,
   rosterPrerequisiteStatusFor,

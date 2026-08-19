@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { Text } from "@/components/patterns/primitives/Text";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import {
   catalogTemplatesOfKind,
   type CatalogTemplate,

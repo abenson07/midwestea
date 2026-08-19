@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "@/components/patterns/primitives/Button";
-import { LayoutPanel } from "@/components/patterns/primitives/Layout";
-import { HStack, VStack } from "@/components/patterns/primitives/Stack";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { LayoutPanel } from "@/components/admin-migrate/patterns/primitives/Layout";
+import { HStack, VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
 import type { ReactNode } from "react";
 import { Copy, GitBranch, Link2 } from "lucide-react";
 import {

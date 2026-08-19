@@ -1,9 +1,9 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Icon } from "@/components/patterns/primitives/Icon";
-import { IconButton } from "@/components/patterns/primitives/IconButton";
-import { Text } from "@/components/patterns/primitives/Text";
+import { Icon } from "@/components/admin-migrate/patterns/primitives/Icon";
+import { IconButton } from "@/components/admin-migrate/patterns/primitives/IconButton";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import {
   Bell,
   Box,

@@ -1,8 +1,8 @@
 "use client";
 
-import { Modal } from "@/components/patterns/shared/Modal";
-import { Button } from "@/components/patterns/primitives/Button";
-import { Text } from "@/components/patterns/primitives/Text";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { formatCentsAsUSD, getTransactionAmountCents } from "@/data/mocks/transaction-status";
 import type { TransactionRow } from "@/data/mocks/transactions";
 

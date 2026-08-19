@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import {
   IconButton,
   type LinearIconButtonVariant,
-} from "@/components/patterns/shared/IconButton";
+} from "@/components/admin-migrate/patterns/shared/IconButton";
 
 /** @deprecated Prefer shared `IconButton` — kept as a sidebar alias. */
 export type SidebarIconButtonVariant = "ghost" | "emphasis" | "primary" | "secondary";

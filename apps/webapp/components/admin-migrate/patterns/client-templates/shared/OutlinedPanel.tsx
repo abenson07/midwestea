@@ -2,7 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { Pencil, X } from "lucide-react";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 
 export type OutlinedPanelProps = {
   children: ReactNode;

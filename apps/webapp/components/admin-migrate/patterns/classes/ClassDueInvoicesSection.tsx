@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Wallet } from "lucide-react";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { classDetailHref } from "../catalog/catalogMocks";
 import { ClassBanner } from "./ClassBanner";
 import type { TransactionRow } from "@/data/mocks/transactions";

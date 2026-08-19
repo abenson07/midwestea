@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Text } from "@/components/patterns/primitives/Text";
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell, useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell, useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { classDetailHref } from "../catalog/catalogMocks";
 import { classDetailFor, type ClassDetail } from "../classes/classMocks";
 import { useTransactions } from "../payments/useTransactions";

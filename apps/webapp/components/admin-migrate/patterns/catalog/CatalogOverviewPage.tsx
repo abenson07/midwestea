@@ -6,7 +6,7 @@ import { CatalogClassesSection } from "./CatalogClassesSection";
 import { CatalogWaitlistSection } from "./CatalogWaitlistSection";
 import { CatalogPrerequisitesList } from "./CatalogPrerequisitesList";
 import { ClassActivityCard } from "../classes/ClassActivityCard";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import {
   catalogActivityFor,
   catalogPrerequisiteAssignments,

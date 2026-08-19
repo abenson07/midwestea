@@ -2,11 +2,11 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import { Plus, X } from "lucide-react";
-import { Card } from "@/components/patterns/primitives/Card";
-import { Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { Button } from "@/components/patterns/primitives/Button";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 
 export const settingsCardFieldStyle: CSSProperties = {
   boxSizing: "border-box",

@@ -1,9 +1,9 @@
 "use client";
 
-import { Text } from "@/components/patterns/primitives/Text";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
 import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "../classes/prerequisiteStatus";
 import type { StudentPrerequisiteSubmissionRow } from "./studentData";
 

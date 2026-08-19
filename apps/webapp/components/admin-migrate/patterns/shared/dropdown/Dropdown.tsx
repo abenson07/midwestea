@@ -5,7 +5,7 @@ import {
   Popover,
   type LayerAlignment,
   type LayerPlacement,
-} from "@/components/patterns/primitives/Popover";
+} from "@/components/admin-migrate/patterns/primitives/Popover";
 
 export type DropdownProps = {
   trigger: ReactNode;

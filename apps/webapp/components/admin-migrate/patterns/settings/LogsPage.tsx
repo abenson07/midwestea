@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { SettingsInsetList } from "@/components/admin-migrate/patterns/settings/SettingsInsetList";
 import { AUDIT_LOG_ROWS, type AuditLogRow } from "@/data/mocks/audit-logs";
 import { formatShortDate } from "@/data/mocks/transaction-status";
 

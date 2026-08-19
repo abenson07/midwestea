@@ -1,8 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Layout, LayoutContent } from "@/components/patterns/primitives/Layout";
-import { useResizable, ResizeHandle } from "@/components/patterns/primitives/Resizable";
+import { Layout, LayoutContent } from "@/components/admin-migrate/patterns/primitives/Layout";
+import { useResizable, ResizeHandle } from "@/components/admin-migrate/patterns/primitives/Resizable";
 import { linearTokenVars } from "@/theme/linearTokens";
 import {
   CanvasHeader,

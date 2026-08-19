@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Grid } from "@/components/patterns/primitives/Grid";
-import { Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
+import { Grid } from "@/components/admin-migrate/patterns/primitives/Grid";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
 
 export type DraftsSectionProps = {
   title: string;

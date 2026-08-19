@@ -2,8 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
 
 export type AccordionSectionProps = {
   title: string;

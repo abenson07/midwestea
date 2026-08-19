@@ -1,10 +1,10 @@
 "use client";
 
 import { Bell } from "lucide-react";
-import { Avatar } from "@/components/patterns/primitives/Avatar";
-import { Button } from "@/components/patterns/primitives/Button";
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { HoverTooltip, RowClickCell } from "@/components/patterns/client-templates/shared";
+import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { HoverTooltip, RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import {
   formatShortDate,
   getTransactionDaysPastDue,

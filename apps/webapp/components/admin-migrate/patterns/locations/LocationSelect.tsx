@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { locationNameOptions } from "./locationData";
 
 export type LocationSelectProps = {

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { Check, X } from "lucide-react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Button } from "@/components/patterns/primitives/Button";
-import { TextInput } from "@/components/patterns/primitives/TextInput";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
 import type { ClassPrerequisiteSubmission } from "./classMocks";
 import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
 

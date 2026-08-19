@@ -1,6 +1,6 @@
 "use client";
 
-import { Text } from "@/components/patterns/primitives/Text";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 
 export type ClassEmptyPanelProps = {
   title: string;

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { IconButton } from "@/components/patterns/shared/IconButton";
-import { Text } from "@/components/patterns/primitives/Text";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 
 export type ModalProps = {
   isOpen: boolean;

@@ -3,15 +3,15 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { ExternalLink } from "lucide-react";
-import { Card } from "@/components/patterns/primitives/Card";
-import { Heading, Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { Button } from "@/components/patterns/primitives/Button";
-import { SettingsRow } from "@/components/patterns/client-templates-migrate/settings/SettingsRow";
+import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
+import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { SettingsRow } from "@/components/admin-migrate/patterns/settings/SettingsRow";
 import {
   SettingsCardList,
   settingsCardFieldStyle,
-} from "@/components/patterns/client-templates-migrate/settings/SettingsCardList";
+} from "@/components/admin-migrate/patterns/settings/SettingsCardList";
 import type { ClassExternalLink } from "../classes/classMocks";
 import {
   CATALOG_CLASS_TYPES,

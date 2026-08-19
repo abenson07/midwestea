@@ -1,8 +1,8 @@
 "use client";
 
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
+import { FoundationLayout } from "@/components/admin-migrate/patterns/foundation/FoundationLayout";
+import { CanvasHeader } from "@/components/admin-migrate/patterns/foundation/CanvasHeader";
+import { LinearSidebar } from "@/components/admin-migrate/patterns/foundation/LinearSidebar";
 import { CoursesPage } from "./CoursesPage";
 import type { CatalogTemplate } from "../catalog/catalogMocks";
 

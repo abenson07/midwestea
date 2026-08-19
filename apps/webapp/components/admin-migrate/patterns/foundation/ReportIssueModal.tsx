@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Bug, Lightbulb } from "lucide-react";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { Button } from "@/components/patterns/primitives/Button";
-import { TextInput } from "@/components/patterns/primitives/TextInput";
-import { Text } from "@/components/patterns/primitives/Text";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 
 export type ReportIssueModalProps = {
   isOpen: boolean;

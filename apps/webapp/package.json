@@ -18,6 +18,7 @@
     "@stripe/react-stripe-js": "^2.4.0",
     "@stripe/stripe-js": "^2.4.0",
     "@supabase/supabase-js": "^2.84.0",
+    "@tanstack/react-query": "^5.101.4",
     "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.16.7",
@@ -28,6 +29,7 @@
     "react-dom": "^18.3.1",
     "react-icons": "^5.4.0",
     "resend": "^6.6.0",
+    "sonner": "^2.0.8",
     "split-type": "^0.3.4",
     "stripe": "^14.21.0"
   },

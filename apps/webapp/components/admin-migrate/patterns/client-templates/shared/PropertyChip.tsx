@@ -1,8 +1,8 @@
 "use client";
 
 import { MoreHorizontal } from "lucide-react";
-import { IconButton } from "@/components/patterns/shared/IconButton";
-import type { MixedContentProperty } from "@/components/patterns/foundation/mixed-content";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import type { MixedContentProperty } from "@/components/admin-migrate/patterns/foundation/mixed-content";
 
 export type { MixedContentProperty };
 

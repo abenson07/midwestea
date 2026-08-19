@@ -3,10 +3,10 @@
 import { Bell, ClipboardCheck, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Button } from "@/components/patterns/primitives/Button";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 import { ClassSidebarSection } from "./ClassSidebarSection";
 import {
   classInvoicesForStudent,

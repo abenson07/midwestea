@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { Text } from "@/components/patterns/primitives/Text";
-import { CatalogSettingsPage } from "@/components/patterns/client-templates-migrate/catalog/CatalogSettingsPage";
+import { FoundationLayout } from "@/components/admin-migrate/patterns/foundation/FoundationLayout";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { CatalogSettingsPage } from "@/components/admin-migrate/patterns/catalog/CatalogSettingsPage";
 import {
   catalogTemplateFor,
   type CatalogTemplate,
-} from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
-import { StaffDemo } from "@/components/patterns/client-templates-migrate/staff";
-import { LocationsDemo } from "@/components/patterns/client-templates-migrate/locations";
-import type { LocationRow } from "@/components/patterns/client-templates-migrate/locations/types";
-import { PrerequisitesDemo } from "@/components/patterns/client-templates-migrate/prerequisites";
-import type { PrerequisiteRow } from "@/components/patterns/client-templates-migrate/prerequisites/types";
+} from "@/components/admin-migrate/patterns/catalog/catalogMocks";
+import { StaffDemo } from "@/components/admin-migrate/patterns/staff";
+import { LocationsDemo } from "@/components/admin-migrate/patterns/locations";
+import type { LocationRow } from "@/components/admin-migrate/patterns/locations/types";
+import { PrerequisitesDemo } from "@/components/admin-migrate/patterns/prerequisites";
+import type { PrerequisiteRow } from "@/components/admin-migrate/patterns/prerequisites/types";
 import { SettingsSideNav } from "./SettingsSideNav";
 import { PreferencesPanel } from "./PreferencesPanel";
 import { ProfilePanel } from "./ProfilePanel";

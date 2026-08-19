@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
-import { columnAlignsEnd, columnsToGridTemplate, type TableColumn } from "@/components/patterns/primitives/table";
+import { columnAlignsEnd, columnsToGridTemplate, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
 import { LinearGroupHeader } from "./LinearGroupHeader";
 import "./grouped-table.css";
 

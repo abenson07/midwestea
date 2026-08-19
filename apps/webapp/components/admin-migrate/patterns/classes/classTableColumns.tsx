@@ -1,7 +1,7 @@
 "use client";
 
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { formatCalendarMonthDay, parseCalendarDate } from "@/lib/dates";
 import { classRosterFor, type ClassDetail } from "./classMocks";
 

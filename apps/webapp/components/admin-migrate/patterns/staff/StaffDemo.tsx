@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/patterns/primitives/Button";
-import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { SettingsInsetList } from "@/components/admin-migrate/patterns/settings/SettingsInsetList";
 import { AddStaffPersonModal } from "./AddStaffPersonModal";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { addStaffPerson, getStaffRows, updateStaffPerson } from "./staffData";
 import { StaffDetailPanel } from "./StaffDetailPanel";
 import { StaffTable } from "./StaffTable";

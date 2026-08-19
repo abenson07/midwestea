@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Check, ChevronDown } from "lucide-react";
-import { Dropdown } from "@/components/patterns/shared/dropdown/Dropdown";
-import { DropdownItem } from "@/components/patterns/shared/dropdown/DropdownItem";
+import { Dropdown } from "@/components/admin-migrate/patterns/shared/dropdown/Dropdown";
+import { DropdownItem } from "@/components/admin-migrate/patterns/shared/dropdown/DropdownItem";
 
 export type DetailSelectOption = {
   value: string;

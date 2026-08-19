@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
-import { Dropdown } from "@/components/patterns/shared/dropdown";
+import { Dropdown } from "@/components/admin-migrate/patterns/shared/dropdown";
 import { WorkspaceMark } from "./WorkspaceMark";
 
 export type WorkspaceMenuProps = {

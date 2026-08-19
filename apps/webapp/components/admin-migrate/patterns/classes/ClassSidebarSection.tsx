@@ -1,8 +1,8 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
 
 export type ClassSidebarSectionProps = {
   title: string;

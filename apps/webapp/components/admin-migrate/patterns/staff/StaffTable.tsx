@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo } from "react";
-import { Avatar } from "@/components/patterns/primitives/Avatar";
-import { Badge } from "@/components/patterns/primitives/Badge";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
+import { Badge } from "@/components/admin-migrate/patterns/primitives/Badge";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { roleLabel, type StaffRow } from "./types";
 
 function buildColumns(

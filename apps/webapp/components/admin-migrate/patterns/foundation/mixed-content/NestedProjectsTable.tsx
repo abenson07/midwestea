@@ -6,12 +6,12 @@ import {
   pixel,
   proportional,
   type TableColumn,
-} from "@/components/patterns/primitives/table";
+} from "@/components/admin-migrate/patterns/primitives/table";
 import {
   sampleNestedProjects,
   type NestedProjectRow,
 } from "@/data/mocks/nested-projects";
-import { NestedGroupedTable } from "@/components/patterns/grouped-table/NestedGroupedTable";
+import { NestedGroupedTable } from "@/components/admin-migrate/patterns/grouped-table/NestedGroupedTable";
 
 const GROUP_ORDER = [
   "In Progress",

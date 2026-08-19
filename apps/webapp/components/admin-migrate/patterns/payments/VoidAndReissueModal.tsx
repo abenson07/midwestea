@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { Button } from "@/components/patterns/primitives/Button";
-import { Text } from "@/components/patterns/primitives/Text";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 import { X } from "lucide-react";
 import {
   dueDateInputValue,

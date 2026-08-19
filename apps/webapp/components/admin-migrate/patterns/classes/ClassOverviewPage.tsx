@@ -10,7 +10,7 @@ import { ClassDueInvoicesSection } from "./ClassDueInvoicesSection";
 import { ClassRosterSection } from "./ClassRosterSection";
 import { ClassStudentPaymentsCard } from "./ClassStudentPaymentsCard";
 import { ClassRevenueCard } from "./ClassRevenueCard";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { catalogKindForClass } from "../catalog/catalogMocks";
 import { isClassClosed } from "./classTableColumns";
 import {

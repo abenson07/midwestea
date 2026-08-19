@@ -1,8 +1,8 @@
 "use client";
 
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { DraftsSection } from "@/components/patterns/client-templates/drafts/DraftsSection";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { DraftsSection } from "@/components/admin-migrate/patterns/client-templates/drafts/DraftsSection";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { catalogTemplatesOfKind, type CatalogTemplate } from "../catalog/catalogMocks";
 import { ProgramCard } from "./ProgramCard";
 

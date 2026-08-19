@@ -1,7 +1,7 @@
 "use client";
 
-import { Heading, Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
+import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
 
 export type SettingsPlaceholderPanelProps = {
   label: string;

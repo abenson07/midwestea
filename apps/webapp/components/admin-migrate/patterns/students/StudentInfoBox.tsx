@@ -1,6 +1,6 @@
 "use client";
 
-import { Text } from "@/components/patterns/primitives/Text";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import type { StudentRecord } from "./types";
 
 export type StudentInfoBoxProps = {

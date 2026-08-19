@@ -4,18 +4,18 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Bell, ClipboardCheck, LayoutDashboard, Mail, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { ClassContentPage, RowClickCell, useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Avatar } from "@/components/patterns/primitives/Avatar";
-import { Button } from "@/components/patterns/primitives/Button";
-import { cardSurfaceStyle } from "@/components/patterns/primitives/Card";
-import { IconButton } from "@/components/patterns/shared/IconButton";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
+import { FoundationLayout } from "@/components/admin-migrate/patterns/foundation/FoundationLayout";
+import { CanvasHeader } from "@/components/admin-migrate/patterns/foundation/CanvasHeader";
+import { LinearSidebar } from "@/components/admin-migrate/patterns/foundation/LinearSidebar";
+import { ClassContentPage, RowClickCell, useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { cardSurfaceStyle } from "@/components/admin-migrate/patterns/primitives/Card";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
 import {
   allClassDueInvoices,
   allFollowUpQueue,
@@ -24,12 +24,12 @@ import {
   type ClassFollowUpRow,
   type ClassPrerequisiteQueueRow,
   type StudentToRemove,
-} from "@/components/patterns/client-templates-migrate/classes/classMocks";
-import { buildClassPastDueInvoiceColumns } from "@/components/patterns/client-templates-migrate/classes/ClassInvoicesPage";
-import { ClassPrerequisitesQueue } from "@/components/patterns/client-templates-migrate/classes/ClassPrerequisitesQueue";
-import { CreateClassModal } from "@/components/patterns/client-templates-migrate/catalog/CreateClassModal";
-import { classDetailHref } from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
-import { RemoveStudentModal } from "@/components/patterns/client-templates-migrate/classes/RemoveStudentModal";
+} from "@/components/admin-migrate/patterns/classes/classMocks";
+import { buildClassPastDueInvoiceColumns } from "@/components/admin-migrate/patterns/classes/ClassInvoicesPage";
+import { ClassPrerequisitesQueue } from "@/components/admin-migrate/patterns/classes/ClassPrerequisitesQueue";
+import { CreateClassModal } from "@/components/admin-migrate/patterns/catalog/CreateClassModal";
+import { classDetailHref } from "@/components/admin-migrate/patterns/catalog/catalogMocks";
+import { RemoveStudentModal } from "@/components/admin-migrate/patterns/classes/RemoveStudentModal";
 
 function missingDocumentsLabel(types: string[]): string {
   if (types.length === 1) return types[0];

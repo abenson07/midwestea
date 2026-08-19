@@ -6,7 +6,7 @@ import { Wallet } from "lucide-react";
 import { ClassBanner } from "../classes/ClassBanner";
 import { ClassPrerequisitesQueue } from "../classes/ClassPrerequisitesQueue";
 import { ClassActivityCard } from "../classes/ClassActivityCard";
-import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { StudentInfoBox } from "./StudentInfoBox";
 import { StudentDetailsCard } from "./StudentDetailsCard";
 import { StudentDocumentsCard } from "./StudentDocumentsCard";

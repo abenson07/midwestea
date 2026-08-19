@@ -3,9 +3,9 @@
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Text } from "@/components/patterns/primitives/Text";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { EmptyStateCard, useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { EmptyStateCard, useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import {
   buildClassTableColumns,
   closedClassDateLabel,

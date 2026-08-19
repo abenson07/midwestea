@@ -27,14 +27,14 @@ import {
 import {
   Dropdown,
   DropdownItem,
-} from "@/components/patterns/shared/dropdown";
+} from "@/components/admin-migrate/patterns/shared/dropdown";
 import { clearDemoStore } from "@/lib/demo/demoStore";
 import { useCurrentAdmin } from "@/lib/admin-migrate/useCurrentAdmin";
 import { normalizeRoute } from "@/lib/favorites/normalizeRoute";
 import { getBestMatchingHref } from "@/lib/nav/getBestMatchingHref";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
-import { useStagingOpenClasses } from "@/lib/staging/useOpenClasses";
-import { splitOpenClassNav, type StagingOpenClass } from "@/lib/staging/openClasses";
+import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { useStagingOpenClasses } from "@/lib/admin-migrate/useOpenClasses";
+import { splitOpenClassNav, type StagingOpenClass } from "@/lib/admin-migrate/openClasses";
 import { ClassNavHoverCard } from "./sidebar/ClassNavHoverCard";
 import {
   DemoModeCard,

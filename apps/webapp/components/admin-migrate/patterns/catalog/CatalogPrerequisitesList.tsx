@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Switch } from "@/components/patterns/primitives/Switch";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Switch } from "@/components/admin-migrate/patterns/primitives/Switch";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 import { ClassSidebarSection } from "../classes/ClassSidebarSection";
 import { INITIAL_PREREQUISITES } from "../prerequisites/prerequisiteData";
 import type { CatalogPrerequisiteAssignment } from "./catalogMocks";

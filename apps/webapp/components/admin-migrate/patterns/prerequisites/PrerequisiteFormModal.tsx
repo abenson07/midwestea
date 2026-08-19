@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { Button } from "@/components/patterns/primitives/Button";
-import { Checkbox } from "@/components/patterns/primitives/Checkbox";
-import { Text } from "@/components/patterns/primitives/Text";
-import { TextInput } from "@/components/patterns/primitives/TextInput";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { Checkbox } from "@/components/admin-migrate/patterns/primitives/Checkbox";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
 import {
   EXPIRATION_OPTIONS,
   INPUT_TYPE_OPTIONS,

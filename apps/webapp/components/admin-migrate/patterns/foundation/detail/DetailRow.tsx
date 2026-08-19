@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Text } from "@/components/patterns/primitives/Text";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 
 export type DetailRowProps = {
   label: string;

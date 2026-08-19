@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Heading, Text } from "@/components/patterns/primitives/Text";
-import { ListToolbar } from "@/components/patterns/foundation/ListToolbar";
+import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
 
 export type SettingsInsetListProps = {
   title: string;

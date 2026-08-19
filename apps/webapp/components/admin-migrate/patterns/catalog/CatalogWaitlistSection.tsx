@@ -1,8 +1,8 @@
 "use client";
 
-import { Text } from "@/components/patterns/primitives/Text";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
 import type { CatalogWaitlistEntry } from "./catalogMocks";
 
 const sectionStyle = {

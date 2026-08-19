@@ -2,10 +2,10 @@
 
 import { useMemo, useState, type CSSProperties, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { Avatar } from "@/components/patterns/primitives/Avatar";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { linearTokenVars } from "@/theme/linearTokens";
 import type { StudentClass, StudentPaymentStatus, StudentRow } from "./types";
 

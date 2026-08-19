@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { AccordionSection } from "@/components/patterns/shared/AccordionSection";
-import { Button } from "@/components/patterns/primitives/Button";
-import { TextInput } from "@/components/patterns/primitives/TextInput";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Grid } from "@/components/patterns/primitives/Grid";
-import { LocationSelect } from "@/components/patterns/client-templates-migrate/locations";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { AccordionSection } from "@/components/admin-migrate/patterns/shared/AccordionSection";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Grid } from "@/components/admin-migrate/patterns/primitives/Grid";
+import { LocationSelect } from "@/components/admin-migrate/patterns/locations";
 import { subtractIsoDays, todayIsoDate } from "@/lib/dates";
 import { isClassOnline, registerCreatedClass, type ClassDetail } from "../classes/classMocks";
 import { CatalogTemplateTypeahead } from "./CatalogTemplateTypeahead";

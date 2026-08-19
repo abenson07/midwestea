@@ -2,17 +2,17 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
-import { Card } from "@/components/patterns/primitives/Card";
-import { Heading, Text } from "@/components/patterns/primitives/Text";
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { Button } from "@/components/patterns/primitives/Button";
-import { Modal } from "@/components/patterns/shared/Modal";
-import { SettingsRow } from "@/components/patterns/client-templates-migrate/settings/SettingsRow";
+import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
+import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
+import { SettingsRow } from "@/components/admin-migrate/patterns/settings/SettingsRow";
 import {
   SettingsCardList,
   settingsCardFieldStyle,
-} from "@/components/patterns/client-templates-migrate/settings/SettingsCardList";
-import { LocationSelect } from "@/components/patterns/client-templates-migrate/locations";
+} from "@/components/admin-migrate/patterns/settings/SettingsCardList";
+import { LocationSelect } from "@/components/admin-migrate/patterns/locations";
 import {
   CATALOG_CLASS_TYPES,
   catalogKindForClass,

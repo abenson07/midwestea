@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { List } from "@/components/patterns/primitives/List";
-import { Text } from "@/components/patterns/primitives/Text";
+import { List } from "@/components/admin-migrate/patterns/primitives/List";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 
 export type SideContentSectionProps = {
   title: string;

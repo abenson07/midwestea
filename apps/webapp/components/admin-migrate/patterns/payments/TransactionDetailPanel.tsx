@@ -4,20 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Button } from "@/components/patterns/primitives/Button";
-import { VStack } from "@/components/patterns/primitives/Stack";
-import { IconButton } from "@/components/patterns/shared/IconButton";
-import { Dropdown, DropdownItem } from "@/components/patterns/shared/dropdown";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { Dropdown, DropdownItem } from "@/components/admin-migrate/patterns/shared/dropdown";
 import {
   DetailActionBar,
   DetailRow,
   DetailSection,
   DetailTimeline,
   type DetailTimelineStep,
-} from "@/components/patterns/foundation/detail";
-import { useAdminBasePath } from "@/components/patterns/client-templates/shared";
-import { classDetailHref, classHasDetailRoute } from "@/components/patterns/client-templates-migrate/catalog";
+} from "@/components/admin-migrate/patterns/foundation/detail";
+import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { classDetailHref, classHasDetailRoute } from "@/components/admin-migrate/patterns/catalog";
 import {
   TRANSACTION_LIST_STATUS_LABEL,
   TRANSACTION_STATUS_COLOR,

@@ -6,14 +6,14 @@ import {
   SidebarHeader,
   SidebarScrollArea,
   SidebarSection,
-} from "@/components/patterns/foundation/sidebar";
-import "@/components/patterns/foundation/sidebar/sidebar.css";
-import { useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
+} from "@/components/admin-migrate/patterns/foundation/sidebar";
+import "@/components/admin-migrate/patterns/foundation/sidebar/sidebar.css";
+import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { settingsNavSections, settingsTechnicalNavSection } from "@/data/mocks/settings-nav";
 import {
   catalogTemplatesOfKind,
   type CatalogTemplate,
-} from "@/components/patterns/client-templates-migrate/catalog/catalogMocks";
+} from "@/components/admin-migrate/patterns/catalog/catalogMocks";
 
 export type SettingsSideNavProps = {
   selectedNavId: string;

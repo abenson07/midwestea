@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Switch } from "@/components/patterns/primitives/Switch";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Switch } from "@/components/admin-migrate/patterns/primitives/Switch";
 
 export type DetailToggleRowProps = {
   label: string;

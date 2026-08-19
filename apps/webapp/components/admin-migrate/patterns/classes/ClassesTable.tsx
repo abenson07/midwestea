@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { pixel, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell } from "@/components/patterns/client-templates/shared";
+import { pixel, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { catalogKindForClass, splitClassesByStatus } from "../catalog/catalogMocks";
 import { buildClassTableColumns, classDateLabel, startOfToday } from "./classTableColumns";
 import type { ClassDetail } from "./classMocks";

@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { ClassContentPage } from "@/components/patterns/client-templates/shared";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { Text } from "@/components/patterns/primitives/Text";
+import { ClassContentPage } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import {
   matchesTransactionStatusFilter,
   type TransactionStatusFilter,

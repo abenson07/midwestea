@@ -10,7 +10,7 @@ import {
   Plus,
   User,
 } from "lucide-react";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 
 export type MixedContentProperty = {
   id: string;

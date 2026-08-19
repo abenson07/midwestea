@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/patterns/primitives/Button";
-import { proportional, type TableColumn } from "@/components/patterns/primitives/table";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { SettingsInsetList } from "@/components/admin-migrate/patterns/settings/SettingsInsetList";
 import {
   formatCentsAsUSD,
   formatShortDate,

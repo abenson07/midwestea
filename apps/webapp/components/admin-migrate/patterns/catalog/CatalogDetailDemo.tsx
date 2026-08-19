@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
-import { FoundationLayout } from "@/components/patterns/foundation/FoundationLayout";
-import { CanvasHeader } from "@/components/patterns/foundation/CanvasHeader";
-import { LinearSidebar } from "@/components/patterns/foundation/LinearSidebar";
-import { Button } from "@/components/patterns/primitives/Button";
-import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { Text } from "@/components/patterns/primitives/Text";
+import { FoundationLayout } from "@/components/admin-migrate/patterns/foundation/FoundationLayout";
+import { CanvasHeader } from "@/components/admin-migrate/patterns/foundation/CanvasHeader";
+import { LinearSidebar } from "@/components/admin-migrate/patterns/foundation/LinearSidebar";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { CatalogOverviewPage } from "./CatalogOverviewPage";
 import { CreateClassModal } from "./CreateClassModal";
 import {

@@ -3,12 +3,12 @@
 import { useMemo, useState } from "react";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { GroupedTable } from "@/components/patterns/grouped-table/GroupedTable";
-import { RowClickCell, useIsNewAdminMigrate } from "@/components/patterns/client-templates/shared";
-import { Button } from "@/components/patterns/primitives/Button";
-import { pixel, proportional, type TableColumn } from "@/components/patterns/primitives/table";
+import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
+import { RowClickCell, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
 import { formatCalendarDate } from "@/lib/dates";
-import { SettingsInsetList } from "@/components/patterns/client-templates-migrate/settings/SettingsInsetList";
+import { SettingsInsetList } from "@/components/admin-migrate/patterns/settings/SettingsInsetList";
 import { ArchivePrerequisiteModal } from "./ArchivePrerequisiteModal";
 import { PrerequisiteFormModal, type PrerequisiteFormValues } from "./PrerequisiteFormModal";
 import { INITIAL_PREREQUISITES } from "./prerequisiteData";

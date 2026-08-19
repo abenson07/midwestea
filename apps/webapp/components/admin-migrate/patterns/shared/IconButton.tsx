@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { IconButton as BaseIconButton } from "@/components/patterns/primitives/IconButton";
+import { IconButton as BaseIconButton } from "@/components/admin-migrate/patterns/primitives/IconButton";
 
 export type LinearIconButtonVariant = "ghost" | "primary" | "secondary";
 

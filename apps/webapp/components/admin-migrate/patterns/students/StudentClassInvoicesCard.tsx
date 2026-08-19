@@ -1,9 +1,9 @@
 "use client";
 
 import { X } from "lucide-react";
-import { Text } from "@/components/patterns/primitives/Text";
-import { Button } from "@/components/patterns/primitives/Button";
-import { IconButton } from "@/components/patterns/shared/IconButton";
+import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
 import { ClassSidebarSection } from "../classes/ClassSidebarSection";
 import { TransactionAmountCell } from "../payments/TransactionAmountCell";
 import { TransactionStatusToken } from "../payments/TransactionStatusToken";
