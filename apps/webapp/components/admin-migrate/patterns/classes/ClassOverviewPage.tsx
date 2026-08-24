@@ -197,6 +197,7 @@ export function ClassOverviewPage({
               return next;
             })
           }
+          onSetSelectedForCertificate={(ids) => setSelectedForCertificate(new Set(ids))}
           onGenerateCertificateForRow={(row) => openGenerateCertificate([row])}
           onGenerateCertificateForSelected={() =>
             openGenerateCertificate(roster.filter((row) => selectedForCertificate.has(row.id)))

@@ -281,6 +281,7 @@ export type ClassRosterSectionProps = {
   showPrerequisites?: boolean;
   selectedForCertificate?: Set<string>;
   onToggleSelectForCertificate?: (id: string) => void;
+  onSetSelectedForCertificate?: (ids: string[]) => void;
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
   onGenerateCertificateForSelected?: () => void;
 };
@@ -295,6 +296,7 @@ export function ClassRosterSection({
   showPrerequisites = false,
   selectedForCertificate,
   onToggleSelectForCertificate,
+  onSetSelectedForCertificate,
   onGenerateCertificateForRow,
   onGenerateCertificateForSelected,
 }: ClassRosterSectionProps) {
@@ -346,6 +348,14 @@ export function ClassRosterSection({
     });
   }, [rows, search, statusFilter]);
 
+  const eligibleForCertificate = useMemo(
+    () => filteredRows.filter((row) => row.role === "Student" && row.enrollmentId),
+    [filteredRows],
+  );
+  const allEligibleSelected =
+    eligibleForCertificate.length > 0 &&
+    eligibleForCertificate.every((row) => selectedForCertificate?.has(row.id));
+
   return (
     <section
       data-slot="class-roster-section"
@@ -359,6 +369,18 @@ export function ClassRosterSection({
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Text weight="semibold">Students</Text>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {onSetSelectedForCertificate && eligibleForCertificate.length > 0 ? (
+            <Button
+              label={allEligibleSelected ? "Clear selection" : `Select all (${eligibleForCertificate.length})`}
+              variant="ghost"
+              size="sm"
+              onClick={() =>
+                onSetSelectedForCertificate(
+                  allEligibleSelected ? [] : eligibleForCertificate.map((row) => row.id),
+                )
+              }
+            />
+          ) : null}
           {selectedForCertificate && selectedForCertificate.size > 0 ? (
             <Button
               label={`Generate certificates (${selectedForCertificate.size})`}
