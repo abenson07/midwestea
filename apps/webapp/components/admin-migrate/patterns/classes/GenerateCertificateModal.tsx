@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
+import { Checkbox } from "@/components/admin-migrate/patterns/primitives/Checkbox";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { getSession } from "@/lib/auth";
 import { todayIsoDate } from "@/lib/dates";
@@ -53,6 +54,7 @@ export function GenerateCertificateModal({
 }: GenerateCertificateModalProps) {
   const [issuedAt, setIssuedAt] = useState(todayIsoDate());
   const [durationYears, setDurationYears] = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -60,15 +62,28 @@ export function GenerateCertificateModal({
     if (!isOpen) return;
     setIssuedAt(todayIsoDate());
     setDurationYears(defaultDurationYears != null ? String(defaultDurationYears) : "");
+    setSelectedIds(new Set(targets.map((target) => target.enrollmentId)));
     setError("");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset fields once per open, not on every defaultDurationYears identity change
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset fields once per open, not on every targets/defaultDurationYears identity change
   }, [isOpen]);
 
   const isBulk = targets.length > 1;
-  const title = isBulk ? `Generate ${targets.length} certificates` : `Generate certificate`;
+  const selectedTargets = isBulk ? targets.filter((target) => selectedIds.has(target.enrollmentId)) : targets;
+  const title = isBulk
+    ? `Generate ${selectedTargets.length} certificate${selectedTargets.length === 1 ? "" : "s"}`
+    : `Generate certificate`;
+
+  function toggleTarget(enrollmentId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(enrollmentId)) next.delete(enrollmentId);
+      else next.add(enrollmentId);
+      return next;
+    });
+  }
 
   async function handleConfirm() {
-    if (targets.length === 0) return;
+    if (selectedTargets.length === 0) return;
 
     const durationValue = durationYears.trim() === "" ? null : Number(durationYears);
     if (durationValue != null && !Number.isFinite(durationValue)) {
@@ -93,7 +108,7 @@ export function GenerateCertificateModal({
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          enrollmentIds: targets.map((target) => target.enrollmentId),
+          enrollmentIds: selectedTargets.map((target) => target.enrollmentId),
           issuedAt,
           durationYearsOverride: durationValue,
         }),
@@ -128,13 +143,14 @@ export function GenerateCertificateModal({
       onClose={onClose}
       title={title}
       width={440}
+      maxHeightVh={80}
       footer={
         <>
           <Button label="Cancel" variant="ghost" onClick={onClose} disabled={submitting} />
           <Button
-            label={submitting ? "Generating…" : "Generate certificate"}
+            label={submitting ? "Generating…" : title}
             variant="primary"
-            disabled={submitting || targets.length === 0}
+            disabled={submitting || selectedTargets.length === 0}
             onClick={handleConfirm}
           />
         </>
@@ -144,11 +160,8 @@ export function GenerateCertificateModal({
         <Text size="sm" color="secondary">
           {isBulk ? (
             <>
-              Generate certificates for{" "}
-              <span style={{ color: "var(--linear-color-ink)", fontWeight: 500 }}>
-                {targets.length} students
-              </span>{" "}
-              in {className}. This marks each student as Graduated for this class.
+              Select which students to generate certificates for in {className}. This marks each
+              selected student as Graduated for this class.
             </>
           ) : (
             <>
@@ -161,35 +174,91 @@ export function GenerateCertificateModal({
           )}
         </Text>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Text size="sm" color="secondary">
-            Date of issuance
-          </Text>
-          <input
-            type="date"
-            value={issuedAt}
-            onChange={(event) => setIssuedAt(event.target.value)}
-            style={fieldStyle}
-          />
-        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+            <Text size="sm" color="secondary">
+              Date of issuance
+            </Text>
+            <input
+              type="date"
+              value={issuedAt}
+              onChange={(event) => setIssuedAt(event.target.value)}
+              style={fieldStyle}
+            />
+          </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <Text size="sm" color="secondary">
-            Valid for (years)
-          </Text>
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={durationYears}
-            onChange={(event) => setDurationYears(event.target.value)}
-            placeholder="No expiry"
-            style={fieldStyle}
-          />
-          <Text size="sm" color="secondary">
-            Pre-filled from the class's certification length — confirm or edit before generating.
-          </Text>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+            <Text size="sm" color="secondary">
+              Valid for (years)
+            </Text>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={durationYears}
+              onChange={(event) => setDurationYears(event.target.value)}
+              placeholder="No expiry"
+              style={fieldStyle}
+            />
+          </div>
         </div>
+        <Text size="sm" color="secondary" style={{ marginTop: -10 }}>
+          Duration is pre-filled from the class's certification length — confirm or edit before generating.
+        </Text>
+
+        {isBulk ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <Text size="sm" color="secondary">
+              Students ({selectedTargets.length} of {targets.length} selected)
+            </Text>
+            <div
+              style={{
+                boxSizing: "border-box",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+                padding: 8,
+                borderRadius: 6,
+                border: "var(--linear-border-width) solid var(--linear-color-hairline)",
+              }}
+            >
+              {targets.map((target) => (
+                <div
+                  key={target.enrollmentId}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggleTarget(target.enrollmentId)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleTarget(target.enrollmentId);
+                    }
+                  }}
+                  onMouseEnter={(event) => {
+                    event.currentTarget.style.background = "var(--linear-color-sidebar-item-selected)";
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.background = "transparent";
+                  }}
+                  style={{
+                    boxSizing: "border-box",
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    cursor: "pointer",
+                    background: "transparent",
+                    transition: "background 0.1s ease",
+                  }}
+                >
+                  {/* No onChange here on purpose — the row's onClick above owns the toggle,
+                      and the click still bubbles up from this checkbox to trigger it. */}
+                  <Checkbox label={target.studentName} value={selectedIds.has(target.enrollmentId)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {error ? (
           <Text size="sm" color="secondary" style={{ color: "#eb5757" }}>
