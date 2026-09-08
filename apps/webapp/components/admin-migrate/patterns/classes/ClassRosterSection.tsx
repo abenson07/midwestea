@@ -1,15 +1,17 @@
 "use client";
 
 import { useMemo, useState, type MouseEvent } from "react";
-import { Bell, ClipboardCheck } from "lucide-react";
+import { Bell, ClipboardCheck, FileCheck, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
-import { proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
+import { pixel, proportional, type TableColumn } from "@/components/admin-migrate/patterns/primitives/table";
 import { GroupedTable } from "@/components/admin-migrate/patterns/grouped-table/GroupedTable";
 import { RowClickCell } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { ListToolbar } from "@/components/admin-migrate/patterns/foundation/ListToolbar";
+import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { Dropdown, DropdownItem } from "@/components/admin-migrate/patterns/shared/dropdown";
 import {
   rosterPaymentStatusFor,
   rosterPrerequisiteStatusFor,
@@ -99,18 +101,22 @@ function stopRowClick(event: MouseEvent) {
 function buildColumns(
   onSelectStudent?: (id: string) => void,
   selectedStudentId?: string | null,
-  showCertificates?: boolean,
+  showCertificateColumn?: boolean,
+  showActionsColumn?: boolean,
   classId?: string,
   showPrerequisites?: boolean,
   onReviewPrerequisite?: (studentId: string) => void,
   invoices?: TransactionRow[],
+  onGenerateCertificateForRow?: (row: ClassRosterRow) => void,
 ): TableColumn<ClassRosterRow>[] {
   function selectIfStudent(row: ClassRosterRow) {
     return row.role === "Student" ? () => onSelectStudent?.(row.id) : undefined;
   }
 
   const even = proportional(1);
-  const columns: TableColumn<ClassRosterRow>[] = [
+  const columns: TableColumn<ClassRosterRow>[] = [];
+
+  columns.push(
     {
       key: "name",
       header: "Name",
@@ -141,7 +147,7 @@ function buildColumns(
         </RowClickCell>
       ),
     },
-  ];
+  );
 
   if (showPrerequisites && classId) {
     columns.push({
@@ -204,7 +210,7 @@ function buildColumns(
     });
   }
 
-  if (showCertificates) {
+  if (showCertificateColumn) {
     columns.push({
       key: "certificate",
       header: "Certificate",
@@ -227,6 +233,42 @@ function buildColumns(
     });
   }
 
+  if (showActionsColumn) {
+    columns.push({
+      key: "actions",
+      header: "",
+      width: pixel(44),
+      align: "end",
+      renderCell: (row) => {
+        if (row.role !== "Student" || !row.enrollmentId || row.certificateHref) return null;
+        return (
+          <span onClick={stopRowClick}>
+            <Dropdown
+              label={`Actions for ${row.name}`}
+              placement="below"
+              alignment="end"
+              width={200}
+              trigger={
+                <IconButton
+                  label={`Actions for ${row.name}`}
+                  variant="ghost"
+                  size="sm"
+                  icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+                />
+              }
+            >
+              <DropdownItem
+                label="Generate certificate"
+                icon={<FileCheck size={14} strokeWidth={1.75} />}
+                onSelect={() => onGenerateCertificateForRow?.(row)}
+              />
+            </Dropdown>
+          </span>
+        );
+      },
+    });
+  }
+
   return columns;
 }
 
@@ -238,6 +280,7 @@ export type ClassRosterSectionProps = {
   onReviewPrerequisite?: (studentId: string) => void;
   showCertificates?: boolean;
   showPrerequisites?: boolean;
+  onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
 };
 
 export function ClassRosterSection({
@@ -248,24 +291,40 @@ export function ClassRosterSection({
   onReviewPrerequisite,
   showCertificates = false,
   showPrerequisites = false,
+  onGenerateCertificateForRow,
 }: ClassRosterSectionProps) {
   const { transactions } = useTransactions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const hasWaitlist = rows.some((row) => row.status === "Waitlisted");
+  const showCertificateColumn = showCertificates && rows.some((row) => row.certificateHref);
+  const showActionsColumn =
+    showCertificates && rows.some((row) => row.role === "Student" && row.enrollmentId && !row.certificateHref);
 
   const columns = useMemo(
     () =>
       buildColumns(
         onSelectStudent,
         selectedStudentId,
-        showCertificates,
+        showCertificateColumn,
+        showActionsColumn,
         classId,
         showPrerequisites,
         onReviewPrerequisite,
         transactions,
+        onGenerateCertificateForRow,
       ),
-    [onSelectStudent, selectedStudentId, showCertificates, classId, showPrerequisites, onReviewPrerequisite, transactions],
+    [
+      onSelectStudent,
+      selectedStudentId,
+      showCertificateColumn,
+      showActionsColumn,
+      classId,
+      showPrerequisites,
+      onReviewPrerequisite,
+      transactions,
+      onGenerateCertificateForRow,
+    ],
   );
 
   const filteredRows = useMemo(() => {

@@ -39,6 +39,7 @@ export type ClassOverviewPageProps = {
   onEditDetails?: () => void;
   onAddPrerequisite?: (name: string) => void;
   onRemoveStudent?: (student: StudentToRemove) => void;
+  onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
 };
 
 export function ClassOverviewPage({
@@ -48,6 +49,7 @@ export function ClassOverviewPage({
   onEditDetails,
   onAddPrerequisite,
   onRemoveStudent,
+  onGenerateCertificateForRow,
 }: ClassOverviewPageProps) {
   const live = useIsNewAdminMigrate();
   const { transactions } = useTransactions();
@@ -61,7 +63,8 @@ export function ClassOverviewPage({
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
 
-  const canSelectStudent = !closed;
+  // Certificate generation isn't tied to the class being closed — always selectable.
+  const canSelectStudent = true;
   const selectedStudent = roster.find((row) => row.id === selectedStudentId) ?? null;
 
   function handleReviewPrerequisite(studentId: string) {
@@ -156,8 +159,9 @@ export function ClassOverviewPage({
           selectedStudentId={canSelectStudent ? selectedStudentId : null}
           onSelectStudent={canSelectStudent ? setSelectedStudentId : undefined}
           onReviewPrerequisite={handleReviewPrerequisite}
-          showCertificates={closed}
+          showCertificates
           showPrerequisites={!closed}
+          onGenerateCertificateForRow={onGenerateCertificateForRow}
         />
       </div>
       <div
@@ -182,6 +186,7 @@ export function ClassOverviewPage({
             onClose={() => setSelectedStudentId(null)}
             onRemove={(row) => onRemoveStudent?.(row)}
             onReviewPrerequisite={(submissionId) => setReviewSubmissionId(submissionId)}
+            onGenerateCertificate={onGenerateCertificateForRow}
           />
         ) : (
           <>

@@ -46,6 +46,8 @@ export type ClassDetail = {
   classLength: string;
   registrationLimit: string;
   certificationLength: string;
+  /** Raw years behind `certificationLength`'s display string — prefills the certificate duration field. */
+  certificationLengthYears?: number | null;
   price: string;
   registrationFee: string;
   chargeFullAmountAtRegistration?: boolean;
@@ -89,7 +91,9 @@ export type ClassRosterRow = {
   email: string;
   role: "Student" | "Instructor";
   status: "Enrolled" | "Waitlisted";
-  /** Closed classes link a completion certificate from this roster row. */
+  /** The underlying enrollments.id — required to generate a certificate for this row. */
+  enrollmentId?: string;
+  /** Set once a certificate has been generated for this roster row. */
   certificateHref?: string;
 };
 

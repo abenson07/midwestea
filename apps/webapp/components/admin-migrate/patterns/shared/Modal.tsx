@@ -14,6 +14,8 @@ export type ModalProps = {
   width?: number;
   /** When set, the modal fills the viewport minus this many px on every side instead of sizing to `width`. */
   fullScreenInset?: number;
+  /** Caps the panel height as a percentage of the viewport. @default the panel keeps its `calc(100vh - 64px)` cap. */
+  maxHeightVh?: number;
 };
 
 /** Centered overlay dialog — Linear-token styled, following `OutlinedPanel`'s close conventions. */
@@ -25,6 +27,7 @@ export function Modal({
   footer,
   width = 420,
   fullScreenInset,
+  maxHeightVh,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +70,11 @@ export function Modal({
           overflow: "hidden",
           ...(fullScreenInset != null
             ? { position: "fixed", inset: fullScreenInset, width: "auto", height: "auto" }
-            : { width, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100vh - 64px)" }),
+            : {
+                width,
+                maxWidth: "calc(100vw - 32px)",
+                maxHeight: maxHeightVh != null ? `${maxHeightVh}vh` : "calc(100vh - 64px)",
+              }),
           background: "var(--linear-color-canvas)",
           border: "var(--linear-border-width) solid var(--linear-color-hairline)",
           borderRadius: "var(--linear-radius-md)",

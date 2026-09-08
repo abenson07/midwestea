@@ -7,6 +7,9 @@ import WaitlistSuccessful, {
 import EnrollmentSuccessful, {
   type EnrollmentSuccessfulProps,
 } from '../emails/enrollment-successful';
+import CompletedClassFollowups, {
+  type CompletedClassFollowupsProps,
+} from '../emails/completed-class-followups';
 
 /**
  * Send functions for the new React Email-based transactional emails
@@ -47,4 +50,24 @@ export async function renderEnrollmentSuccessfulEmail(
   props: EnrollmentSuccessfulProps
 ): Promise<string> {
   return render(React.createElement(EnrollmentSuccessful, props));
+}
+
+/**
+ * Send the "Completed Class + Followups" certificate-ready email
+ * (BEN-1155/1156). First real caller — previously template-only, blocked on
+ * the certificates table/completion data this build adds.
+ */
+export async function sendCertificateIssuedEmail(
+  to: string,
+  props: CompletedClassFollowupsProps
+): Promise<EmailSendResult> {
+  const html = await render(React.createElement(CompletedClassFollowups, props));
+
+  return sendEmail({
+    from: DEFAULT_FROM,
+    to,
+    subject: `Your ${props.className} certificate is ready`,
+    html,
+    tags: [{ name: 'email_type', value: 'completed_class_followups' }],
+  });
 }

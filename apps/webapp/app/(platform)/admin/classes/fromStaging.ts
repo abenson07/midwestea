@@ -1,3 +1,4 @@
+import type { StagingCertificate } from "@/lib/admin-migrate/certificates";
 import type { StagingClass } from "@/lib/admin-migrate/classes";
 import type { StagingCourse } from "@/lib/admin-migrate/courses";
 import type { StagingEnrollment } from "@/lib/admin-migrate/enrollments";
@@ -37,6 +38,7 @@ export function toClassDetail(
     certificationLength: formatCertLength(
       stagingClass.certificationLength ?? course?.certificationLength,
     ),
+    certificationLengthYears: stagingClass.certificationLength ?? course?.certificationLength ?? null,
     price: formatCentsDisplay(stagingClass.price ?? course?.price),
     registrationFee: formatCentsDisplay(stagingClass.registrationFee ?? course?.registrationFee),
     chargeFullAmountAtRegistration: stagingClass.chargeFullAmountAtRegistration,
@@ -65,13 +67,19 @@ export function classPrerequisiteNames(
     .filter((name): name is string => Boolean(name));
 }
 
-export function toRosterRow(enrollment: StagingEnrollment, student: StagingStudent): ClassRosterRow {
+export function toRosterRow(
+  enrollment: StagingEnrollment,
+  student: StagingStudent,
+  certificate?: StagingCertificate,
+): ClassRosterRow {
   return {
     id: student.id,
     name: student.name,
     email: student.email,
     role: "Student",
     status: "Enrolled",
+    enrollmentId: enrollment.id,
+    certificateHref: certificate?.status === "issued" ? certificate.downloadUrl ?? undefined : undefined,
   };
 }
 

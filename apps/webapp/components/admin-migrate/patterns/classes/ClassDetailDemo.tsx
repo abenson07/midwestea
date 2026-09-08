@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Mail, Plus, UserPlus } from "lucide-react";
+import { FileCheck, Mail, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { FoundationLayout } from "@/components/admin-migrate/patterns/foundation/FoundationLayout";
 import { CanvasHeader } from "@/components/admin-migrate/patterns/foundation/CanvasHeader";
@@ -13,14 +13,7 @@ import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
 import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { formatCalendarMonthDay, todayIsoDate } from "@/lib/dates";
-import { CreateClassModal } from "../catalog/CreateClassModal";
-import {
-  catalogTemplateByCode,
-  catalogTemplateFromHref,
-  catalogTemplateHref,
-  classDetailHref,
-  classesForTemplate,
-} from "../catalog/catalogMocks";
+import { catalogTemplateByCode, catalogTemplateFromHref, catalogTemplateHref } from "../catalog/catalogMocks";
 import { ClassOverviewPage } from "./ClassOverviewPage";
 import { ClassSettingsPage } from "./ClassSettingsPage";
 import { ClassInvoicesPage } from "./ClassInvoicesPage";
@@ -28,6 +21,7 @@ import { ClassPrerequisitesPage } from "./ClassPrerequisitesPage";
 import { ClassMessageAllModal } from "./ClassMessageAllModal";
 import { ClassAddStudentModal } from "./ClassAddStudentModal";
 import { RemoveStudentModal } from "./RemoveStudentModal";
+import { GenerateCertificateModal, type CertificateTarget } from "./GenerateCertificateModal";
 import {
   classActivityFor,
   classDetailFor,
@@ -181,9 +175,17 @@ function ClassDetailDemoInner({
   );
   const [messageOpen, setMessageOpen] = useState(false);
   const [addStudentOpen, setAddStudentOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const [removeStudent, setRemoveStudent] = useState<StudentToRemove | null>(null);
+  const [certificateTargets, setCertificateTargets] = useState<CertificateTarget[] | null>(null);
   const { transactions, updateTransaction } = useTransactions();
+
+  function openGenerateCertificate(rows: ClassRosterRow[]) {
+    const targets = rows
+      .filter((row): row is ClassRosterRow & { enrollmentId: string } => Boolean(row.enrollmentId))
+      .map((row) => ({ enrollmentId: row.enrollmentId, studentId: row.id, studentName: row.name }));
+    if (targets.length === 0) return;
+    setCertificateTargets(targets);
+  }
 
   useEffect(() => {
     if (searchParams.get("openAddStudent") !== "1") return;
@@ -290,12 +292,18 @@ function ClassDetailDemoInner({
                     ],
               endContent: (
                 <div style={{ display: "flex", gap: 8 }}>
-                  <Button
-                    label="Add Class"
-                    variant="secondary"
-                    icon={<Plus size={14} strokeWidth={1.75} />}
-                    onClick={() => setCreateOpen(true)}
-                  />
+                  {roster.some((row) => row.role === "Student" && row.enrollmentId) ? (
+                    <Button
+                      label="Certificates"
+                      variant="secondary"
+                      icon={<FileCheck size={14} strokeWidth={1.75} />}
+                      onClick={() =>
+                        openGenerateCertificate(
+                          roster.filter((row) => row.role === "Student" && row.enrollmentId),
+                        )
+                      }
+                    />
+                  ) : null}
                   {!closed ? (
                     <Button
                       label="Add Student"
@@ -357,6 +365,7 @@ function ClassDetailDemoInner({
                 logActivity("update", `Added prerequisite ${name}`);
               }}
               onRemoveStudent={setRemoveStudent}
+              onGenerateCertificateForRow={(row) => openGenerateCertificate([row])}
             />
           </div>
         )}
@@ -406,14 +415,13 @@ function ClassDetailDemoInner({
           });
         }}
       />
-      <CreateClassModal
-        isOpen={createOpen}
-        onClose={() => setCreateOpen(false)}
-        template={parentTemplate}
-        existingClassCount={parentTemplate ? classesForTemplate(parentTemplate.code).length : 0}
-        onCreated={(created) => {
-          router.push(`${basePath}${classDetailHref(created.id)}`);
-        }}
+      <GenerateCertificateModal
+        isOpen={certificateTargets != null}
+        onClose={() => setCertificateTargets(null)}
+        className={classDetail.title}
+        defaultDurationYears={classDetail.certificationLengthYears}
+        targets={certificateTargets ?? []}
+        onIssued={() => router.refresh()}
       />
     </div>
   );

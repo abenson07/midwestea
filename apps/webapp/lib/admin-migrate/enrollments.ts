@@ -7,6 +7,7 @@ export type StagingEnrollment = {
   classId: string;
   enrollmentStatus: string | null;
   enrolledAt: string | null;
+  outcome: string | null;
 };
 
 export type ListEnrollmentsOptions = {
@@ -20,7 +21,7 @@ export async function listEnrollments(
   const supabase = createStagingAdminClient();
   let query = supabase
     .from("enrollments")
-    .select("id, student_id, class_id, enrollment_status, enrolled_at")
+    .select("id, student_id, class_id, enrollment_status, enrolled_at, outcome")
     .order("enrolled_at", { ascending: false });
 
   if (options.studentId) {
@@ -43,6 +44,7 @@ export async function listEnrollments(
     classId: row.class_id as string,
     enrollmentStatus: (row.enrollment_status as string | null) ?? null,
     enrolledAt: (row.enrolled_at as string | null) ?? null,
+    outcome: (row.outcome as string | null) ?? null,
   }));
 }
 

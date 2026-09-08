@@ -1,12 +1,13 @@
 "use client";
 
-import { Bell, ClipboardCheck, X } from "lucide-react";
+import { Bell, ClipboardCheck, FileCheck, MoreHorizontal, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
 import { IconButton } from "@/components/admin-migrate/patterns/shared/IconButton";
+import { Dropdown, DropdownItem } from "@/components/admin-migrate/patterns/shared/dropdown";
 import { ClassSidebarSection } from "./ClassSidebarSection";
 import {
   classInvoicesForStudent,
@@ -40,6 +41,7 @@ export type ClassStudentPaymentsCardProps = {
   onClose: () => void;
   onRemove: (student: StudentToRemove) => void;
   onReviewPrerequisite?: (submissionId: string) => void;
+  onGenerateCertificate?: (student: ClassRosterRow) => void;
 };
 
 const SUMMARY_COLOR: Record<EnrollmentInvoiceSummary, string> = {
@@ -223,6 +225,7 @@ export function ClassStudentPaymentsCard({
   onClose,
   onRemove,
   onReviewPrerequisite,
+  onGenerateCertificate,
 }: ClassStudentPaymentsCardProps) {
   const router = useRouter();
   const basePath = useAdminBasePath();
@@ -301,18 +304,55 @@ export function ClassStudentPaymentsCard({
       ) : null}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 8 }}>
-        <Button
-          label="View Profile"
-          variant="secondary"
-          width="100%"
-          onClick={() => {
-            if (live) {
-              router.push(`${basePath}/students/${student.id}`);
-              return;
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Button
+              label="View Profile"
+              variant="secondary"
+              width="100%"
+              onClick={() => {
+                if (live) {
+                  router.push(`${basePath}/students/${student.id}`);
+                  return;
+                }
+                toast.message(`Student profile for ${student.name} isn’t wired yet — demo mode`);
+              }}
+            />
+          </div>
+          <Dropdown
+            label="More actions"
+            placement="below"
+            alignment="end"
+            trigger={
+              <IconButton
+                label="More actions"
+                variant="secondary"
+                size="md"
+                icon={<MoreHorizontal size={16} strokeWidth={1.75} />}
+              />
             }
-            toast.message(`Student profile for ${student.name} isn’t wired yet — demo mode`);
-          }}
-        />
+          >
+            {student.certificateHref ? (
+              <DropdownItem
+                label="View certificate"
+                icon={<FileCheck size={14} strokeWidth={1.75} />}
+                onSelect={() => window.open(student.certificateHref, "_blank", "noopener,noreferrer")}
+              />
+            ) : (
+              <DropdownItem
+                label="Generate certificate"
+                icon={<FileCheck size={14} strokeWidth={1.75} />}
+                onSelect={() => {
+                  if (live && student.enrollmentId) {
+                    onGenerateCertificate?.(student);
+                    return;
+                  }
+                  toast.message(`Certificate generation for ${student.name} isn’t wired yet — demo mode`);
+                }}
+              />
+            )}
+          </Dropdown>
+        </div>
         <Button
           label="Remove student"
           variant="ghost"
