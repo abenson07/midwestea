@@ -265,10 +265,6 @@ h1{
   padding:6px 10px;
   border-top:1px solid var(--line);
 }
-.shot-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
-@media (max-width:560px){.shot-row{grid-template-columns:1fr;}}
-.shot-row .shot{margin-top:0;}
-
 footer{
   margin-top:36px;
   font-size:12px;
@@ -345,9 +341,13 @@ footer{
         <div class="step-num">02</div>
         <div class="step-body">
           <div class="step-top"><span class="role student">Student</span><span class="step-label">Registration confirmation</span></div>
-          <p class="step-text">Jordan was seeded directly into the database, so there's no real email in that inbox. Pull up the template instead: pick <b>"Enrollment Successful"</b> from the dropdown, class = Paramedic Program. Call out — registered on the registration fee; tuition is tracked and billed separately.</p>
+          <p class="step-text">Jordan was seeded directly into the database, so there's no real email in that inbox — this is the same email, rendered with Jordan's real data through the template. Call out — registered on the registration fee; tuition is tracked and billed separately.</p>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/dev/email-preview" target="_blank">Email previewer</a>
+          </div>
+          <div class="shot">
+            <img src="screenshots/email-01-enrollment-successful.png" alt="Enrollment Successful email for Jordan Reyes, Paramedic Program">
+            <div class="shot-cap">Registration confirmation email — Jordan Reyes, real tuition/installment data</div>
           </div>
         </div>
       </div>
@@ -440,21 +440,17 @@ footer{
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/2446731b-7247-4065-881b-b298205fa39e/prerequisites" target="_blank">Casey's prerequisite status</a>
           </div>
-          <div class="shot">
-            <img src="screenshots/studentB-02-class-rejected.png" alt="Casey's class page showing CPR Certification needs resubmission">
-            <div class="shot-cap">Class page — CPR Certification: Needs resubmission, real rejection reason shown in red</div>
-          </div>
         </div>
       </div>
 
       <div class="step">
         <div class="step-num">02</div>
         <div class="step-body">
-          <div class="step-top"><span class="role student">Student</span><span class="step-label">Fix the issue</span></div>
-          <p class="step-text">Casey sees the rejected status on CPR Certification and uploads a fresh file. This is a live write: it supersedes the rejected row and creates a new pending one.</p>
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">What Casey sees</span></div>
+          <p class="step-text">Same rejection, from her side — CPR Certification flagged "Needs resubmission" with the reason spelled out in red.</p>
           <div class="shot">
-            <img src="screenshots/studentB-03-class-pending-resubmission.png" alt="Casey's class page after resubmitting, pending review">
-            <div class="shot-cap">Class page — resubmitted, awaiting review</div>
+            <img src="screenshots/studentB-02-class-rejected.png" alt="Casey's class page showing CPR Certification needs resubmission">
+            <div class="shot-cap">Casey's class page — CPR Certification: Needs resubmission, real rejection reason shown in red</div>
           </div>
         </div>
       </div>
@@ -462,14 +458,11 @@ footer{
       <div class="step">
         <div class="step-num">03</div>
         <div class="step-body">
-          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Approve and verify</span></div>
-          <p class="step-text">Back to the review screen — approve the new submission, show the record flip to cleared.</p>
-          <div class="links">
-            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/prerequisites" target="_blank">Class review queue</a>
-          </div>
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Fix the issue</span></div>
+          <p class="step-text">Casey uploads a fresh file. This is a live write: it supersedes the rejected row and creates a new pending one.</p>
           <div class="shot">
-            <img src="screenshots/studentB-04-class-cleared.png" alt="Casey's class page after approval, all requirements complete">
-            <div class="shot-cap">Class page — after: all requirements complete</div>
+            <img src="screenshots/studentB-03-class-pending-resubmission.png" alt="Casey's class page after resubmitting, pending review">
+            <div class="shot-cap">Casey's class page — resubmitted, awaiting review</div>
           </div>
         </div>
       </div>
@@ -477,17 +470,38 @@ footer{
       <div class="step">
         <div class="step-num">04</div>
         <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Approve and verify</span></div>
+          <p class="step-text">Back to the review screen — approve the new submission, show the record flip to cleared.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/prerequisites" target="_blank">Class review queue</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">What Casey sees now</span></div>
+          <p class="step-text">All requirements complete, from her side.</p>
+          <div class="shot">
+            <img src="screenshots/studentB-04-class-cleared.png" alt="Casey's class page after approval, all requirements complete">
+            <div class="shot-cap">Casey's class page — after: all requirements complete</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">06</div>
+        <div class="step-body">
           <div class="step-top"><span class="role student">Student</span><span class="step-label">Account self-service</span></div>
           <p class="step-text">Profile page, a real editable field (phone number), saved for real — not a demo toast. The dashboard is also where enrolled and waitlisted classes would sit side by side; none of the seeded students are currently waitlisted, so mention it rather than show it.</p>
-          <div class="shot-row">
-            <div class="shot">
-              <img src="screenshots/studentB-01-dashboard.png" alt="Casey's dashboard">
-              <div class="shot-cap">Dashboard</div>
-            </div>
-            <div class="shot">
-              <img src="screenshots/studentB-05-profile.png" alt="Casey's profile page">
-              <div class="shot-cap">Profile</div>
-            </div>
+          <div class="shot">
+            <img src="screenshots/studentB-01-dashboard.png" alt="Casey's dashboard">
+            <div class="shot-cap">Casey's dashboard</div>
+          </div>
+          <div class="shot">
+            <img src="screenshots/studentB-05-profile.png" alt="Casey's profile page">
+            <div class="shot-cap">Casey's profile</div>
           </div>
         </div>
       </div>
@@ -531,20 +545,15 @@ footer{
         <div class="step-num">03</div>
         <div class="step-body">
           <div class="step-top"><span class="role student">Student</span><span class="step-label">Re-engagement</span></div>
-          <p class="step-text">Pull up <b>"Completed Class + Suggested Followups"</b> in the email previewer, class = Paramedic Program — this is where the recommendations actually live. Then click through a landing page and register for the next offering with a real test-card checkout.</p>
+          <p class="step-text">This is the real email Demo Student would get — the recommendations (Community Paramedic, Critical Care Transport, Advanced Tactical Casualty Care) are the actual output of the upsell logic for a completed Paramedic Program, not sample filler. Then click through a landing page and register for the next offering with a real test-card checkout.</p>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/dev/email-preview" target="_blank">Email previewer</a>
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/preview-landing-pages/student-success-story" target="_blank">Landing page</a>
           </div>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-body">
-          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Confirm attribution</span></div>
-          <p class="step-text">Neither half of this step exists yet — there's no screen showing campaign attribution on the enrollment, and no global marketing opt-out setting anywhere in the product. Skip this step live, or name it as what's next rather than demoing it.</p>
-          <div class="flag-inline"><b>Not built:</b> attribution view, marketing opt-out / transactional-email carve-out. Zero UI, zero config, in either case.</div>
+          <div class="shot">
+            <img src="screenshots/email-02-completed-followups.png" alt="Completed Class + Suggested Followups email for Demo Student, Paramedic Program">
+            <div class="shot-cap">Re-engagement email — real Paramedic Program follow-up recommendations</div>
+          </div>
         </div>
       </div>
 
