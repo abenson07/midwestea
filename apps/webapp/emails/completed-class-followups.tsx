@@ -65,13 +65,14 @@ export default function CompletedClassFollowups({
 
 CompletedClassFollowups.PreviewProps = {
   studentName: 'Jane Smith',
-  className: 'Paramedic Training',
+  className: 'Paramedic Program',
   certificateUrl: 'https://midwestea.com/student/certificates/demo',
   allCoursesUrl: 'https://midwestea.com/courses',
+  // Matches COURSE_UPSELL_MAP.PARA (lib/course-upsells.ts) so this preview
+  // reflects what a real completed-Paramedic email actually sends.
   suggestedFollowUps: [
-    { title: 'Pediatric CPR', description: 'Short statement here', href: 'https://midwestea.com/courses/pediatric-cpr' },
-    { title: 'Pediatric CPR', description: 'Short statement here', href: 'https://midwestea.com/courses/pediatric-cpr' },
-    { title: 'Pediatric CPR', description: 'Short statement here', href: 'https://midwestea.com/courses/pediatric-cpr' },
-    { title: 'Pediatric CPR', description: 'Short statement here', href: 'https://midwestea.com/courses/pediatric-cpr' },
+    { title: 'Community Paramedic', description: 'Recertification and next-step training for first responders.', href: 'https://midwestea.com/courses' },
+    { title: 'Critical Care Transport', description: 'Recertification and next-step training for first responders.', href: 'https://midwestea.com/courses' },
+    { title: 'Advanced Tactical Casualty Care', description: 'Recertification and next-step training for first responders.', href: 'https://midwestea.com/courses' },
   ],
 } satisfies CompletedClassFollowupsProps;
