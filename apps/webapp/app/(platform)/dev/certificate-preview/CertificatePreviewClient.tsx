@@ -3,7 +3,6 @@
 import { PDFViewer } from "@react-pdf/renderer";
 import { useMemo, useState, type CSSProperties } from "react";
 import { CompletionCertificateDocument } from "@/lib/certificates/completion-certificate";
-import { renderCompletionCertificatePdf } from "@/lib/certificates/render";
 import {
   formatExpiresLabel,
   getCertificateExpiresAt,
@@ -124,7 +123,16 @@ export default function CertificatePreviewClient() {
     setDownloading(true);
     setDownloadError("");
     try {
-      const blob = await renderCompletionCertificatePdf(props);
+      const response = await fetch("/api/dev/render-certificate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(props),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Failed to generate PDF");
+      }
+      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
