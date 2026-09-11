@@ -46,7 +46,7 @@ export const Header108 = (props: Header108Props) => {
 
   return (
     <section id="relume" data-program-hero className="relative h-[250vh]">
-      <div className="px-[5%] pt-16 md:pt-24 lg:pt-28">
+      <div className="px-[5%] pt-[calc(var(--mea-nav-height)+2rem)] md:pt-[calc(var(--mea-nav-height)+3rem)] lg:pt-[calc(var(--mea-nav-height)+3.5rem)]">
         <div className="container">
           <div className="mx-auto w-full max-w-lg text-center">
             <h1 className="mea-heading-h2 mb-5 md:mb-6">{title}</h1>

@@ -24,8 +24,9 @@ export type StationChiefContent = {
 
 export const stationChiefContent: StationChiefContent = {
   header82: {
-    heading: "Calling all fire chiefs: give your whole crew a certification path, not just a class.",
-    description: "Midwest EMS Academy trains, certifies, and advances your department — on your schedule, not ours.",
+    heading: "Certify Your Whole Crew",
+    description:
+      "Calling all fire chiefs: Midwest EMS Academy trains, certifies, and advances your department on your own schedule — a full career path, not just a class.",
     buttons: [{ title: "Explore Department Programs" }],
     video: "https://www.youtube.com/embed/8DKLYsikxTs?si=Ch9W0KrDWWUiCMMW",
     image: {

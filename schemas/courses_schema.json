@@ -82,11 +82,5 @@
       "data_type": "USER-DEFINED",
       "is_nullable": "YES",
       "column_default": null
-    },
-    {
-      "column_name": "image_url",
-      "data_type": "text",
-      "is_nullable": "YES",
-      "column_default": null
     }
   ]

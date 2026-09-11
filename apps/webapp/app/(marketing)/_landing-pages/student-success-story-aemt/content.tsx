@@ -24,9 +24,9 @@ export type StudentSuccessStoryContent = {
 export const priyaStoryContent: StudentSuccessStoryContent = {
   header137: {
     kicker: "Meet Priya",
-    heading: "Priya was already running calls as an EMT. AEMT gave her the scope to match her experience.",
+    heading: "From EMT To AEMT",
     description:
-      "For EMTs ready to stop hitting the ceiling of their own certification.",
+      "Priya was already running calls as an EMT. AEMT gave her the scope to match her experience — for EMTs ready to stop hitting the ceiling of their own certification.",
     button: { title: "Level Up to AEMT" },
     backgroundImage: { src: "/images/iv.avif", alt: "Priya starting an IV in the field" },
     foregroundImage: { src: "/images/emt-compressions.avif", alt: "Priya on a call with her crew" },

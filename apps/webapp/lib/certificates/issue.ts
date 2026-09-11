@@ -161,13 +161,13 @@ async function sendCertificateEmail(
     .map((row: any) => row.enrollments?.classes?.course_code as string | null)
     .filter((code: string | null): code is string => Boolean(code));
 
-  const { data: courseRows } = await supabase.from("courses").select("course_code, course_name, image_url");
+  const { data: courseRows } = await supabase.from("courses").select("course_code, course_name, course_image");
   const courseLookup: UpsellCourseLookup = new Map(
     (courseRows ?? [])
       .filter((row: any) => row.course_code)
       .map((row: any) => [
         row.course_code as string,
-        { name: row.course_name || row.course_code, imageUrl: row.image_url ?? null },
+        { name: row.course_name || row.course_code, imageUrl: row.course_image ?? null },
       ]),
   );
 

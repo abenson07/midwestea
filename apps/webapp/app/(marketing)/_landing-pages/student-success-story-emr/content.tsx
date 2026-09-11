@@ -24,9 +24,9 @@ export type StudentSuccessStoryContent = {
 export const danaStoryContent: StudentSuccessStoryContent = {
   header137: {
     kicker: "Meet Dana",
-    heading: "Dana was first responder to every practice-field injury for years — with no real training to back her up. EMR changed that in 7 weeks.",
+    heading: "EMR Certified In 7 Weeks",
     description:
-      "A fast, affordable way to turn \"the person who always helps\" into someone who's actually certified to.",
+      "Dana was first responder to every practice-field injury for years, with no real training to back her up. A fast, affordable way to turn \"the person who always helps\" into someone who's actually certified to.",
     button: { title: "Get EMR Certified" },
     backgroundImage: { src: "/images/emr-hero.avif", alt: "Dana on the sidelines of a practice field" },
     foregroundImage: { src: "/images/aed.avif", alt: "Dana practicing with an AED" },

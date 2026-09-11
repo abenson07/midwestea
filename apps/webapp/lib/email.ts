@@ -1,4 +1,5 @@
 import { Resend } from 'resend';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OutstandingInvoice as EnrollmentOutstandingInvoice } from './enrollments';
 import type { OutstandingInvoice as TemplateOutstandingInvoice } from './email-templates';
 import type { PrerequisiteItem } from '../emails/components/PrerequisiteGrid';
@@ -13,16 +14,40 @@ function absolutizeEmailAssetUrls(html: string): string {
 }
 
 /**
- * Prerequisites aren't modeled in the database today — hardcoded placeholder per
- * product decision, keeping literal Figma wording. Swap via prompt-edit once real
- * content or real data is ready. See apps/webapp/emails/EMAILS-GUIDE.md.
+ * The real page a student completes prerequisites on (app/(platform)/student/classes/[classId]/page.tsx),
+ * keyed by the classes.id UUID. Every prerequisite-related email link should point here.
  */
-const DEFAULT_PLACEHOLDER_PREREQUISITES: PrerequisiteItem[] = [
-  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
-  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
-  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
-  { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
-];
+function studentClassUrl(classId: string): string {
+  return `${SITE_URL}/student/classes/${classId}`;
+}
+
+/**
+ * Look up the class's real prerequisite snapshot (BEN-865's class_prerequisites/
+ * prerequisite_types tables) for the Enrollment Successful email's Pre-requisites
+ * section. Replaces the old DEFAULT_PLACEHOLDER_PREREQUISITES constant — prerequisites
+ * are modeled in the database now, see lib/prerequisite-evaluation.ts.
+ */
+async function getEnrollmentPrerequisiteItems(
+  supabase: SupabaseClient,
+  classId: string
+): Promise<PrerequisiteItem[]> {
+  const { data, error } = await supabase
+    .from('class_prerequisites')
+    .select('is_required, sort_order, prerequisite_type:prerequisite_types(name, description)')
+    .eq('class_id', classId)
+    .order('sort_order', { ascending: true });
+
+  if (error || !data) {
+    return [];
+  }
+
+  return (data as any[])
+    .filter((row) => row.is_required)
+    .map((row) => ({
+      title: row.prerequisite_type?.name || 'Requirement',
+      details: row.prerequisite_type?.description || 'Details go here',
+    }));
+}
 
 /**
  * Email utility functions for sending transactional emails via Resend
@@ -97,6 +122,14 @@ export interface SendEmailOptions {
   bcc?: string | string[];
   tags?: Array<{ name: string; value: string }>;
   metadata?: Record<string, string>;
+  /**
+   * Inline (cid-referenced) or regular attachments, passed straight through
+   * to Resend. Set `contentId` to reference the file from `<img src="cid:...">`
+   * in the html — the reliable way to embed an image Resend can't otherwise
+   * reach (see app/api/dev/send-test-email/route.ts for why this exists:
+   * data: URIs are unreliable in Gmail).
+   */
+  attachments?: Array<{ filename: string; content: Buffer | string; contentId?: string }>;
 }
 
 /**
@@ -582,6 +615,7 @@ export async function sendEmail(
         bcc: options.bcc,
         tags: options.tags,
         headers: options.metadata,
+        attachments: options.attachments,
       });
 
       // The Resend SDK does not throw on most send failures -- it returns
@@ -1092,6 +1126,7 @@ export async function sendCourseEnrollmentEmail(
   const courseName = classRecord.class_name || 'Course';
   const courseCode = classRecord.course_code || '';
   const invoiceNumber = transaction.invoice_number || 0;
+  const prerequisiteItems = await getEnrollmentPrerequisiteItems(supabase, enrollment.class_id);
 
   // Render email template
   let html: string;
@@ -1107,8 +1142,11 @@ export async function sendCourseEnrollmentEmail(
       endDateLabel: 'the end of class',
       invoicesUrl: `${SITE_URL}/student/invoices`,
       portalLoginUrl: `${SITE_URL}/student`,
-      prerequisites: DEFAULT_PLACEHOLDER_PREREQUISITES,
-      prerequisiteDueDate: 'DUE DATE HERE',
+      prerequisites: prerequisiteItems.length > 0 ? prerequisiteItems : undefined,
+      prerequisiteDueDate: classRecord.class_start_date
+        ? formatDate(classRecord.class_start_date, 'date')
+        : 'the due date',
+      prerequisitesActionUrl: studentClassUrl(enrollment.class_id),
     });
   } catch (error: any) {
     console.error('[sendCourseEnrollmentEmail] Template rendering error:', error);
@@ -1188,6 +1226,7 @@ export async function sendPrerequisiteRejectedEmail(
     prerequisiteTypeName: string;
     className: string | null;
     classCode: string | null;
+    classId: string | null;
     rejectionReason: string;
   },
   options?: { preview?: boolean }
@@ -1248,12 +1287,9 @@ export async function sendPrerequisiteRejectedEmail(
     .maybeSingle();
   const studentName = `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() || 'Student';
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
   const className = params.classCode ? params.className || 'your class' : 'your class';
-  const resubmitUrl = params.classCode
-    ? `${baseUrl}/student/prerequisites/${params.classCode}?from=profile`
-    : `${baseUrl}/student/profile`;
-  const resubmitLabel = params.classCode ? 'Resubmit now' : 'Go to my profile';
+  const resubmitUrl = params.classId ? studentClassUrl(params.classId) : `${SITE_URL}/student/profile`;
+  const resubmitLabel = params.classId ? 'Resubmit now' : 'Go to my profile';
 
   let html: string;
   try {
@@ -1334,6 +1370,7 @@ export async function sendPrerequisitePendingReviewEmail(
     enrollmentId: string;
     className: string;
     classCode: string | null;
+    classId: string;
     outstandingNames: string[];
   },
   options?: { preview?: boolean }
@@ -1394,10 +1431,7 @@ export async function sendPrerequisitePendingReviewEmail(
     .maybeSingle();
   const studentName = `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() || 'Student';
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const actionUrl = params.classCode
-    ? `${baseUrl}/student/prerequisites/${params.classCode}?from=profile`
-    : `${baseUrl}/student/profile`;
+  const actionUrl = studentClassUrl(params.classId);
   const outstandingList = params.outstandingNames.join(', ');
 
   let html: string;
@@ -1477,6 +1511,7 @@ export async function sendFullyEnrolledEmail(
     studentId: string;
     enrollmentId: string;
     className: string;
+    classId: string;
   },
   options?: { preview?: boolean }
 ): Promise<EmailSendResult & { previewHtml?: string }> {
@@ -1536,8 +1571,7 @@ export async function sendFullyEnrolledEmail(
     .maybeSingle();
   const studentName = `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() || 'Student';
 
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const profileUrl = `${baseUrl}/student/profile`;
+  const profileUrl = studentClassUrl(params.classId);
 
   let html: string;
   try {
@@ -1883,6 +1917,7 @@ export async function sendProgramEnrollmentEmail(
   const courseCode = classRecord.course_code || '';
   const startDate = classRecord.class_start_date || new Date();
   const invoiceNumber = paidTransaction.invoice_number || 0;
+  const prerequisiteItems = await getEnrollmentPrerequisiteItems(supabase, enrollment.class_id);
 
   // Render email template
   let html: string;
@@ -1909,8 +1944,9 @@ export async function sendProgramEnrollmentEmail(
           : undefined,
       invoicesUrl: `${SITE_URL}/student/invoices`,
       portalLoginUrl: `${SITE_URL}/student`,
-      prerequisites: DEFAULT_PLACEHOLDER_PREREQUISITES,
-      prerequisiteDueDate: 'DUE DATE HERE',
+      prerequisites: prerequisiteItems.length > 0 ? prerequisiteItems : undefined,
+      prerequisiteDueDate: formatDate(startDate, 'date'),
+      prerequisitesActionUrl: studentClassUrl(enrollment.class_id),
     });
   } catch (error: any) {
     console.error('[sendProgramEnrollmentEmail] Template rendering error:', error);

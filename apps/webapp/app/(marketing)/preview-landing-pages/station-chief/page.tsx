@@ -1,6 +1,10 @@
 import { StationChiefTemplate } from "../../_landing-pages/station-chief/template";
 import { stationChiefContent } from "../../_landing-pages/station-chief/content";
 
+export const metadata = {
+  title: "Station Chief",
+};
+
 export default function PreviewPage() {
   return <StationChiefTemplate content={stationChiefContent} />;
 }

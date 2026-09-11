@@ -24,9 +24,9 @@ export type StudentSuccessStoryContent = {
 export const marcusStoryContent: StudentSuccessStoryContent = {
   header137: {
     kicker: "Meet Marcus",
-    heading: "Marcus went from warehouse shifts to the back of an ambulance — in 12 weeks.",
+    heading: "EMT Certified In 12 Weeks",
     description:
-      "No degree. No years of prerequisites. Just one hybrid program and a decision to start.",
+      "Marcus went from warehouse shifts to the back of an ambulance. No degree, no years of prerequisites — just one hybrid program and a decision to start.",
     button: { title: "Start Your EMT Journey" },
     backgroundImage: { src: "/images/emt-hero.avif", alt: "Marcus in EMS uniform" },
     foregroundImage: { src: "/images/emt-compressions.avif", alt: "Marcus on shift with his crew" },

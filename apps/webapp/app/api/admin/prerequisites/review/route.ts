@@ -187,6 +187,7 @@ export async function POST(request: NextRequest) {
             prerequisiteTypeName: ctx.prerequisiteTypeName,
             className,
             classCode,
+            classId: ctx.classId ?? null,
             rejectionReason: ctx.rejectionReason,
           });
           if (!emailResult.success) {
@@ -249,6 +250,7 @@ export async function POST(request: NextRequest) {
             studentId: credential.student_id,
             enrollmentId: enrollmentRow.id,
             className: cls?.class_name || 'your class',
+            classId: submittedForClassId,
           });
 
           if (!emailResult.success) {

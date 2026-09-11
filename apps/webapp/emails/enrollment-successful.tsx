@@ -28,6 +28,7 @@ export interface EnrollmentSuccessfulProps {
   portalLoginUrl: string;
   prerequisites?: PrerequisiteItem[];
   prerequisiteDueDate?: string;
+  prerequisitesActionUrl?: string;
 }
 
 /**
@@ -51,6 +52,7 @@ export default function EnrollmentSuccessful({
   portalLoginUrl,
   prerequisites,
   prerequisiteDueDate,
+  prerequisitesActionUrl,
 }: EnrollmentSuccessfulProps) {
   const content = getEnrollmentContent(courseCode);
   const hasInstallments = !!installments && installments.length > 0;
@@ -129,6 +131,7 @@ export default function EnrollmentSuccessful({
           eyebrow="Pre-requisites"
           dueDateLabel={prerequisiteDueDate || 'the due date'}
           items={prerequisites!}
+          actionUrl={prerequisitesActionUrl}
         />
       )}
 
@@ -160,4 +163,5 @@ EnrollmentSuccessful.PreviewProps = {
     { title: 'PRERESQUISITE TITLE HERE', details: 'Details go here' },
   ],
   prerequisiteDueDate: 'DUE DATE HERE',
+  prerequisitesActionUrl: 'https://midwestea.com/student/classes/demo-class-id',
 } satisfies EnrollmentSuccessfulProps;

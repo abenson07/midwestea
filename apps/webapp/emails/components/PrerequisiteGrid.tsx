@@ -2,6 +2,7 @@ import { Section } from '@react-email/components';
 import * as React from 'react';
 import { EMAIL_COLORS, EMAIL_FONTS } from './constants';
 import { DetailItem, EyebrowLabel } from './DetailItem';
+import { GhostLinkButton } from './GhostLinkButton';
 
 export interface PrerequisiteItem {
   title: string;
@@ -12,6 +13,8 @@ interface PrerequisiteGridProps {
   eyebrow: string;
   dueDateLabel: string;
   items: PrerequisiteItem[];
+  /** Link to the class page where the student actually completes these — renders a "Complete prerequisites" link below the grid when provided. */
+  actionUrl?: string;
 }
 
 /**
@@ -23,7 +26,7 @@ interface PrerequisiteGridProps {
  * "Details go here") is a deliberate choice per product decision, not a bug — swap via
  * prompt-edit once real content or real data is ready.
  */
-export function PrerequisiteGrid({ eyebrow, dueDateLabel, items }: PrerequisiteGridProps) {
+export function PrerequisiteGrid({ eyebrow, dueDateLabel, items, actionUrl }: PrerequisiteGridProps) {
   if (items.length === 0) return null;
 
   const rows: PrerequisiteItem[][] = [];
@@ -68,6 +71,11 @@ export function PrerequisiteGrid({ eyebrow, dueDateLabel, items }: PrerequisiteG
           ))}
         </tbody>
       </table>
+      {actionUrl && (
+        <div style={{ marginTop: 16 }}>
+          <GhostLinkButton href={actionUrl}>Complete prerequisites</GhostLinkButton>
+        </div>
+      )}
     </Section>
   );
 }

@@ -78,6 +78,7 @@ async function maybeSendPrerequisitePendingReview(
     enrollmentId: enrollment.id,
     className: classRecord.class_name || 'your class',
     classCode: classRecord.class_id,
+    classId: enrollment.class_id,
     outstandingNames: evaluation.outstanding.map((item) => item.prerequisite_type.name),
   });
 
