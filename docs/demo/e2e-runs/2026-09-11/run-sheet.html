@@ -229,6 +229,29 @@ h1{
   display:inline-block;
 }
 .link-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sql-row{margin-top:2px;margin-bottom:8px;}
+.sql-btn{
+  font-family:var(--mono);
+  font-size:12.5px;
+  color:var(--accent);
+  background:var(--accent-soft);
+  border:1px solid var(--accent);
+  border-radius:6px;
+  padding:5px 10px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.sql-btn:hover{filter:brightness(1.08);}
+.sql-btn:active{transform:translateY(1px);}
+.sql-btn .tag{
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  opacity:.75;
+}
+.sql-payload{display:none;}
 .flag-inline{
   margin-top:8px;
   border-left:3px solid var(--flag);
@@ -329,6 +352,19 @@ footer{
         <div class="step-body">
           <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Program &amp; class setup</span></div>
           <p class="step-text">Open the Paramedic program: registration fee ($150.00) and the certificate-expiration reminder (13 months) live here. Then open the class — the same prerequisite type is assigned at both levels (the "copied down" story), and class settings has its own JB Learning URL field, set as an override on top of the program's.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Program & class config: registration fee, cert reminder, JB Learning link
+UPDATE courses
+SET certificate_reminder_months = 13, registration_fee = 15000
+WHERE id = 'd589efa2-1c3f-48db-b93e-5c594f8751a2';
+
+UPDATE classes
+SET jb_learning_label = 'JB Learning', jb_learning_url = 'https://www.jblearning.com/'
+WHERE id = 'e77b3830-196d-4d6b-a864-3b51dfb55cd7';
+            </script>
+          </div>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/d589efa2-1c3f-48db-b93e-5c594f8751a2" target="_blank">Program: Paramedic settings</a>
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/settings" target="_blank">Class PARA-001: settings</a>
@@ -563,5 +599,31 @@ footer{
   <footer>Seeded 2026-09-11 · staging · Paramedic Program (PARA-001 / PARA-002) replaces the earlier ACLS classes throughout · all three demos captured</footer>
 
 </div>
+<script>
+function copySql(btn) {
+  var sql = btn.parentElement.querySelector('.sql-payload').textContent.trim();
+  var done = function () {
+    var original = btn.dataset.label;
+    btn.querySelector('.label').textContent = 'Copied — paste into Supabase';
+    setTimeout(function () { btn.querySelector('.label').textContent = original; }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(sql).then(done, function () { fallbackCopy(sql, done); });
+  } else {
+    fallbackCopy(sql, done);
+  }
+}
+function fallbackCopy(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+  done();
+}
+</script>
 </body>
 </html>
