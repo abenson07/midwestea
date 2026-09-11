@@ -110,6 +110,7 @@ function buildColumns(
   invoices?: TransactionRow[],
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void,
   submissions?: ClassPrerequisiteSubmission[],
+  unmetPrerequisiteStudentIds?: Set<string>,
 ): TableColumn<ClassRosterRow>[] {
   const pendingStudentIds = new Set((submissions ?? []).map((row) => row.studentId));
   function selectIfStudent(row: ClassRosterRow) {
@@ -162,12 +163,15 @@ function buildColumns(
         if (row.role !== "Student" || row.status !== "Enrolled") {
           return <span style={{ color: "var(--linear-color-ink-subtle)" }}>—</span>;
         }
-        // A real pending submission always wins over the mock-derived status
-        // below — that mock lookup has no way to see credentials submitted
-        // against a real (non-demo) class.
+        // Real data always wins over the mock-derived status below — that
+        // mock lookup has no way to see credentials submitted against a
+        // real (non-demo) class, and defaults to "approved" for any class
+        // it doesn't recognize.
         const status = pendingStudentIds.has(row.id)
           ? "needs-review"
-          : rosterPrerequisiteStatusFor(classId, row.id);
+          : unmetPrerequisiteStudentIds?.has(row.id)
+            ? "needs-reminder"
+            : rosterPrerequisiteStatusFor(classId, row.id);
         if (status === "approved") {
           return (
             <StatusBadge
@@ -291,6 +295,8 @@ export type ClassRosterSectionProps = {
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
   /** Real pending submissions (live mode) — takes priority over the mock-derived status. */
   submissions?: ClassPrerequisiteSubmission[];
+  /** Real students (live mode) who haven't satisfied all required prerequisites and aren't in `submissions`. */
+  unmetPrerequisiteStudentIds?: Set<string>;
 };
 
 export function ClassRosterSection({
@@ -303,6 +309,7 @@ export function ClassRosterSection({
   showPrerequisites = false,
   onGenerateCertificateForRow,
   submissions,
+  unmetPrerequisiteStudentIds,
 }: ClassRosterSectionProps) {
   const { transactions } = useTransactions();
   const [search, setSearch] = useState("");
@@ -325,6 +332,7 @@ export function ClassRosterSection({
         transactions,
         onGenerateCertificateForRow,
         submissions,
+        unmetPrerequisiteStudentIds,
       ),
     [
       onSelectStudent,
@@ -337,6 +345,7 @@ export function ClassRosterSection({
       transactions,
       onGenerateCertificateForRow,
       submissions,
+      unmetPrerequisiteStudentIds,
     ],
   );
 

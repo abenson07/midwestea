@@ -66,6 +66,7 @@ export function ClassOverviewPage({
   const invoices = classDueInvoicesFor(classDetail.id, transactions);
   const [liveSubmissions, setLiveSubmissions] = useState<ClassPrerequisiteSubmission[]>([]);
   const submissions = live ? liveSubmissions : classPrerequisiteQueueFor(classDetail.id);
+  const [unmetPrerequisiteStudentIds, setUnmetPrerequisiteStudentIds] = useState<Set<string>>(new Set());
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
 
@@ -107,6 +108,35 @@ export function ClassOverviewPage({
   useEffect(() => {
     void refetchSubmissions();
   }, [refetchSubmissions]);
+
+  useEffect(() => {
+    if (!live) return;
+    let cancelled = false;
+    (async () => {
+      const supabase = await createSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+      const response = await fetch(
+        `/api/admin/prerequisites/class-matrix?classId=${classDetail.id}`,
+        { headers: { Authorization: `Bearer ${session.access_token}` } },
+      );
+      if (!response.ok) return;
+      const result = await response.json();
+      if (!result.success || cancelled) return;
+      const rows = (result.payload?.rows ?? []) as Array<{
+        student_id: string;
+        evaluation: { allRequiredSatisfied: boolean };
+      }>;
+      setUnmetPrerequisiteStudentIds(
+        new Set(rows.filter((row) => !row.evaluation.allRequiredSatisfied).map((row) => row.student_id)),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [live, classDetail.id]);
 
   // Certificate generation isn't tied to the class being closed — always selectable.
   const canSelectStudent = true;
@@ -210,6 +240,7 @@ export function ClassOverviewPage({
           showPrerequisites={!closed}
           onGenerateCertificateForRow={onGenerateCertificateForRow}
           submissions={submissions}
+          unmetPrerequisiteStudentIds={live ? unmetPrerequisiteStudentIds : undefined}
         />
       </div>
       <div
