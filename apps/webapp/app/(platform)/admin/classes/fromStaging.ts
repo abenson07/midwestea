@@ -44,6 +44,8 @@ export function toClassDetail(
     chargeFullAmountAtRegistration: stagingClass.chargeFullAmountAtRegistration,
     prerequisites: options.prerequisites ?? [],
     externalLinks: externalLinksFor(stagingClass) ?? (course ? externalLinksFor(course) : undefined),
+    jbLearningUrl: stagingClass.jbLearningUrl ?? course?.jbLearningUrl ?? null,
+    platinumEdUrl: stagingClass.platinumEdUrl ?? course?.platinumEdUrl ?? null,
     template: course
       ? {
           kind: course.kind,

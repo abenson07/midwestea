@@ -53,6 +53,8 @@ export type ClassDetail = {
   chargeFullAmountAtRegistration?: boolean;
   prerequisites: string[];
   externalLinks?: ClassExternalLink[];
+  jbLearningUrl?: string | null;
+  platinumEdUrl?: string | null;
   /** The program or course template this class was created from. */
   template?: ClassTemplateRef;
 };

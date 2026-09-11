@@ -1,0 +1,491 @@
+<title>Registration to Renewal</title>
+<style>
+:root{
+  --ink:#16212b;
+  --ink-soft:#3f4d59;
+  --paper:#f2f4f6;
+  --raised:#ffffff;
+  --line:#d8dee3;
+  --accent:#c1691f;
+  --accent-soft:#f3e2d1;
+  --ok:#2f7a4f;
+  --ok-soft:#e3efe7;
+  --flag:#b3403a;
+  --flag-soft:#f6e4e2;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --sans:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e7ecf0;
+    --ink-soft:#a9b6c0;
+    --paper:#121820;
+    --raised:#1a222c;
+    --line:#2b3540;
+    --accent:#e08a3d;
+    --accent-soft:#3a2c1c;
+    --ok:#5cb283;
+    --ok-soft:#1d2e24;
+    --flag:#e18077;
+    --flag-soft:#3a2321;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e7ecf0;
+  --ink-soft:#a9b6c0;
+  --paper:#121820;
+  --raised:#1a222c;
+  --line:#2b3540;
+  --accent:#e08a3d;
+  --accent-soft:#3a2c1c;
+  --ok:#5cb283;
+  --ok-soft:#1d2e24;
+  --flag:#e18077;
+  --flag-soft:#3a2321;
+}
+*{box-sizing:border-box;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  line-height:1.5;
+}
+.wrap{max-width:760px;margin:0 auto;padding:40px 24px 80px;}
+
+/* ---- header ---- */
+header{margin-bottom:28px;}
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 8px;
+}
+h1{
+  font-size:28px;
+  font-weight:600;
+  margin:0 0 6px;
+  letter-spacing:-.01em;
+  text-wrap:balance;
+}
+.sub{color:var(--ink-soft);font-size:14.5px;margin:0;}
+.base-url{
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--ink-soft);
+  margin-top:10px;
+  word-break:break-all;
+}
+.base-url a{color:var(--ink-soft);}
+
+/* ---- quick reference ---- */
+.quickref{
+  background:var(--raised);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:16px 18px;
+  margin:24px 0 32px;
+}
+.quickref-title{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin:0 0 12px;
+}
+.cred-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px 20px;
+}
+@media (min-width:600px){
+  .cred-grid{grid-template-columns:repeat(4,1fr);}
+}
+.cred{display:flex;flex-direction:column;gap:2px;}
+.cred .role{font-size:12.5px;color:var(--ink-soft);}
+.cred .email{font-family:var(--mono);font-size:13px;}
+.cred a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);}
+.cred a:hover{border-color:var(--accent);}
+.otp-note{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px dashed var(--line);
+  font-size:13px;
+  color:var(--ink-soft);
+}
+.otp-note strong{color:var(--ink);}
+
+/* ---- gaps summary ---- */
+.gaps{
+  border:1px solid var(--flag);
+  background:var(--flag-soft);
+  border-radius:10px;
+  padding:16px 18px;
+  margin-bottom:32px;
+}
+.gaps-title{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--flag);
+  margin:0 0 10px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.gaps ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-soft);}
+.gaps li{margin-bottom:4px;}
+.gaps li:last-child{margin-bottom:0;}
+
+/* ---- demo blocks ---- */
+.demo{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--raised);
+  margin-bottom:28px;
+  overflow:hidden;
+}
+.demo-head{
+  padding:18px 20px 16px;
+  border-bottom:1px solid var(--line);
+}
+.demo-num{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 4px;
+}
+.demo-title{font-size:19px;font-weight:600;margin:0 0 10px;text-wrap:balance;}
+.setup{
+  font-size:13.5px;
+  color:var(--ink-soft);
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 12px;
+  font-family:var(--mono);
+  line-height:1.55;
+}
+.setup b{color:var(--ink);font-family:var(--sans);font-weight:600;}
+
+.steps{padding:6px 20px 16px;}
+.step{
+  display:grid;
+  grid-template-columns:28px 1fr;
+  gap:0 14px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.step:last-child{border-bottom:none;}
+.step-num{
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--ink-soft);
+  padding-top:2px;
+}
+.step-body{min-width:0;}
+.step-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.role{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  padding:2px 7px;
+  border-radius:4px;
+  font-weight:600;
+}
+.role.admin{background:var(--accent-soft);color:var(--accent);}
+.role.student{background:var(--ok-soft);color:var(--ok);}
+.step-label{font-weight:600;font-size:14.5px;}
+.step-text{font-size:14px;color:var(--ink-soft);margin:0 0 8px;}
+.step-text b{color:var(--ink);font-weight:600;}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
+.link-btn{
+  font-family:var(--mono);
+  font-size:12.5px;
+  color:var(--ink);
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:5px 10px;
+  text-decoration:none;
+  display:inline-block;
+}
+.link-btn:hover{border-color:var(--accent);color:var(--accent);}
+.flag-inline{
+  margin-top:8px;
+  border-left:3px solid var(--flag);
+  background:var(--flag-soft);
+  border-radius:0 6px 6px 0;
+  padding:8px 10px;
+  font-size:12.5px;
+  color:var(--ink-soft);
+}
+.flag-inline b{color:var(--flag);}
+
+footer{
+  margin-top:36px;
+  font-size:12px;
+  color:var(--ink-soft);
+  text-align:center;
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Client demo · Midwest Emergency Academy</p>
+    <h1>Registration to Renewal</h1>
+    <p class="sub">One connected story across three students, run live on staging.</p>
+    <p class="base-url">Base URL: <a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app" target="_blank">midwestea-git-staging-alex-bensons-projects.vercel.app</a></p>
+  </header>
+
+  <div class="quickref">
+    <p class="quickref-title">Quick reference — logins</p>
+    <div class="cred-grid">
+      <div class="cred">
+        <span class="role">Admin</span>
+        <span class="email"><a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/login" target="_blank">alexbensonux+demoadmin@gmail.com</a></span>
+      </div>
+      <div class="cred">
+        <span class="role">Student A · Jordan</span>
+        <span class="email"><a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/login" target="_blank">alexbensonux+studenta@gmail.com</a></span>
+      </div>
+      <div class="cred">
+        <span class="role">Student B · Casey</span>
+        <span class="email"><a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/login" target="_blank">alexbensonux+studentb@gmail.com</a></span>
+      </div>
+      <div class="cred">
+        <span class="role">Student C · Demo</span>
+        <span class="email"><a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/login" target="_blank">alexbensonux+demostudent@gmail.com</a></span>
+      </div>
+    </div>
+    <p class="otp-note"><strong>Login is OTP-only.</strong> All four addresses are +aliases of the same inbox — the code lands in your regular Gmail every time. Have that tab open before you start.</p>
+  </div>
+
+  <div class="gaps">
+    <p class="gaps-title">Do not click these live — three gaps, flagged again inline where they'd come up</p>
+    <ul>
+      <li><b>JB Learning link</b> has no field in the class settings screen yet — it's real and working on the student side, but there's nothing to show on the admin side for it.</li>
+      <li><b>Ranked related certifications</b> as an admin-configurable list doesn't exist — the recommendations are real, just hardcoded, and only visible inside the certificate email.</li>
+      <li><b>Campaign attribution view and the marketing opt-out setting</b> don't exist at all — no screen, no toggle. Skip Demo 3's step 4 or describe it as roadmap.</li>
+    </ul>
+  </div>
+
+  <!-- ===================== DEMO 1 ===================== -->
+  <section class="demo">
+    <div class="demo-head">
+      <p class="demo-num">Demo 1 of 3</p>
+      <h2 class="demo-title">From registration to cleared enrollment</h2>
+      <p class="setup"><b>Setup —</b> Jordan Reyes is registered for ACLS, paid the registration fee, owes the first tuition installment, and has <b>one</b> outstanding prerequisite (Orientation Acknowledgment — CPR Certification and Immunization Record are already approved).</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Program &amp; class setup</span></div>
+          <p class="step-text">Open the ACLS program: registration fee ($149.99) and the certificate-expiration reminder (13 months) live here. Then open the class — the same prerequisite type is assigned at both levels, which is the "copied down" story.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/8f09fd6e-cd3a-43a7-811f-528a299b6c44" target="_blank">Program: ACLS settings</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/ACLS-003/prerequisites" target="_blank">Class ACLS-003: prerequisites</a>
+          </div>
+          <div class="flag-inline"><b>Skip:</b> class settings has no field for the JB Learning link — don't open it looking for one. It shows up for real in step 7, student side.</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Registration confirmation</span></div>
+          <p class="step-text">Jordan was seeded directly into the database, so there's no real email in that inbox. Pull up the template instead: pick <b>"Enrollment Successful"</b> from the dropdown. Call out — registered on the registration fee; tuition is tracked and billed separately.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/dev/email-preview" target="_blank">Email previewer</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Passwordless login</span></div>
+          <p class="step-text">Enter Jordan's email, grab the 8-digit code from the inbox, log in. Stop on the dashboard — one account, one home for enrollment, requirements, payments, and certificates.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/login" target="_blank">Student login</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Enrollment &amp; payment visibility</span></div>
+          <p class="step-text">Open the ACLS class — Registered status, first tuition installment showing as due. Payment history has the full picture: registration fee paid, first installment outstanding, second not due yet.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/classes/02a582fa-ceae-46bb-8460-3df0cd9cc52c" target="_blank">ACLS class detail</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/invoices" target="_blank">Payment history</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Prerequisite submission</span></div>
+          <p class="step-text">Same class page — the one outstanding item is <b>Orientation Acknowledgment</b>, a checkbox, no file to fumble with live. Check it, submit, stop at pending review.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">06</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Review</span></div>
+          <p class="step-text">Open the class roster — Jordan now shows a Review button. Open the review, and separately their student record shows the same registration and payment context alongside the submission. Approve.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/ACLS-003" target="_blank">Class roster</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/5cbb41d6-12be-4813-8a1a-fb4b1afbf347" target="_blank">Jordan's student record</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">07</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Cleared access</span></div>
+          <p class="step-text">Back on the class page — all three prerequisites now show approved, and the JB Learning link is live. Click through to show the handoff. It opens jblearning.com's homepage, not a deep link into a specific course — say so, don't oversell it as SSO or progress sync.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/classes/02a582fa-ceae-46bb-8460-3df0cd9cc52c" target="_blank">ACLS class detail</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== DEMO 2 ===================== -->
+  <section class="demo">
+    <div class="demo-head">
+      <p class="demo-num">Demo 2 of 3</p>
+      <h2 class="demo-title">Staff review and student self-service</h2>
+      <p class="setup"><b>Setup —</b> Casey Nguyen's CPR Certification was rejected, with a reason on file, and is still awaiting resubmission. Immunization Record and Orientation Acknowledgment are already approved, in the background.</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Show the rejection</span></div>
+          <p class="step-text">Open Casey's record — CPR Certification is sitting rejected, with the real reason on file: <i>"Certificate image was blurry and the expiration date was not legible — please resubmit a clearer copy."</i> Point out the other two are already cleared, so this is the one thing blocking Casey.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/2446731b-7247-4065-881b-b298205fa39e/prerequisites" target="_blank">Casey's prerequisite status</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Fix the issue</span></div>
+          <p class="step-text">Log in as Casey, open the same class, see the rejected status on CPR Certification, and upload a fresh file — any real PDF or image on hand works. This is a live write: it supersedes the rejected row and creates a new pending one.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/classes/02a582fa-ceae-46bb-8460-3df0cd9cc52c" target="_blank">ACLS class detail</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Approve and verify</span></div>
+          <p class="step-text">Back to the review screen — approve the new submission, show the record flip to cleared.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/ACLS-003/prerequisites" target="_blank">Class review queue</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Account self-service</span></div>
+          <p class="step-text">Open the profile page, edit a field — phone number is the easy one — and save. It's a real write, not a demo toast. The dashboard is also where enrolled and waitlisted classes would sit side by side; none of the seeded students are currently waitlisted, so mention it rather than click it.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/profile" target="_blank">Profile</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student" target="_blank">Dashboard</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== DEMO 3 ===================== -->
+  <section class="demo">
+    <div class="demo-head">
+      <p class="demo-num">Demo 3 of 3</p>
+      <h2 class="demo-title">Completion to certificate renewal</h2>
+      <p class="setup"><b>Setup —</b> Demo Student has completed ACLS twice over, holds two active issued certificates, and has a third, not-yet-issued enrollment sitting as a "coming soon" placeholder.</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Configure the lifecycle</span></div>
+          <p class="step-text">The certificate-expiration reminder is real and set to 13 months — show it on the ACLS program. The system does know what to recommend after ACLS (PALS, Advanced Tactical Casualty Care, and Child &amp; Babysitting Safety) — but that list isn't an admin-editable screen yet, it's fixed in code. Don't promise a config screen for it; the payoff shows up for real in step 3.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/8f09fd6e-cd3a-43a7-811f-528a299b6c44" target="_blank">Program: ACLS settings</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Certificate experience</span></div>
+          <p class="step-text">Certificate history — two active, issued certificates, plus a "coming soon" placeholder for the class still in progress. Download one — it's a real, generated PDF, not a stub.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/certificates" target="_blank">Certificate history</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Re-engagement</span></div>
+          <p class="step-text">Pull up <b>"Completed Class + Suggested Followups"</b> in the email previewer — this is where the ACLS recommendations actually live. Then click through a landing page and register for the next offering with a real test-card checkout.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/dev/email-preview" target="_blank">Email previewer</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/preview-landing-pages/student-success-story" target="_blank">Landing page</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Confirm attribution</span></div>
+          <p class="step-text">Neither half of this step exists yet — there's no screen showing campaign attribution on the enrollment, and no global marketing opt-out setting anywhere in the product. Skip this step live, or name it as what's next rather than demoing it.</p>
+          <div class="flag-inline"><b>Not built:</b> attribution view, marketing opt-out / transactional-email carve-out. Zero UI, zero config, in either case.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>Seeded 2026-09-11 · staging · re-running Demo 1 or 2 a second time starts from an already-cleared state for that step</footer>
+
+</div>

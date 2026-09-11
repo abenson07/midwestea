@@ -21,7 +21,7 @@ import {
   type CatalogClassType,
 } from "../catalog/catalogMocks";
 import { isClassOnline, type ClassDetail, type ClassExternalLink } from "./classMocks";
-import { updateClass } from "@/lib/classes";
+import { updateClass, updateClassExternalLinks } from "@/lib/classes";
 import { parseDisplayCents, parseLeadingInt } from "@/lib/admin-migrate/display-parsers";
 
 const rowInputStyle: CSSProperties = {
@@ -106,11 +106,25 @@ export function ClassSettingsPage({
       undefined,
       draft.chargeFullAmountAtRegistration === true,
     );
-    setSaving(false);
     if (!result.success) {
+      setSaving(false);
       toast.error(result.error || "Failed to save class settings");
       return;
     }
+
+    const linksResult = await updateClassExternalLinks(
+      classDetail.id,
+      draft.jbLearningUrl ? "JB Learning" : null,
+      draft.jbLearningUrl || null,
+      draft.platinumEdUrl ? "Platinum ED" : null,
+      draft.platinumEdUrl || null,
+    );
+    setSaving(false);
+    if (!linksResult.success) {
+      toast.error(linksResult.error || "Saved details, but failed to save learning platform links.");
+      return;
+    }
+
     onSave(draft);
     toast.success("Class settings saved");
   }
@@ -311,6 +325,32 @@ export function ClassSettingsPage({
                     isLabelHidden
                     value={draft.chargeFullAmountAtRegistration === true}
                     onChange={(next) => patch({ chargeFullAmountAtRegistration: next })}
+                  />
+                }
+              />
+              <Divider />
+              <SettingsRow
+                label="JB Learning URL"
+                description="Overrides the program's link for this class only. Leave blank to hide this link for students — no generic fallback is shown"
+                control={
+                  <input
+                    style={rowInputStyle}
+                    value={draft.jbLearningUrl ?? ""}
+                    placeholder="https://"
+                    onChange={(e) => patch({ jbLearningUrl: e.target.value || null })}
+                  />
+                }
+              />
+              <Divider />
+              <SettingsRow
+                label="Platinum ED URL"
+                description="Overrides the program's link for this class only. Leave blank to hide this link for students — no generic fallback is shown"
+                control={
+                  <input
+                    style={rowInputStyle}
+                    value={draft.platinumEdUrl ?? ""}
+                    placeholder="https://"
+                    onChange={(e) => patch({ platinumEdUrl: e.target.value || null })}
                   />
                 }
               />
