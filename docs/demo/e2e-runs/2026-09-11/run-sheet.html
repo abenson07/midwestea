@@ -425,6 +425,20 @@ WHERE id = 'e77b3830-196d-4d6b-a864-3b51dfb55cd7';
         <div class="step-body">
           <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Review</span></div>
           <p class="step-text">Open the class roster — Jordan now shows a Review button. Open the review, and separately their student record shows the same registration and payment context alongside the submission. Approve.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Jordan: exactly one pending submission (Orientation Acknowledgment) waiting for review
+DELETE FROM student_credentials
+WHERE student_id = '5cbb41d6-12be-4813-8a1a-fb4b1afbf347'
+  AND prerequisite_type_id = '1ee025a8-aef7-47e8-af22-4696e5bc3711';
+
+INSERT INTO student_credentials
+  (student_id, prerequisite_type_id, submitted_for_class_id, value_boolean, review_status, submitted_at)
+VALUES
+  ('5cbb41d6-12be-4813-8a1a-fb4b1afbf347', '1ee025a8-aef7-47e8-af22-4696e5bc3711', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', true, 'pending', now());
+            </script>
+          </div>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001" target="_blank">Class roster</a>
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/5cbb41d6-12be-4813-8a1a-fb4b1afbf347" target="_blank">Jordan's student record</a>
@@ -473,6 +487,33 @@ WHERE id = 'e77b3830-196d-4d6b-a864-3b51dfb55cd7';
         <div class="step-body">
           <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Show the rejection</span></div>
           <p class="step-text">Open Casey's record — CPR Certification is sitting rejected, with the real reason on file: <i>"Certificate image was blurry and the expiration date was not legible — please resubmit a clearer copy."</i> Point out the other two are already cleared, so this is the one thing blocking Casey.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Casey: CPR Certification back to a single rejected row (clears out any
+-- resubmission from a prior rehearsal), Immunization Record and
+-- Orientation Acknowledgment stay approved.
+DELETE FROM student_credentials
+WHERE student_id = '2446731b-7247-4065-881b-b298205fa39e'
+  AND prerequisite_type_id = '01b0258b-3dbf-4aad-ac04-3e8357f65f4b';
+
+INSERT INTO student_credentials
+  (student_id, prerequisite_type_id, submitted_for_class_id, review_status, rejection_reason, reviewed_by, reviewed_at, submitted_at)
+VALUES
+  ('2446731b-7247-4065-881b-b298205fa39e', '01b0258b-3dbf-4aad-ac04-3e8357f65f4b', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', 'rejected',
+   'Certificate image was blurry and the expiration date was not legible — please resubmit a clearer copy.',
+   'fdd21ee5-a2bf-45ae-94fb-755f443245f3', now(), now());
+
+-- Immunization Record + Orientation Acknowledgment should already be
+-- approved and untouched — only re-run this pair if one somehow got
+-- cleared out too:
+-- INSERT INTO student_credentials
+--   (student_id, prerequisite_type_id, submitted_for_class_id, value_boolean, review_status, reviewed_by, reviewed_at, submitted_at)
+-- VALUES
+--   ('2446731b-7247-4065-881b-b298205fa39e', 'd6dac437-7d3f-4a59-b81d-bae723040479', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', null, 'approved', 'fdd21ee5-a2bf-45ae-94fb-755f443245f3', now(), now()),
+--   ('2446731b-7247-4065-881b-b298205fa39e', '1ee025a8-aef7-47e8-af22-4696e5bc3711', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', true, 'approved', 'fdd21ee5-a2bf-45ae-94fb-755f443245f3', now(), now());
+            </script>
+          </div>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/2446731b-7247-4065-881b-b298205fa39e/prerequisites" target="_blank">Casey's prerequisite status</a>
           </div>
@@ -508,6 +549,24 @@ WHERE id = 'e77b3830-196d-4d6b-a864-3b51dfb55cd7';
         <div class="step-body">
           <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Approve and verify</span></div>
           <p class="step-text">Back to the review screen — approve the new submission, show the record flip to cleared.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Casey: run this AFTER step 01's SQL. Supersedes the rejected row and
+-- creates the pending resubmission for admin to approve live.
+UPDATE student_credentials
+SET review_status = 'superseded'
+WHERE student_id = '2446731b-7247-4065-881b-b298205fa39e'
+  AND prerequisite_type_id = '01b0258b-3dbf-4aad-ac04-3e8357f65f4b'
+  AND review_status = 'rejected';
+
+INSERT INTO student_credentials
+  (student_id, prerequisite_type_id, submitted_for_class_id, file_url, review_status, submitted_at)
+VALUES
+  ('2446731b-7247-4065-881b-b298205fa39e', '01b0258b-3dbf-4aad-ac04-3e8357f65f4b', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7',
+   '2446731b-7247-4065-881b-b298205fa39e/01b0258b-3dbf-4aad-ac04-3e8357f65f4b/demo-resubmit.pdf', 'pending', now());
+            </script>
+          </div>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/prerequisites" target="_blank">Class review queue</a>
           </div>
@@ -559,6 +618,15 @@ WHERE id = 'e77b3830-196d-4d6b-a864-3b51dfb55cd7';
         <div class="step-body">
           <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Configure the lifecycle</span></div>
           <p class="step-text">The certificate-expiration reminder is real and set to 13 months — show it on the Paramedic program. The system does know what to recommend after the Paramedic Program (Community Paramedic, Critical Care Transport, Advanced Tactical Casualty Care) — but that list isn't an admin-editable screen yet, it's fixed in code, and this particular list was added just now for the demo (not real program-director input like the rest of that list). Don't promise a config screen for it; the payoff shows up for real in step 3.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Paramedic program: certificate-expiration reminder
+UPDATE courses
+SET certificate_reminder_months = 13
+WHERE id = 'd589efa2-1c3f-48db-b93e-5c594f8751a2';
+            </script>
+          </div>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/d589efa2-1c3f-48db-b93e-5c594f8751a2" target="_blank">Program: Paramedic settings</a>
           </div>
