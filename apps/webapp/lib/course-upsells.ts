@@ -15,6 +15,10 @@ export const COURSE_UPSELL_MAP: Record<string, string[]> = {
   PALS: ["ACLS", "BLS", "CPR", "AVERT", "PEDS"],
   PATH: ["BLS", "CPR", "OXY", "EPI", "PEDS"],
   EPI: ["BLS", "CPR", "AVERT", "OXY", "PATH"],
+  // Placeholder pending real program-director input (unlike the rest of
+  // this map) — added only so the demo's Paramedic persona has a non-empty
+  // recommendation list to show.
+  PARA: ["CP", "CCT", "ATCC"],
 };
 
 export type UpsellCourseLookup = Map<string, { name: string; imageUrl: string | null }>;
