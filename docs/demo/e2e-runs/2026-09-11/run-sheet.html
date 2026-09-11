@@ -276,9 +276,8 @@ footer{
   </div>
 
   <div class="gaps">
-    <p class="gaps-title">Do not click these live — three gaps, flagged again inline where they'd come up</p>
+    <p class="gaps-title">Do not click these live — two gaps, flagged again inline where they'd come up</p>
     <ul>
-      <li><b>JB Learning link</b> has no field in the class settings screen yet — it's real and working on the student side, but there's nothing to show on the admin side for it.</li>
       <li><b>Ranked related certifications</b> as an admin-configurable list doesn't exist — the recommendations are real, just hardcoded, and only visible inside the certificate email.</li>
       <li><b>Campaign attribution view and the marketing opt-out setting</b> don't exist at all — no screen, no toggle. Skip Demo 3's step 4 or describe it as roadmap.</li>
     </ul>
@@ -297,12 +296,12 @@ footer{
         <div class="step-num">01</div>
         <div class="step-body">
           <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Program &amp; class setup</span></div>
-          <p class="step-text">Open the ACLS program: registration fee ($149.99) and the certificate-expiration reminder (13 months) live here. Then open the class — the same prerequisite type is assigned at both levels, which is the "copied down" story.</p>
+          <p class="step-text">Open the ACLS program: registration fee ($149.99) and the certificate-expiration reminder (13 months) live here. Then open the class — the same prerequisite type is assigned at both levels (the "copied down" story), and class settings has its own JB Learning URL field, set as an override on top of the program's.</p>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/8f09fd6e-cd3a-43a7-811f-528a299b6c44" target="_blank">Program: ACLS settings</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/ACLS-003/settings" target="_blank">Class ACLS-003: settings</a>
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/ACLS-003/prerequisites" target="_blank">Class ACLS-003: prerequisites</a>
           </div>
-          <div class="flag-inline"><b>Skip:</b> class settings has no field for the JB Learning link — don't open it looking for one. It shows up for real in step 7, student side.</div>
         </div>
       </div>
 
@@ -364,7 +363,7 @@ footer{
         <div class="step-num">07</div>
         <div class="step-body">
           <div class="step-top"><span class="role student">Student</span><span class="step-label">Cleared access</span></div>
-          <p class="step-text">Back on the class page — all three prerequisites now show approved, and the JB Learning link is live. Click through to show the handoff. It opens jblearning.com's homepage, not a deep link into a specific course — say so, don't oversell it as SSO or progress sync.</p>
+          <p class="step-text">Back on the class page — all three prerequisites now show approved, and the JB Learning link is live (the same URL you just saw configured on the class settings page in step 1). Click through to show the handoff. It opens jblearning.com's homepage, not a deep link into a specific course — say so, don't oversell it as SSO or progress sync.</p>
           <div class="links">
             <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/student/classes/02a582fa-ceae-46bb-8460-3df0cd9cc52c" target="_blank">ACLS class detail</a>
           </div>
@@ -486,6 +485,6 @@ footer{
     </div>
   </section>
 
-  <footer>Seeded 2026-09-11 · staging · re-running Demo 1 or 2 a second time starts from an already-cleared state for that step</footer>
+  <footer>Seeded 2026-09-11 · staging · re-running Demo 1 or 2 a second time starts from an already-cleared state for that step · JB Learning class-settings field added and deployed</footer>
 
 </div>

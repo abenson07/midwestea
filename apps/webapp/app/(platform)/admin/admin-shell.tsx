@@ -14,8 +14,40 @@ import { CommandPaletteProvider } from "@/components/admin-migrate/patterns/foun
 import { OpenClassesProvider } from "@/lib/admin-migrate/OpenClassesContext";
 import type { StagingOpenClassGroups } from "@/lib/admin-migrate/openClasses";
 import { themeInitScript } from "@/theme/themeInit";
+import { linearTokenVars } from "@/theme/linearTokens";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+function AdminShellLoading() {
+    return (
+        <div
+            style={{
+                display: "flex",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--linear-color-canvas)",
+            }}
+        >
+            <div style={{ textAlign: "center" }}>
+                <div
+                    style={{
+                        display: "inline-block",
+                        width: 28,
+                        height: 28,
+                        marginBottom: 14,
+                        borderRadius: "50%",
+                        border: "2px solid var(--linear-color-hairline-strong)",
+                        borderBottomColor: "var(--linear-color-ink-subtle)",
+                        animation: "admin-shell-spin 0.7s linear infinite",
+                    }}
+                />
+                <p style={{ color: "var(--linear-color-ink-muted)", fontSize: 13 }}>Loading…</p>
+            </div>
+            <style>{"@keyframes admin-shell-spin { to { transform: rotate(360deg); } }"}</style>
+        </div>
+    );
+}
 
 export function AdminShell({
     children,
@@ -75,46 +107,20 @@ export function AdminShell({
         checkAuth();
     }, [pathname, router, isAuthPage]);
 
+    let content: React.ReactNode;
     if (!isAuthPage && isCheckingAuth) {
-        return (
-            <div className="flex h-screen bg-gray-50 items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (isAuthPage) {
-        return <>{children}</>;
-    }
-
-    if (!isAuthenticated) {
-        return null;
-    }
-
-    if (!isAdmin) {
-        return <AdminAccessRequired userEmail={userEmail} />;
-    }
-
-    // Sidebar isn't rendered here — each page brings its own via
-    // FoundationLayout (defaults to LinearSidebar). This shell only
-    // provides the wrapping context: the admin-migrate-root isolation
-    // boundary (see isolation.css) plus the same provider stack the source
-    // app's root layout used.
-    return (
-        <div
-            className={`admin-migrate-root ${inter.variable}`}
-            style={{
-                height: "100vh",
-                fontFamily: "var(--font-inter), system-ui, sans-serif",
-            }}
-        >
-            {/* Not in <head> (this is a nested layout, not the app's root) so it
-                runs slightly later than ideal, but still scoped to admin-only —
-                putting it in the shared root layout would affect every route. */}
-            <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        content = <AdminShellLoading />;
+    } else if (isAuthPage) {
+        content = children;
+    } else if (!isAuthenticated) {
+        content = null;
+    } else if (!isAdmin) {
+        content = <AdminAccessRequired userEmail={userEmail} />;
+    } else {
+        // Sidebar isn't rendered here — each page brings its own via
+        // FoundationLayout (defaults to LinearSidebar). This branch just
+        // adds the provider stack the source app's root layout used.
+        content = (
             <QueryProvider>
                 <ThemeProvider>
                     <WipFeaturesProvider defaultEnabled={true}>
@@ -127,6 +133,27 @@ export function AdminShell({
                 </ThemeProvider>
                 <Toaster richColors position="bottom-right" />
             </QueryProvider>
+        );
+    }
+
+    // This wrapper (isolation class, font, blocking theme-init script, and
+    // the linear token CSS vars) always renders, including while auth is
+    // still being checked — it previously only wrapped the authenticated
+    // branch, so the loading/login/access-required states fell outside the
+    // admin-migrate-root isolation boundary (see isolation.css) entirely
+    // and rendered with plain unthemed Tailwind gray instead of matching
+    // the admin's actual (dark-by-default) theme.
+    return (
+        <div
+            className={`admin-migrate-root ${inter.variable}`}
+            style={{
+                height: "100vh",
+                fontFamily: "var(--font-inter), system-ui, sans-serif",
+                ...linearTokenVars,
+            } as React.CSSProperties}
+        >
+            <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+            {content}
         </div>
     );
 }
