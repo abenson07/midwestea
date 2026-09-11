@@ -1,8 +1,11 @@
 # Transactional emails guide
 
-This is the content guide for the 8 transactional emails built from the `MidwestEA-Final` Figma
+This is the content guide for the transactional emails built from the `MidwestEA-Final` Figma
 file. See `/Users/alexbenson/.claude/plans/great-i-d-like-to-refactored-moler.md` for the original
-build plan and design-fidelity notes (flagged color/font discrepancies, etc.).
+build plan and design-fidelity notes (flagged color/font discrepancies, etc.). The original 8
+Figma-sourced emails are listed below; `prerequisite-rejected.tsx`, `prerequisite-pending-review.tsx`,
+and `fully-enrolled.tsx` (BEN-865) were added later without a Figma frame of their own — built to
+match the same shared components/design tokens by hand.
 
 ## System overview
 
@@ -36,6 +39,9 @@ footer update in lockstep across all 8 emails.
 | Rate Class | `rate-class.tsx` | **Not wired** — admin-initiated, manual send | className, reviewUrl (carries query params) |
 | Class Reminder | `class-reminder.tsx` | **Not wired** — needs a 14-day-before-start cron | studentName, className, startDate, heroImageUrl, missingPrerequisites (hardcoded placeholder) |
 | OTP / Login code | `otp-login-code.tsx` | Wired manually into `lib/email-templates/admin-otp.html` (Supabase Auth SMTP paste-in, not rendered by app code) | code |
+| Prerequisite Rejected | `prerequisite-rejected.tsx` | `sendPrerequisiteRejectedEmail` in `lib/email.ts` (called from `app/api/admin/prerequisites/review/route.ts`) | studentName, prerequisiteTypeName, className, rejectionReason, resubmitUrl, resubmitLabel |
+| Prerequisite Pending Review | `prerequisite-pending-review.tsx` | `sendPrerequisitePendingReviewEmail` in `lib/email.ts` | studentName, className, outstandingList, actionUrl |
+| Fully Enrolled | `fully-enrolled.tsx` | `sendFullyEnrolledEmail` in `lib/email.ts` (called from `app/api/admin/prerequisites/review/route.ts`) | studentName, className, profileUrl |
 
 ## Content-config pattern (`content/enrollment/`)
 

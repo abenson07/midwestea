@@ -10,6 +10,13 @@ import EnrollmentSuccessful, {
 import CompletedClassFollowups, {
   type CompletedClassFollowupsProps,
 } from '../emails/completed-class-followups';
+import PrerequisiteRejected, {
+  type PrerequisiteRejectedProps,
+} from '../emails/prerequisite-rejected';
+import PrerequisitePendingReview, {
+  type PrerequisitePendingReviewProps,
+} from '../emails/prerequisite-pending-review';
+import FullyEnrolled, { type FullyEnrolledProps } from '../emails/fully-enrolled';
 
 /**
  * Send functions for the new React Email-based transactional emails
@@ -70,4 +77,27 @@ export async function sendCertificateIssuedEmail(
     html,
     tags: [{ name: 'email_type', value: 'completed_class_followups' }],
   });
+}
+
+/**
+ * Render the "Prerequisite Rejected" / "Prerequisite Pending Review" /
+ * "Fully Enrolled" emails (BEN-865) to HTML strings. Rendering only — the
+ * matching send functions in lib/email.ts handle from/subject/tags/logging,
+ * same division as renderEnrollmentSuccessfulEmail above. These replace the
+ * flat-HTML lib/email-templates/*.html versions of the same three emails.
+ */
+export async function renderPrerequisiteRejectedEmail(
+  props: PrerequisiteRejectedProps
+): Promise<string> {
+  return render(React.createElement(PrerequisiteRejected, props));
+}
+
+export async function renderPrerequisitePendingReviewEmail(
+  props: PrerequisitePendingReviewProps
+): Promise<string> {
+  return render(React.createElement(PrerequisitePendingReview, props));
+}
+
+export async function renderFullyEnrolledEmail(props: FullyEnrolledProps): Promise<string> {
+  return render(React.createElement(FullyEnrolled, props));
 }

@@ -1194,7 +1194,8 @@ export async function sendPrerequisiteRejectedEmail(
 ): Promise<EmailSendResult & { previewHtml?: string }> {
   // Import here to avoid circular dependencies
   const { createSupabaseAdminClient } = await import('@midwestea/utils');
-  const { renderPrerequisiteRejectedTemplate, getPrerequisiteRejectedSubject } = await import('./email-templates');
+  const { getPrerequisiteRejectedSubject } = await import('./email-templates');
+  const { renderPrerequisiteRejectedEmail } = await import('./react-emails');
 
   const supabase = createSupabaseAdminClient();
   let studentEmail: string | null = null;
@@ -1256,7 +1257,7 @@ export async function sendPrerequisiteRejectedEmail(
 
   let html: string;
   try {
-    html = renderPrerequisiteRejectedTemplate({
+    html = await renderPrerequisiteRejectedEmail({
       studentName,
       prerequisiteTypeName: params.prerequisiteTypeName,
       className,
@@ -1339,9 +1340,8 @@ export async function sendPrerequisitePendingReviewEmail(
 ): Promise<EmailSendResult & { previewHtml?: string }> {
   // Import here to avoid circular dependencies
   const { createSupabaseAdminClient } = await import('@midwestea/utils');
-  const { renderPrerequisitePendingReviewTemplate, getPrerequisitePendingReviewSubject } = await import(
-    './email-templates'
-  );
+  const { getPrerequisitePendingReviewSubject } = await import('./email-templates');
+  const { renderPrerequisitePendingReviewEmail } = await import('./react-emails');
 
   const supabase = createSupabaseAdminClient();
   let studentEmail: string | null = null;
@@ -1402,7 +1402,7 @@ export async function sendPrerequisitePendingReviewEmail(
 
   let html: string;
   try {
-    html = renderPrerequisitePendingReviewTemplate({
+    html = await renderPrerequisitePendingReviewEmail({
       studentName,
       className: params.className,
       outstandingList,
@@ -1482,7 +1482,8 @@ export async function sendFullyEnrolledEmail(
 ): Promise<EmailSendResult & { previewHtml?: string }> {
   // Import here to avoid circular dependencies
   const { createSupabaseAdminClient } = await import('@midwestea/utils');
-  const { renderFullyEnrolledTemplate, getFullyEnrolledSubject } = await import('./email-templates');
+  const { getFullyEnrolledSubject } = await import('./email-templates');
+  const { renderFullyEnrolledEmail } = await import('./react-emails');
 
   const supabase = createSupabaseAdminClient();
   let studentEmail: string | null = null;
@@ -1540,7 +1541,7 @@ export async function sendFullyEnrolledEmail(
 
   let html: string;
   try {
-    html = renderFullyEnrolledTemplate({
+    html = await renderFullyEnrolledEmail({
       studentName,
       className: params.className,
       profileUrl,

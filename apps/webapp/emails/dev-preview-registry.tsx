@@ -7,6 +7,9 @@ import OtpLoginCode from './otp-login-code';
 import EnrollmentSuccessful from './enrollment-successful';
 import ClassReminder from './class-reminder';
 import CompletedClassFollowups from './completed-class-followups';
+import PrerequisiteRejected from './prerequisite-rejected';
+import PrerequisitePendingReview from './prerequisite-pending-review';
+import FullyEnrolled from './fully-enrolled';
 
 export type FieldType = 'text' | 'textarea' | 'json';
 
@@ -155,6 +158,43 @@ export const EMAIL_TEMPLATES: TemplateDef[] = [
         courseChecklist: true,
       },
       { key: 'allCoursesUrl', label: 'All courses URL', type: 'text', hidden: true },
+    ],
+  },
+  {
+    key: 'prerequisite-rejected',
+    label: 'Prerequisite Rejected',
+    component: PrerequisiteRejected,
+    hasClassPicker: true,
+    fields: [
+      { key: 'studentName', label: 'Student name', type: 'text' },
+      { key: 'prerequisiteTypeName', label: 'Prerequisite type name', type: 'text' },
+      { key: 'className', label: 'Class name', type: 'text', classLink: 'courseName' },
+      { key: 'rejectionReason', label: 'Rejection reason', type: 'textarea' },
+      { key: 'resubmitUrl', label: 'Resubmit URL', type: 'text' },
+      { key: 'resubmitLabel', label: 'Resubmit button label', type: 'text' },
+    ],
+  },
+  {
+    key: 'prerequisite-pending-review',
+    label: 'Prerequisite Pending Review',
+    component: PrerequisitePendingReview,
+    hasClassPicker: true,
+    fields: [
+      { key: 'studentName', label: 'Student name', type: 'text' },
+      { key: 'className', label: 'Class name', type: 'text', classLink: 'courseName' },
+      { key: 'outstandingList', label: 'Outstanding items (comma-joined text)', type: 'text' },
+      { key: 'actionUrl', label: 'Action URL', type: 'text' },
+    ],
+  },
+  {
+    key: 'fully-enrolled',
+    label: 'Fully Enrolled',
+    component: FullyEnrolled,
+    hasClassPicker: true,
+    fields: [
+      { key: 'studentName', label: 'Student name', type: 'text' },
+      { key: 'className', label: 'Class name', type: 'text', classLink: 'courseName' },
+      { key: 'profileUrl', label: 'Profile URL', type: 'text' },
     ],
   },
 ];

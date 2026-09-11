@@ -12,6 +12,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "apps/webapp", "--", "-p", "3101"],
       "port": 3101
+    },
+    {
+      "name": "email-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["react-email", "dev", "-d", "apps/webapp/emails", "-p", "3102"],
+      "port": 3102
     }
   ]
 }

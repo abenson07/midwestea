@@ -70,40 +70,6 @@ export interface TuitionReminderTemplateData {
   payUrl: string | null;
 }
 
-/**
- * Data structure for the prerequisite rejection email template
- */
-export interface PrerequisiteRejectedTemplateData {
-  studentName: string;
-  prerequisiteTypeName: string;
-  className: string;
-  rejectionReason: string;
-  resubmitUrl: string;
-  resubmitLabel: string;
-}
-
-/**
- * Data structure for the prerequisite pending-review email template
- * (BEN-865). `outstandingList` must already be a plain-text, comma-joined
- * string -- renderTemplate escapes it like every other field, so passing
- * markup here would render as literal tags.
- */
-export interface PrerequisitePendingReviewTemplateData {
-  studentName: string;
-  className: string;
-  outstandingList: string;
-  actionUrl: string;
-}
-
-/**
- * Data structure for the fully-enrolled email template (BEN-865).
- */
-export interface FullyEnrolledTemplateData {
-  studentName: string;
-  className: string;
-  profileUrl: string;
-}
-
 // ============================================================================
 // Template Loading
 // ============================================================================
@@ -433,79 +399,12 @@ export function getTuitionReminderSubject(programName: string): string {
   return `Payment reminder — ${programName}`;
 }
 
-/**
- * Render the prerequisite rejection email template.
- *
- * Passes every field straight to `renderTemplate`, which HTML-escapes each
- * value itself -- `rejectionReason` is staff-entered free text and must
- * never reach the template unescaped.
- */
-export function renderPrerequisiteRejectedTemplate(
-  data: PrerequisiteRejectedTemplateData
-): string {
-  const html = getTemplate('prerequisite-rejected');
-
-  const templateData: Record<string, string> = {
-    studentName: data.studentName || 'Student',
-    prerequisiteTypeName: data.prerequisiteTypeName,
-    className: data.className,
-    rejectionReason: data.rejectionReason,
-    resubmitUrl: data.resubmitUrl,
-    resubmitLabel: data.resubmitLabel,
-    currentYear: String(new Date().getFullYear()),
-  };
-
-  return renderTemplate(html, templateData);
-}
-
 export function getPrerequisiteRejectedSubject(prerequisiteTypeName: string): string {
   return `Action needed: ${prerequisiteTypeName}`;
 }
 
-/**
- * Render the prerequisite pending-review email template (BEN-865).
- *
- * Branches purely on prerequisite state -- never on tier, program_type, or
- * courseType. Passes every field straight to `renderTemplate`, which
- * HTML-escapes each value itself.
- */
-export function renderPrerequisitePendingReviewTemplate(
-  data: PrerequisitePendingReviewTemplateData
-): string {
-  const html = getTemplate('prerequisite-pending-review');
-
-  const templateData: Record<string, string> = {
-    studentName: data.studentName || 'Student',
-    className: data.className,
-    outstandingList: data.outstandingList,
-    actionUrl: data.actionUrl,
-    currentYear: String(new Date().getFullYear()),
-  };
-
-  return renderTemplate(html, templateData);
-}
-
 export function getPrerequisitePendingReviewSubject(className: string): string {
   return `Next steps for ${className}`;
-}
-
-/**
- * Render the fully-enrolled email template (BEN-865).
- *
- * Branches purely on prerequisite state -- never on tier, program_type, or
- * courseType.
- */
-export function renderFullyEnrolledTemplate(data: FullyEnrolledTemplateData): string {
-  const html = getTemplate('fully-enrolled');
-
-  const templateData: Record<string, string> = {
-    studentName: data.studentName || 'Student',
-    className: data.className,
-    profileUrl: data.profileUrl,
-    currentYear: String(new Date().getFullYear()),
-  };
-
-  return renderTemplate(html, templateData);
 }
 
 export function getFullyEnrolledSubject(className: string): string {

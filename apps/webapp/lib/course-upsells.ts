@@ -17,7 +17,7 @@ export const COURSE_UPSELL_MAP: Record<string, string[]> = {
   EPI: ["BLS", "CPR", "AVERT", "OXY", "PATH"],
 };
 
-export type UpsellCourseLookup = Map<string, { name: string }>;
+export type UpsellCourseLookup = Map<string, { name: string; imageUrl: string | null }>;
 
 /**
  * Implements the selection algorithm documented (but left unbuilt) in
@@ -39,6 +39,7 @@ export function getSuggestedFollowUps(
   return relevant.slice(0, max).map((code) => ({
     title: courseLookup.get(code)?.name ?? code,
     description: "Recertification and next-step training for first responders.",
+    imageUrl: courseLookup.get(code)?.imageUrl ?? undefined,
     href: `${siteUrl}/courses`,
   }));
 }
