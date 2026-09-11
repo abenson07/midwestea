@@ -36,6 +36,7 @@ import { TransactionDetailPanel } from "../payments/TransactionDetailPanel";
 import { TransactionSidePanel } from "../payments/TransactionSidePanel";
 import { TransactionRowsProvider, useTransactions } from "../payments/useTransactions";
 import type { TransactionRow } from "@/data/mocks/transactions";
+import type { StagingPrerequisiteType } from "@/lib/admin-migrate/prerequisites";
 
 type ClassDetailView = "overview" | "settings" | "transactions" | "prerequisites";
 
@@ -46,6 +47,7 @@ export type ClassDetailDemoProps = {
   roster?: ClassRosterRow[];
   transactions?: TransactionRow[];
   locationNames?: string[];
+  prerequisiteTypes?: StagingPrerequisiteType[];
 };
 
 function viewFromPath(pathname: string, classRoot: string): ClassDetailView {
@@ -131,6 +133,7 @@ export function ClassDetailDemo({
   roster: rosterProp,
   transactions,
   locationNames,
+  prerequisiteTypes,
 }: ClassDetailDemoProps) {
   const live = useIsNewAdminMigrate();
   const inner = (
@@ -139,6 +142,7 @@ export function ClassDetailDemo({
       classDetail={classDetailProp}
       roster={rosterProp}
       locationNames={locationNames}
+      prerequisiteTypes={prerequisiteTypes}
     />
   );
   if (transactions || live) {
@@ -152,6 +156,7 @@ function ClassDetailDemoInner({
   classDetail: classDetailProp,
   roster: rosterProp,
   locationNames,
+  prerequisiteTypes,
 }: Omit<ClassDetailDemoProps, "transactions">) {
   const router = useRouter();
   const pathname = usePathname();
@@ -357,6 +362,7 @@ function ClassDetailDemoInner({
               roster={roster}
               activity={activity}
               onEditDetails={closed ? undefined : () => changeView("settings")}
+              prerequisiteTypes={prerequisiteTypes}
               onAddPrerequisite={(name) => {
                 setClassDetail((prev) => {
                   if (!prev || prev.prerequisites.includes(name)) return prev;

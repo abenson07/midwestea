@@ -137,6 +137,7 @@ export async function issueCertificate(
 
     return { enrollmentId, success: true };
   } catch (error: any) {
+    console.error("[issueCertificate] failed:", error?.stack || error);
     return { enrollmentId, success: false, error: error?.message || "Failed to issue certificate" };
   }
 }

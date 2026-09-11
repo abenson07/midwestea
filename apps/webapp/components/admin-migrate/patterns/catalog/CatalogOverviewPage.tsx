@@ -15,6 +15,7 @@ import {
   type CatalogTemplate,
 } from "./catalogMocks";
 import type { ClassDetail } from "../classes/classMocks";
+import type { StagingPrerequisiteType } from "@/lib/admin-migrate/prerequisites";
 
 /** 24-column overview. Tweak `left` / `right` (must sum to `columns`). */
 const OVERVIEW_GRID = {
@@ -31,6 +32,7 @@ export type CatalogOverviewPageProps = {
   onCreateClass?: () => void;
   onTemplateChange?: (next: CatalogTemplate) => void;
   enrolledCounts?: Map<string, number>;
+  prerequisiteTypes?: StagingPrerequisiteType[];
 };
 
 export function CatalogOverviewPage({
@@ -40,6 +42,7 @@ export function CatalogOverviewPage({
   onCreateClass,
   onTemplateChange,
   enrolledCounts,
+  prerequisiteTypes,
 }: CatalogOverviewPageProps) {
   const live = useIsNewAdminMigrate();
   const activity = live ? [] : catalogActivityFor(template.id);
@@ -122,8 +125,10 @@ export function CatalogOverviewPage({
         <CatalogDetailsCard template={template} onEditDetails={onEditDetails} />
         <CatalogPrerequisitesList
           key={template.id}
+          courseUuid={template.id}
           assignments={prereqAssignments}
           onChange={handlePrerequisitesChange}
+          catalogTypes={prerequisiteTypes}
         />
         <ClassActivityCard items={activity} />
       </div>

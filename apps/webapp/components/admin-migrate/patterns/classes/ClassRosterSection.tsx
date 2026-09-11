@@ -15,6 +15,7 @@ import { Dropdown, DropdownItem } from "@/components/admin-migrate/patterns/shar
 import {
   rosterPaymentStatusFor,
   rosterPrerequisiteStatusFor,
+  type ClassPrerequisiteSubmission,
   type ClassRosterRow,
   type RosterPaymentStatus,
 } from "./classMocks";
@@ -108,7 +109,9 @@ function buildColumns(
   onReviewPrerequisite?: (studentId: string) => void,
   invoices?: TransactionRow[],
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void,
+  submissions?: ClassPrerequisiteSubmission[],
 ): TableColumn<ClassRosterRow>[] {
+  const pendingStudentIds = new Set((submissions ?? []).map((row) => row.studentId));
   function selectIfStudent(row: ClassRosterRow) {
     return row.role === "Student" ? () => onSelectStudent?.(row.id) : undefined;
   }
@@ -159,7 +162,12 @@ function buildColumns(
         if (row.role !== "Student" || row.status !== "Enrolled") {
           return <span style={{ color: "var(--linear-color-ink-subtle)" }}>—</span>;
         }
-        const status = rosterPrerequisiteStatusFor(classId, row.id);
+        // A real pending submission always wins over the mock-derived status
+        // below — that mock lookup has no way to see credentials submitted
+        // against a real (non-demo) class.
+        const status = pendingStudentIds.has(row.id)
+          ? "needs-review"
+          : rosterPrerequisiteStatusFor(classId, row.id);
         if (status === "approved") {
           return (
             <StatusBadge
@@ -281,6 +289,8 @@ export type ClassRosterSectionProps = {
   showCertificates?: boolean;
   showPrerequisites?: boolean;
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
+  /** Real pending submissions (live mode) — takes priority over the mock-derived status. */
+  submissions?: ClassPrerequisiteSubmission[];
 };
 
 export function ClassRosterSection({
@@ -292,6 +302,7 @@ export function ClassRosterSection({
   showCertificates = false,
   showPrerequisites = false,
   onGenerateCertificateForRow,
+  submissions,
 }: ClassRosterSectionProps) {
   const { transactions } = useTransactions();
   const [search, setSearch] = useState("");
@@ -313,6 +324,7 @@ export function ClassRosterSection({
         onReviewPrerequisite,
         transactions,
         onGenerateCertificateForRow,
+        submissions,
       ),
     [
       onSelectStudent,
@@ -324,6 +336,7 @@ export function ClassRosterSection({
       onReviewPrerequisite,
       transactions,
       onGenerateCertificateForRow,
+      submissions,
     ],
   );
 

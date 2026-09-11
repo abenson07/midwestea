@@ -3,7 +3,7 @@ import { createStagingAdminClient } from "./adminClient";
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const COURSE_SELECT =
-  "id, course_name, course_code, program_type, programming_offering, length_of_class, certification_length, registration_limit, price, registration_fee, jb_learning_label, jb_learning_url, platinum_ed_label, platinum_ed_url";
+  "id, course_name, course_code, program_type, programming_offering, length_of_class, certification_length, certificate_reminder_months, registration_limit, price, registration_fee, course_image, jb_learning_label, jb_learning_url, platinum_ed_label, platinum_ed_url";
 
 type CourseRow = {
   id: string;
@@ -13,9 +13,11 @@ type CourseRow = {
   programming_offering: string | null;
   length_of_class: string | null;
   certification_length: number | null;
+  certificate_reminder_months: number | null;
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
+  course_image: string | null;
   jb_learning_label: string | null;
   jb_learning_url: string | null;
   platinum_ed_label: string | null;
@@ -30,9 +32,11 @@ export type StagingCourse = {
   classFormat: string | null;
   classLength: string | null;
   certificationLength: number | null;
+  certificateReminderMonths: number | null;
   registrationLimit: number | null;
   price: number | null;
   registrationFee: number | null;
+  courseImage: string | null;
   jbLearningLabel: string | null;
   jbLearningUrl: string | null;
   platinumEdLabel: string | null;
@@ -48,9 +52,11 @@ function toStagingCourse(row: CourseRow): StagingCourse {
     classFormat: row.programming_offering,
     classLength: row.length_of_class,
     certificationLength: row.certification_length,
+    certificateReminderMonths: row.certificate_reminder_months,
     registrationLimit: row.registration_limit,
     price: row.price,
     registrationFee: row.registration_fee,
+    courseImage: row.course_image,
     jbLearningLabel: row.jb_learning_label,
     jbLearningUrl: row.jb_learning_url,
     platinumEdLabel: row.platinum_ed_label,

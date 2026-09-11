@@ -15,8 +15,24 @@ import { INITIAL_PREREQUISITES } from "./prerequisiteData";
 import {
   expirationLabel,
   inputTypeLabel,
+  type PrerequisiteInputType,
   type PrerequisiteRow,
 } from "./types";
+import {
+  archivePrerequisiteType,
+  createPrerequisiteType,
+  updatePrerequisiteType,
+} from "@/lib/prerequisites";
+
+/** UI uses "file"; the DB column (and its CHECK constraint) uses "file_upload". */
+function toDbInputType(inputType: PrerequisiteInputType): "file_upload" | "date" | "text" | "checkbox" {
+  return inputType === "file" ? "file_upload" : inputType;
+}
+
+/** UI uses "never"; the DB's expiration_rule CHECK constraint uses "none". */
+function toDbExpirationRule(expiration: "never" | "fixed_date" | "duration_from_issue"): "none" | "fixed_date" | "duration_from_issue" {
+  return expiration === "never" ? "none" : expiration;
+}
 
 function buildColumns(options: {
   onEdit: (row: PrerequisiteRow) => void;
@@ -134,28 +150,63 @@ export function PrerequisitesDemo({ rows: rowsProp }: PrerequisitesDemoProps = {
     setEditing(null);
   }
 
-  function handleSubmit(values: PrerequisiteFormValues) {
-    if (editing) {
-      setRows((prev) =>
-        prev.map((row) => (row.id === editing.id ? { ...row, ...values } : row)),
-      );
+  async function handleSubmit(values: PrerequisiteFormValues) {
+    if (!live) {
+      // /admin-preview demo sandbox only — no backing project to write to.
+      if (editing) {
+        setRows((prev) => prev.map((row) => (row.id === editing.id ? { ...row, ...values } : row)));
+      } else {
+        setRows((prev) => [
+          { ...values, id: `prereq-${Date.now()}`, createdOn: new Date().toISOString().slice(0, 10), archived: false },
+          ...prev,
+        ]);
+      }
       toast.success(`${values.name} saved — demo mode, saved locally only`);
       return;
     }
 
-    const created: PrerequisiteRow = {
-      ...values,
-      id: `prereq-${Date.now()}`,
-      createdOn: new Date().toISOString().slice(0, 10),
-      archived: false,
+    const input = {
+      name: values.name,
+      input_type: toDbInputType(values.inputType),
+      description: values.description || null,
+      required_by_default: values.requiredByDefault,
+      expiration_rule: toDbExpirationRule(values.expiration),
+      expiration_duration_months: values.expiration === "duration_from_issue" ? values.validMonths : null,
     };
-    setRows((prev) => [created, ...prev]);
-    toast.success(`${created.name} added — demo mode, saved locally only`);
+
+    if (editing) {
+      const result = await updatePrerequisiteType(editing.id, input);
+      if (!result.success) {
+        toast.error(result.error || "Failed to save prerequisite");
+        return;
+      }
+      setRows((prev) => prev.map((row) => (row.id === editing.id ? { ...row, ...values } : row)));
+      toast.success(`${values.name} saved`);
+      return;
+    }
+
+    const result = await createPrerequisiteType(input);
+    if (!result.success || !result.prerequisiteType) {
+      toast.error(result.error || "Failed to add prerequisite");
+      return;
+    }
+    setRows((prev) => [
+      { ...values, id: result.prerequisiteType!.id, createdOn: new Date().toISOString().slice(0, 10), archived: false },
+      ...prev,
+    ]);
+    toast.success(`${values.name} added`);
   }
 
-  function confirmArchive() {
+  async function confirmArchive() {
     if (!archiving) return;
     const name = archiving.name;
+    if (live) {
+      const result = await archivePrerequisiteType(archiving.id);
+      if (!result.success) {
+        toast.error(result.error || "Failed to archive prerequisite");
+        return;
+      }
+    }
     setRows((prev) =>
       prev.map((row) => (row.id === archiving.id ? { ...row, archived: true } : row)),
     );
@@ -164,10 +215,13 @@ export function PrerequisitesDemo({ rows: rowsProp }: PrerequisitesDemoProps = {
   }
 
   function restore(row: PrerequisiteRow) {
+    // Not wired to real persistence — restore-from-archive isn't on the
+    // critical path for the current test flows. archivePrerequisiteType()
+    // sets archived_at; there's no corresponding "clear it" helper yet.
     setRows((prev) =>
       prev.map((item) => (item.id === row.id ? { ...item, archived: false } : item)),
     );
-    toast.success(`${row.name} restored to Active`);
+    toast.success(`${row.name} restored to Active (UI only — not yet saved)`);
   }
 
   const columns = useMemo(

@@ -69,6 +69,7 @@ export default async function ClassCatchAllRoute({
       roster={classDetail ? roster : undefined}
       transactions={classDetail ? transactions : undefined}
       locationNames={locations.map((location) => location.name)}
+      prerequisiteTypes={prereqTypes}
     />
   );
 }

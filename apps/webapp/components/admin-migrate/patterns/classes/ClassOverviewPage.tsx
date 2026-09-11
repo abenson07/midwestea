@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { createSupabaseClient } from "@midwestea/utils";
+import type { ClassPrerequisiteSubmission } from "./classMocks";
 import { ClassInfoBox } from "./ClassInfoBox";
 import { ClassDetailsCard } from "./ClassDetailsCard";
 import { ClassPrerequisitesQueue } from "./ClassPrerequisitesQueue";
@@ -23,6 +25,7 @@ import {
   type StudentToRemove,
 } from "./classMocks";
 import { useTransactions } from "../payments/useTransactions";
+import type { StagingPrerequisiteType } from "@/lib/admin-migrate/prerequisites";
 
 /** 24-column overview. Tweak `left` / `right` (must sum to `columns`). */
 const OVERVIEW_GRID = {
@@ -40,6 +43,7 @@ export type ClassOverviewPageProps = {
   onAddPrerequisite?: (name: string) => void;
   onRemoveStudent?: (student: StudentToRemove) => void;
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void;
+  prerequisiteTypes?: StagingPrerequisiteType[];
 };
 
 export function ClassOverviewPage({
@@ -50,6 +54,7 @@ export function ClassOverviewPage({
   onAddPrerequisite,
   onRemoveStudent,
   onGenerateCertificateForRow,
+  prerequisiteTypes,
 }: ClassOverviewPageProps) {
   const live = useIsNewAdminMigrate();
   const { transactions } = useTransactions();
@@ -59,9 +64,49 @@ export function ClassOverviewPage({
   const canEdit = !closed;
   const revenue = live ? null : classRevenueFor(classDetail.id);
   const invoices = classDueInvoicesFor(classDetail.id, transactions);
-  const submissions = live ? [] : classPrerequisiteQueueFor(classDetail.id);
+  const [liveSubmissions, setLiveSubmissions] = useState<ClassPrerequisiteSubmission[]>([]);
+  const submissions = live ? liveSubmissions : classPrerequisiteQueueFor(classDetail.id);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
+
+  const refetchSubmissions = useCallback(async () => {
+    if (!live) return;
+    const supabase = await createSupabaseClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+    const response = await fetch("/api/admin/prerequisites/queue", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    if (!response.ok) return;
+    const result = await response.json();
+    if (!result.success) return;
+    const rows = (result.rows ?? []) as Array<{
+      credential_id: string;
+      student_id: string;
+      student_name: string;
+      class_id: string | null;
+      prerequisite_type_name: string;
+      submitted_at: string;
+    }>;
+    setLiveSubmissions(
+      rows
+        .filter((row) => row.class_id === classDetail.id)
+        .map((row) => ({
+          id: row.credential_id,
+          studentId: row.student_id,
+          student: row.student_name,
+          type: row.prerequisite_type_name,
+          issuedOn: row.submitted_at,
+          issuer: "Submitted by student",
+        })),
+    );
+  }, [live, classDetail.id]);
+
+  useEffect(() => {
+    void refetchSubmissions();
+  }, [refetchSubmissions]);
 
   // Certificate generation isn't tied to the class being closed — always selectable.
   const canSelectStudent = true;
@@ -140,6 +185,7 @@ export function ClassOverviewPage({
               submissions={submissions}
               reviewSubmissionId={reviewSubmissionId}
               onReviewClose={() => setReviewSubmissionId(null)}
+              onReviewed={live ? () => void refetchSubmissions() : undefined}
             />
             <ClassDueInvoicesSection classId={classDetail.id} invoices={invoices} />
           </div>
@@ -150,6 +196,7 @@ export function ClassOverviewPage({
             submissions={submissions}
             reviewSubmissionId={reviewSubmissionId}
             onReviewClose={() => setReviewSubmissionId(null)}
+            onReviewed={live ? () => void refetchSubmissions() : undefined}
             hideBanner
           />
         ) : null}
@@ -162,6 +209,7 @@ export function ClassOverviewPage({
           showCertificates
           showPrerequisites={!closed}
           onGenerateCertificateForRow={onGenerateCertificateForRow}
+          submissions={submissions}
         />
       </div>
       <div
@@ -202,6 +250,8 @@ export function ClassOverviewPage({
               key={classDetail.id}
               items={classDetail.prerequisites}
               editable={canEdit}
+              classId={live ? classDetail.id : undefined}
+              catalogTypes={prerequisiteTypes}
               onAdd={onAddPrerequisite}
             />
             <ClassActivityCard items={activity} />

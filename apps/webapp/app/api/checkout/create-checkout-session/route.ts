@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, fullName, classId } = body;
+    const { email, fullName, classId, utmSource, utmMedium, utmCampaign } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -190,6 +190,9 @@ export async function POST(request: NextRequest) {
           full_name: fullName,
           class_id: classId,
           charge_full_amount_at_registration: String(!!classRecord.charge_full_amount_at_registration),
+          ...(utmSource ? { utm_source: utmSource } : {}),
+          ...(utmMedium ? { utm_medium: utmMedium } : {}),
+          ...(utmCampaign ? { utm_campaign: utmCampaign } : {}),
         },
         stripeSecretKey
       );

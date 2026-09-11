@@ -2,7 +2,10 @@ import type { StagingAdmin } from "@/lib/admin-migrate/admins";
 import type { StagingCourse } from "@/lib/admin-migrate/courses";
 import type { StagingLocation } from "@/lib/admin-migrate/locations";
 import type { StagingPrerequisiteType, StagingTemplatePrerequisite } from "@/lib/admin-migrate/prerequisites";
-import type { CatalogTemplate } from "@/components/admin-migrate/patterns/catalog/catalogMocks";
+import type {
+  CatalogPrerequisiteAssignment,
+  CatalogTemplate,
+} from "@/components/admin-migrate/patterns/catalog/catalogMocks";
 import {
   CLASS_FORMATS,
   type ClassExternalLink,
@@ -78,9 +81,28 @@ export function prerequisiteNamesFor(
     .filter((name): name is string => Boolean(name));
 }
 
+/** Real assignment rows (true `template_prerequisites` ids) for a course template. */
+export function toCatalogPrerequisiteAssignments(
+  courseUuid: string,
+  assignments: StagingTemplatePrerequisite[],
+  types: StagingPrerequisiteType[],
+): CatalogPrerequisiteAssignment[] {
+  const names = new Map(types.map((type) => [type.id, type.name]));
+  return assignments
+    .filter((row) => row.courseUuid === courseUuid)
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((row) => ({
+      id: row.id,
+      prerequisiteTypeId: row.prerequisiteTypeId,
+      name: names.get(row.prerequisiteTypeId) ?? "Unknown prerequisite",
+      required: row.isRequired,
+    }));
+}
+
 export function toCatalogTemplate(
   course: StagingCourse,
   prerequisites: string[] = [],
+  prerequisiteAssignments?: CatalogPrerequisiteAssignment[],
 ): CatalogTemplate {
   return {
     id: course.id,
@@ -97,6 +119,11 @@ export function toCatalogTemplate(
     classLength: course.classLength || "—",
     prerequisites,
     externalLinks: externalLinksFor(course),
+    jbLearningUrl: course.jbLearningUrl,
+    platinumEdUrl: course.platinumEdUrl,
+    certificateReminderMonths: course.certificateReminderMonths,
+    courseImageUrl: course.courseImage ?? undefined,
+    prerequisiteAssignments,
   };
 }
 

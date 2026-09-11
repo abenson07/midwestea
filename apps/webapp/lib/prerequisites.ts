@@ -286,6 +286,40 @@ export async function reorderTemplatePrerequisites(
 }
 
 /**
+ * Assign a prerequisite type directly to a class (independent of its
+ * template's snapshot — see snapshotClassPrerequisites for the
+ * class-creation-time copy).
+ */
+export async function addClassPrerequisite(
+  classId: string,
+  prerequisiteTypeId: string,
+  isRequired: boolean,
+  sortOrder: number
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createSupabaseClient();
+    const { error } = await supabase.from("class_prerequisites").insert({
+      class_id: classId,
+      prerequisite_type_id: prerequisiteTypeId,
+      is_required: isRequired,
+      sort_order: sortOrder,
+    });
+
+    if (error) {
+      if ((error as any).code === "23505") {
+        return { success: false, error: "That prerequisite is already assigned to this class." };
+      }
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    const error = err as Error;
+    return { success: false, error: error.message || "Failed to assign prerequisite" };
+  }
+}
+
+/**
  * Fetch the read-only prerequisite snapshot on a class, joined to its
  * catalog type, ordered by sort_order.
  */

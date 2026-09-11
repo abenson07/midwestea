@@ -4,7 +4,7 @@ import { getCourseById, listCourses } from "@/lib/admin-migrate/courses";
 import { listEnrollments } from "@/lib/admin-migrate/enrollments";
 import { listPrerequisiteTypes, listTemplatePrerequisites } from "@/lib/admin-migrate/prerequisites";
 import { countEnrollmentsByClass, toClassDetail } from "../classes/fromStaging";
-import { prerequisiteNamesFor, toCatalogTemplate } from "./fromStaging";
+import { prerequisiteNamesFor, toCatalogPrerequisiteAssignments, toCatalogTemplate } from "./fromStaging";
 
 export async function CatalogDetailMigrate({ templateId }: { templateId: string }) {
   const [course, classes, enrollments, assignments, types, allCourses] = await Promise.all([
@@ -17,7 +17,11 @@ export async function CatalogDetailMigrate({ templateId }: { templateId: string 
   ]);
 
   const template = course
-    ? toCatalogTemplate(course, prerequisiteNamesFor(course.id, assignments, types))
+    ? toCatalogTemplate(
+        course,
+        prerequisiteNamesFor(course.id, assignments, types),
+        toCatalogPrerequisiteAssignments(course.id, assignments, types),
+      )
     : undefined;
   const coursesById = new Map(allCourses.map((row) => [row.id, row]));
   const templateClasses = course
@@ -33,6 +37,7 @@ export async function CatalogDetailMigrate({ templateId }: { templateId: string 
       template={template}
       classes={template ? templateClasses : undefined}
       enrolledCounts={template ? countEnrollmentsByClass(enrollments) : undefined}
+      prerequisiteTypes={types}
     />
   );
 }

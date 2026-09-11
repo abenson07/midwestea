@@ -30,6 +30,7 @@ pnpm-debug.log*
 .env*.local
 .env.local
 .env.local.backup
+.env.store
 apps/webapp/.env
 apps/webapp/.env.local
 apps/webapp/.env.local.backup
@@ -37,6 +38,7 @@ apps/webapp/.env.local.backup
 # Database exports (PII — keep local only)
 backups/
 docs/migration/generated-sql/
+docs/demo/generated-sql/
 
 # Exported data (contains customer PII)
 stripe-transactions-export.csv

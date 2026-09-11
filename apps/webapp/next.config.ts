@@ -44,7 +44,15 @@ const studentPortalRedirects = [
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["@react-pdf/renderer"],
+  // @react-pdf/renderer's reconciler is a separate package with its own
+  // React/react-reconciler resolution — if it's not also externalized, Next
+  // bundles it through the RSC webpack layer, which resolves `react` under
+  // the "react-server" condition. That's a *different* React module
+  // instance than the one @react-pdf/reconciler's React elements were
+  // created with, so React's element-validity check (Symbol.for("react.element")
+  // identity) fails and throws "Minified React error #31" (object with
+  // {$$typeof, type, key, props, ...} keys not recognized as an element).
+  serverExternalPackages: ["@react-pdf/renderer", "@react-pdf/reconciler"],
   async redirects() {
     return [
       ...programRedirects,

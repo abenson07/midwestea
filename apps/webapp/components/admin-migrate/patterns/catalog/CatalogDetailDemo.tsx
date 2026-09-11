@@ -20,6 +20,7 @@ import {
   type CatalogTemplate,
 } from "./catalogMocks";
 import type { ClassDetail } from "../classes/classMocks";
+import type { StagingPrerequisiteType } from "@/lib/admin-migrate/prerequisites";
 
 export type CatalogDetailDemoProps = {
   templateId: string;
@@ -27,6 +28,8 @@ export type CatalogDetailDemoProps = {
   template?: CatalogTemplate;
   classes?: ClassDetail[];
   enrolledCounts?: Map<string, number>;
+  /** Real prerequisite catalog, for the "add prerequisite" search — real data only, not passed in demo mode. */
+  prerequisiteTypes?: StagingPrerequisiteType[];
 };
 
 export function CatalogDetailDemo({
@@ -34,6 +37,7 @@ export function CatalogDetailDemo({
   template: templateProp,
   classes: classesProp,
   enrolledCounts,
+  prerequisiteTypes,
 }: CatalogDetailDemoProps) {
   const router = useRouter();
   const basePath = useAdminBasePath();
@@ -102,6 +106,7 @@ export function CatalogDetailDemo({
             onCreateClass={() => setCreateOpen(true)}
             onTemplateChange={setTemplate}
             enrolledCounts={enrolledCounts}
+            prerequisiteTypes={prerequisiteTypes}
           />
         </div>
       </FoundationLayout>

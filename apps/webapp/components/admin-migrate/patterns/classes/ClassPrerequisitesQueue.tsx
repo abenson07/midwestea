@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ClipboardCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import { createSupabaseClient } from "@midwestea/utils";
 import { Avatar } from "@/components/admin-migrate/patterns/primitives/Avatar";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
@@ -44,7 +45,12 @@ export function ClassPrerequisitesQueue({
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [internalOpen, setInternalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const isOpen = internalOpen || Boolean(reviewSubmissionId);
+
+  useEffect(() => {
+    setRows(submissions);
+  }, [submissions]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -59,17 +65,49 @@ export function ClassPrerequisitesQueue({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, reviewSubmissionId]);
 
-  function decide(row: ClassPrerequisiteSubmission, decision: ClassPrerequisiteDecision, reason?: string) {
-    setDecisions((prev) => ({ ...prev, [row.id]: decision }));
-    if (decision === "rejected" && reason) {
-      setRejectReasons((prev) => ({ ...prev, [row.id]: reason }));
+  async function decide(row: ClassPrerequisiteSubmission, decision: ClassPrerequisiteDecision, reason?: string) {
+    setSubmitting(true);
+    try {
+      const supabase = await createSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("Not signed in — please log in again.");
+        return;
+      }
+
+      const response = await fetch("/api/admin/prerequisites/review", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          credentialId: row.id,
+          decision,
+          rejectionReason: reason,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        toast.error(result.error || `Failed to ${decision === "approved" ? "approve" : "reject"} submission.`);
+        return;
+      }
+
+      setDecisions((prev) => ({ ...prev, [row.id]: decision }));
+      if (decision === "rejected" && reason) {
+        setRejectReasons((prev) => ({ ...prev, [row.id]: reason }));
+      }
+      toast.success(`${decision === "approved" ? "Approved" : "Rejected"} ${row.student}'s ${row.type}`);
+      const currentIndex = rows.findIndex((r) => r.id === row.id);
+      const upcoming =
+        rows.slice(currentIndex + 1).find((r) => !decisions[r.id]) ??
+        rows.slice(0, currentIndex).find((r) => !decisions[r.id]);
+      setSelectedId(upcoming?.id ?? null);
+    } finally {
+      setSubmitting(false);
     }
-    toast.success(`${decision === "approved" ? "Approved" : "Rejected"} ${row.student}'s ${row.type}`);
-    const currentIndex = rows.findIndex((r) => r.id === row.id);
-    const upcoming =
-      rows.slice(currentIndex + 1).find((r) => !decisions[r.id]) ??
-      rows.slice(0, currentIndex).find((r) => !decisions[r.id]);
-    setSelectedId(upcoming?.id ?? null);
   }
 
   function undo(id: string) {

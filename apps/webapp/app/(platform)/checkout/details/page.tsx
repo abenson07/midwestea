@@ -7,6 +7,7 @@ import CheckoutLayout from '@/components/CheckoutLayout';
 import CheckoutClassDescription from '@/components/CheckoutClassDescription';
 import CheckoutClassCard from '@/components/CheckoutClassCard';
 import CheckoutPaymentSchedule from '@/components/CheckoutPaymentSchedule';
+import { getStoredUtmParams } from '@/lib/utmAttribution';
 
 function CheckoutDetailsContent() {
   const searchParams = useSearchParams();
@@ -248,6 +249,7 @@ function CheckoutDetailsContent() {
           email: email.trim(),
           fullName: fullName.trim(),
           classId: classData.class_id,
+          ...getStoredUtmParams(),
         }),
       });
 

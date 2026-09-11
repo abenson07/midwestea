@@ -41,6 +41,10 @@ export type CatalogTemplate = {
   classLength: string;
   prerequisites: string[];
   externalLinks?: ClassExternalLink[];
+  jbLearningUrl?: string | null;
+  platinumEdUrl?: string | null;
+  /** Months before expiration to remind the student. Setting only — nothing sends yet. */
+  certificateReminderMonths?: number | null;
   courseImageUrl?: string;
   /** Assigned when the template is created — read-only in settings. */
   stripeProductId?: string;

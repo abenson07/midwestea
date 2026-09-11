@@ -216,7 +216,8 @@ export async function findClassByClassId(classId: string): Promise<Class> {
  */
 export async function createEnrollment(
   studentId: string,
-  classId: string
+  classId: string,
+  attribution?: { utmSource?: string | null; utmMedium?: string | null; utmCampaign?: string | null }
 ): Promise<Enrollment> {
   const supabase = createSupabaseAdminClient();
 
@@ -246,6 +247,9 @@ export async function createEnrollment(
       class_id: classId,
       enrollment_status: 'registered',
       onboarding_complete: false,
+      utm_source: attribution?.utmSource || null,
+      utm_medium: attribution?.utmMedium || null,
+      utm_campaign: attribution?.utmCampaign || null,
     })
     .select()
     .single();

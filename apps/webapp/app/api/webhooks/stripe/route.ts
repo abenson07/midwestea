@@ -209,6 +209,9 @@ export async function POST(request: NextRequest) {
       const email = session.customer_email || session.customer_details?.email;
       const fullName = session.metadata?.full_name;
       const classId = session.metadata?.class_id;
+      const utmSource = session.metadata?.utm_source;
+      const utmMedium = session.metadata?.utm_medium;
+      const utmCampaign = session.metadata?.utm_campaign;
       
       // Get payment intent ID
       let paymentIntentId: string | null = null;
@@ -307,7 +310,11 @@ export async function POST(request: NextRequest) {
       console.log('[webhook] Class found:', classRecord.id, 'Type:', courseType);
 
       // Step 3: Create enrollment
-      const enrollment = await createEnrollment(student.id, classRecord.id);
+      const enrollment = await createEnrollment(student.id, classRecord.id, {
+        utmSource,
+        utmMedium,
+        utmCampaign,
+      });
       console.log('[webhook] Enrollment created:', enrollment.id);
 
       const transactions = chargeFullAmountAtRegistration
@@ -657,6 +664,9 @@ export async function POST(request: NextRequest) {
       const classId = paymentIntent.metadata?.classId;
       const productId = paymentIntent.metadata?.productId;
       const productName = paymentIntent.metadata?.productName;
+      const utmSource = paymentIntent.metadata?.utm_source;
+      const utmMedium = paymentIntent.metadata?.utm_medium;
+      const utmCampaign = paymentIntent.metadata?.utm_campaign;
 
       // Extract email and name from customer
       // Note: PaymentIntent doesn't have billing_details directly - that's on Charge
@@ -758,7 +768,11 @@ export async function POST(request: NextRequest) {
       console.log('[webhook] Class found:', classRecord.id, 'Type:', courseType);
 
       // Step 3: Create enrollment
-      const enrollment = await createEnrollment(student.id, classRecord.id);
+      const enrollment = await createEnrollment(student.id, classRecord.id, {
+        utmSource,
+        utmMedium,
+        utmCampaign,
+      });
       console.log('[webhook] Enrollment created:', enrollment.id);
 
       const transactions = chargeFullAmountAtRegistration

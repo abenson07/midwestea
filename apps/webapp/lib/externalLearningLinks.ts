@@ -28,14 +28,16 @@ export type StudentExternalLearningLinkGroup = {
 function resolvePlatformLink(
   platform: ExternalLearningPlatformKey,
   tiers: Array<{ label: string | null | undefined; url: string | null | undefined }>
-): ExternalLearningLink {
+): ExternalLearningLink | null {
   const defaults = EXTERNAL_LEARNING_PLATFORM_DEFAULTS[platform];
   for (const tier of tiers) {
     if (tier.url) {
       return { platform, label: tier.label || defaults.label, url: tier.url };
     }
   }
-  return { platform, label: defaults.label, url: defaults.url };
+  // No real link configured at either tier — don't show a generic
+  // placeholder that looks like a working, class-specific link.
+  return null;
 }
 
 export async function getStudentExternalLearningLinks(
@@ -54,7 +56,7 @@ export async function getStudentExternalLearningLinks(
           jb_learning_url,
           platinum_ed_label,
           platinum_ed_url,
-          courses (
+          courses:courses!classes_course_uuid_fkey (
             jb_learning_label,
             jb_learning_url,
             platinum_ed_label,
@@ -76,12 +78,14 @@ export async function getStudentExternalLearningLinks(
       const classRecord = enrollment.classes;
       const course = classRecord.courses;
       const platforms = Object.keys(EXTERNAL_LEARNING_PLATFORM_DEFAULTS) as ExternalLearningPlatformKey[];
-      const links = platforms.map((platform) =>
-        resolvePlatformLink(platform, [
-          { label: classRecord[`${platform}_label`], url: classRecord[`${platform}_url`] },
-          { label: course?.[`${platform}_label`], url: course?.[`${platform}_url`] },
-        ])
-      );
+      const links = platforms
+        .map((platform) =>
+          resolvePlatformLink(platform, [
+            { label: classRecord[`${platform}_label`], url: classRecord[`${platform}_url`] },
+            { label: course?.[`${platform}_label`], url: course?.[`${platform}_url`] },
+          ])
+        )
+        .filter((link): link is ExternalLearningLink => link !== null);
       return { classId: classRecord.id, className: classRecord.class_name, links };
     });
 
