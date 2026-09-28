@@ -6,6 +6,7 @@ import {
 } from '@/lib/stripe';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import Stripe from 'stripe';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, fullName, classId } = body;
+    const { email, fullName, classId, utmSource, utmMedium, utmCampaign } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -58,6 +59,13 @@ export async function POST(request: NextRequest) {
       stripe = getStripeClient(stripeSecretKey);
     } catch (stripeError: unknown) {
       console.error('Error initializing Stripe client:', stripeError);
+      void logServerError({
+        message: stripeError instanceof Error ? stripeError.message : 'Error initializing Stripe client',
+        stack: stripeError instanceof Error ? stripeError.stack : undefined,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 500,
+        context: { route: 'create-checkout-session', step: 'init_stripe_client', classId },
+      });
       return NextResponse.json(
         { error: 'Payment service configuration error' },
         { status: 500 }
@@ -79,6 +87,13 @@ export async function POST(request: NextRequest) {
       const message =
         supabaseError instanceof Error ? supabaseError.message : 'Unknown error';
       console.error('Error initializing Supabase client:', supabaseError);
+      void logServerError({
+        message,
+        stack: supabaseError instanceof Error ? supabaseError.stack : undefined,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 500,
+        context: { route: 'create-checkout-session', step: 'init_supabase_client', classId },
+      });
       return NextResponse.json(
         { error: `Database connection error: ${message}` },
         { status: 500 }
@@ -89,14 +104,14 @@ export async function POST(request: NextRequest) {
     try {
       let { data, error: classError } = await supabase
         .from('classes')
-        .select('product_id, registration_fee, id, class_id')
+        .select('product_id, registration_fee, price, charge_full_amount_at_registration, id, class_id')
         .eq('class_id', classId)
         .maybeSingle();
 
       if (!data && !classError) {
         const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
           .from('classes')
-          .select('product_id, registration_fee, id, class_id')
+          .select('product_id, registration_fee, price, charge_full_amount_at_registration, id, class_id')
           .ilike('class_id', classId)
           .maybeSingle();
 
@@ -123,6 +138,13 @@ export async function POST(request: NextRequest) {
     } catch (dbError: unknown) {
       const message = dbError instanceof Error ? dbError.message : 'Unknown error';
       console.error('Database query error:', dbError);
+      void logServerError({
+        message,
+        stack: dbError instanceof Error ? dbError.stack : undefined,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 500,
+        context: { route: 'create-checkout-session', step: 'fetch_class', classId },
+      });
       return NextResponse.json(
         { error: `Failed to fetch class information: ${message}. Please try again.` },
         { status: 500 }
@@ -143,6 +165,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const unitAmount = classRecord.charge_full_amount_at_registration
+      ? classRecord.registration_fee + (classRecord.price || 0)
+      : classRecord.registration_fee;
+
     let customerId: string;
     try {
       const customer = await Promise.race([
@@ -160,6 +186,13 @@ export async function POST(request: NextRequest) {
           'Unable to connect to Stripe. This may be a temporary network issue. Please try again in a moment.';
       }
       console.error('Stripe customer error:', stripeCustomerError);
+      void logServerError({
+        message: errorMessage,
+        stack: stripeCustomerError instanceof Error ? stripeCustomerError.stack : undefined,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 500,
+        context: { route: 'create-checkout-session', step: 'create_stripe_customer', classId, email },
+      });
       return NextResponse.json(
         { error: `Failed to process customer information: ${errorMessage}. Please try again.` },
         { status: 500 }
@@ -174,17 +207,21 @@ export async function POST(request: NextRequest) {
 
     let session;
     try {
-      const successUrl = `${origin}/purchase-confirmation/general`;
+      const successUrl = `${origin}/checkout/success?classID=${classId}&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${origin}/checkout/details?classID=${classId}`;
 
       const sessionResult = await createStripeCheckoutSessionWithFetch(
         customerId,
-        { productId: classRecord.product_id, unitAmount: classRecord.registration_fee },
+        { productId: classRecord.product_id, unitAmount },
         successUrl,
         cancelUrl,
         {
           full_name: fullName,
           class_id: classId,
+          charge_full_amount_at_registration: String(!!classRecord.charge_full_amount_at_registration),
+          ...(utmSource ? { utm_source: utmSource } : {}),
+          ...(utmMedium ? { utm_medium: utmMedium } : {}),
+          ...(utmCampaign ? { utm_campaign: utmCampaign } : {}),
         },
         stripeSecretKey
       );
@@ -194,6 +231,13 @@ export async function POST(request: NextRequest) {
       const message =
         stripeSessionError instanceof Error ? stripeSessionError.message : 'Unknown error';
       console.error('Stripe checkout session creation error:', stripeSessionError);
+      void logServerError({
+        message,
+        stack: stripeSessionError instanceof Error ? stripeSessionError.stack : undefined,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 500,
+        context: { route: 'create-checkout-session', step: 'create_checkout_session', classId, email },
+      });
       return NextResponse.json(
         { error: `Failed to create checkout session: ${message}. Please try again.` },
         { status: 500 }
@@ -211,6 +255,13 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'An unexpected error occurred.';
     console.error('Unexpected error creating checkout session:', error);
+    void logServerError({
+      message,
+      stack: error instanceof Error ? error.stack : undefined,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'create-checkout-session', step: 'unexpected' },
+    });
     return NextResponse.json(
       {
         error: `${message} Please try again.`,

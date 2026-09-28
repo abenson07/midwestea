@@ -11,6 +11,7 @@ import {
   getInvoicePaymentUrl,
   type QuickBooksInvoice,
 } from '@/lib/quickbooks';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 /**
  * Create a QuickBooks invoice for checkout
@@ -206,6 +207,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error in create-invoice API:', error);
+    void logServerError({
+      message: error.message || 'Internal server error',
+      stack: error.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'create-invoice' },
+    });
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

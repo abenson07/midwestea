@@ -659,6 +659,12 @@ npm run list-tables
 
 ---
 
+## Prerequisites and removal
+
+Prerequisite state (missing, pending review, approved, rejected, or expired) is advisory only -- it never automatically removes a student or triggers a refund. `/admin/follow-up` is the staff-facing list for identifying students who need outreach before their class starts. Removal and refunds remain a manual decision made through the existing remove modal on `/admin/classes/[id]`, which now shows read-only prerequisite context for the student being removed but does not act on it. A student's credentials survive removal and restoration -- prerequisite evaluation is derived from `student_credentials` on every read, so restoring an enrollment recovers the same prerequisite statuses with no re-submission or repair step.
+
+---
+
 ## Document History
 
 - **2025-01-29:** Initial production documentation created

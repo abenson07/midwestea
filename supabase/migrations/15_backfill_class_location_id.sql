@@ -1,3 +1,4 @@
+-- Migration 15: Backfill class location ID
 -- One-time backfill: set classes.location_id where classes.location matches locations.location_name
 UPDATE classes
 SET location_id = (SELECT id FROM locations WHERE locations.location_name = TRIM(classes.location) LIMIT 1)

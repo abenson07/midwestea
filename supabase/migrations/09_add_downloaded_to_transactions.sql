@@ -1,3 +1,4 @@
+-- Migration 09: Add downloaded to transactions
 -- Add downloaded column to transactions table
 -- This column tracks whether a transaction has been exported to CSV
 ALTER TABLE transactions

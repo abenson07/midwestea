@@ -1,3 +1,4 @@
+-- Migration 03: Alter logs table for audit
 -- Alter logs table for audit logging system
 -- This migration transforms the logs table from a simple message-based table
 -- to a comprehensive audit logging system

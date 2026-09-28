@@ -1,3 +1,4 @@
+-- Migration 00: Setup exec SQL
 -- Setup helper function for executing SQL migrations
 -- This function is required for the apply-migrations.ts script to work
 -- Run this migration first, or execute it manually in your Supabase SQL editor

@@ -15,6 +15,7 @@ import {
 } from "@/lib/marketing/nav-data";
 import { useScrollHideNav } from "@/hooks/marketing/use-scroll-hide-nav";
 import type { BannerEnrollmentItem } from "@/lib/marketing/banner-enrollment";
+import { AccountMenu } from "@/components/AccountMenu";
 
 type DropdownId = "programs" | "courses" | null;
 
@@ -109,6 +110,9 @@ function MobileMenuPanel({ onClose }: { onClose: () => void }) {
       >
         Contact
       </Link>
+      <div className="mt-6">
+        <AccountMenu />
+      </div>
     </div>
   );
 }
@@ -319,6 +323,9 @@ export function Navigation({ bannerItems = [] }: { bannerItems?: BannerEnrollmen
               >
                 Contact
               </Link>
+              <div className="pl-2">
+                <AccountMenu />
+              </div>
             </nav>
           </div>
         </div>

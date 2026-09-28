@@ -4,15 +4,11 @@ import { prepareErrorReport } from "@/lib/error-reporting/prepare-report";
 import { isRateLimited } from "@/lib/error-reporting/rate-limit";
 import { parseClientErrorPayload } from "@/lib/error-reporting/validate";
 import { createLinearErrorIssue } from "@/lib/linear/create-error-issue";
+import { logErrorReport } from "@/lib/error-reporting/log-to-supabase";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const config = getLinearErrorReportingConfig();
-  if (!config) {
-    return new NextResponse(null, { status: 204 });
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -31,6 +27,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, skipped: "rate_limited" });
   }
 
+  // Supabase is the durable source of truth for triage; it must not be
+  // gated on Linear being configured, and a Linear failure must not stop it.
+  await logErrorReport({ ...report, source: "client" });
+
+  const config = getLinearErrorReportingConfig();
+  if (!config) {
+    return NextResponse.json({ ok: true });
+  }
+
   try {
     const issue = await createLinearErrorIssue(config, report);
     return NextResponse.json({ ok: true, issueId: issue.issueId, issueIdentifier: issue.issueIdentifier });
@@ -38,6 +43,6 @@ export async function POST(request: NextRequest) {
     const message =
       error instanceof Error ? error.message : "Failed to create Linear issue";
     console.error("[errors/report] Linear issue creation failed:", message);
-    return NextResponse.json({ error: message }, { status: 502 });
+    return NextResponse.json({ ok: true, linearError: message });
   }
 }

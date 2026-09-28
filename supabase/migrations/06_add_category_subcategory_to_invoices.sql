@@ -1,3 +1,4 @@
+-- Migration 06: Add category subcategory to invoices
 -- Add category and subcategory columns to invoices_to_import table
 ALTER TABLE invoices_to_import
   ADD COLUMN IF NOT EXISTS category TEXT,

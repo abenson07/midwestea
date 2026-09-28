@@ -1,4 +1,4 @@
-import type { ClientErrorPayload, ErrorKind } from "./types";
+import type { BrowserInfo, ClientErrorPayload, ErrorKind } from "./types";
 
 const ERROR_KINDS: ErrorKind[] = ["uncaught", "unhandledrejection", "http"];
 
@@ -16,6 +16,10 @@ function isOptionalString(value: unknown): value is string | undefined {
 
 function isOptionalNumber(value: unknown): value is number | undefined {
   return value === undefined || typeof value === "number";
+}
+
+function isOptionalBrowserInfo(value: unknown): value is BrowserInfo | undefined {
+  return value === undefined || (typeof value === "object" && value !== null);
 }
 
 export function parseClientErrorPayload(body: unknown): ClientErrorPayload | null {
@@ -37,6 +41,7 @@ export function parseClientErrorPayload(body: unknown): ClientErrorPayload | nul
   if (!isOptionalString(payload.stack)) return null;
   if (!isOptionalString(payload.responseBody)) return null;
   if (!isOptionalNumber(payload.statusCode)) return null;
+  if (!isOptionalBrowserInfo(payload.browserInfo)) return null;
 
   if (payload.kind === "http") {
     if (
@@ -58,5 +63,6 @@ export function parseClientErrorPayload(body: unknown): ClientErrorPayload | nul
     stack: payload.stack,
     responseBody: payload.responseBody,
     timestamp: payload.timestamp.trim(),
+    browserInfo: payload.browserInfo as BrowserInfo | undefined,
   };
 }

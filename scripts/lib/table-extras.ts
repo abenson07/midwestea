@@ -62,6 +62,10 @@ CREATE POLICY "Authenticated users read students"
 CREATE INDEX IF NOT EXISTS idx_enrollments_student_id ON public.enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_class_id ON public.enrollments(class_id);
 
+ALTER TABLE public.enrollments
+  ADD CONSTRAINT enrollments_outcome_check
+  CHECK (outcome IS NULL OR outcome IN ('Graduated', 'Failed', 'Dropped'));
+
 ALTER TABLE public.enrollments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Service role manages enrollments"
   ON public.enrollments FOR ALL TO service_role

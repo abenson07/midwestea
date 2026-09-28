@@ -49,10 +49,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Admin found - send OTP using Supabase Auth
+    // shouldCreateUser is false: the admins-table check above already guarantees
+    // the auth.users row exists (admins.id is a FK into it).
     const { error: otpError } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser: false,
       },
     });
 

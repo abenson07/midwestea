@@ -1,18 +1,60 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Inter } from "next/font/google";
 import { usePathname, useRouter } from "next/navigation";
-import { Sidebar } from "@/components/Sidebar";
-import { MobileHeader } from "@/components/MobileHeader";
-import { MobileNav } from "@/components/MobileNav";
+import { Toaster } from "sonner";
 import { getSession } from "@/lib/auth";
 import { getAdminDocumentTitle } from "@/lib/admin/page-title";
 import { AdminAccessRequired } from "./admin-access-required";
+import { QueryProvider } from "@/providers/QueryProvider";
+import { ThemeProvider, DemoModeProvider } from "@/components/admin-migrate/patterns/foundation";
+import { WipFeaturesProvider } from "@/components/admin-migrate/patterns/foundation/WipFeaturesContext";
+import { CommandPaletteProvider } from "@/components/admin-migrate/patterns/foundation/command-palette";
+import { OpenClassesProvider } from "@/lib/admin-migrate/OpenClassesContext";
+import type { StagingOpenClassGroups } from "@/lib/admin-migrate/openClasses";
+import { themeInitScript } from "@/theme/themeInit";
+import { linearTokenVars } from "@/theme/linearTokens";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+function AdminShellLoading() {
+    return (
+        <div
+            style={{
+                display: "flex",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "var(--linear-color-canvas)",
+            }}
+        >
+            <div style={{ textAlign: "center" }}>
+                <div
+                    style={{
+                        display: "inline-block",
+                        width: 28,
+                        height: 28,
+                        marginBottom: 14,
+                        borderRadius: "50%",
+                        border: "2px solid var(--linear-color-hairline-strong)",
+                        borderBottomColor: "var(--linear-color-ink-subtle)",
+                        animation: "admin-shell-spin 0.7s linear infinite",
+                    }}
+                />
+                <p style={{ color: "var(--linear-color-ink-muted)", fontSize: 13 }}>Loading…</p>
+            </div>
+            <style>{"@keyframes admin-shell-spin { to { transform: rotate(360deg); } }"}</style>
+        </div>
+    );
+}
 
 export function AdminShell({
     children,
+    openClasses,
 }: {
     children: React.ReactNode;
+    openClasses: StagingOpenClassGroups;
 }) {
     const pathname = usePathname();
     const router = useRouter();
@@ -65,41 +107,53 @@ export function AdminShell({
         checkAuth();
     }, [pathname, router, isAuthPage]);
 
+    let content: React.ReactNode;
     if (!isAuthPage && isCheckingAuth) {
-        return (
-            <div className="flex h-screen bg-gray-50 items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
-                </div>
-            </div>
+        content = <AdminShellLoading />;
+    } else if (isAuthPage) {
+        content = children;
+    } else if (!isAuthenticated) {
+        content = null;
+    } else if (!isAdmin) {
+        content = <AdminAccessRequired userEmail={userEmail} />;
+    } else {
+        // Sidebar isn't rendered here — each page brings its own via
+        // FoundationLayout (defaults to LinearSidebar). This branch just
+        // adds the provider stack the source app's root layout used.
+        content = (
+            <QueryProvider>
+                <ThemeProvider>
+                    <WipFeaturesProvider defaultEnabled={true}>
+                        <DemoModeProvider defaultEnabled={false}>
+                            <OpenClassesProvider value={openClasses}>
+                                <CommandPaletteProvider>{children}</CommandPaletteProvider>
+                            </OpenClassesProvider>
+                        </DemoModeProvider>
+                    </WipFeaturesProvider>
+                </ThemeProvider>
+                <Toaster richColors position="bottom-right" />
+            </QueryProvider>
         );
     }
 
-    if (isAuthPage) {
-        return <>{children}</>;
-    }
-
-    if (!isAuthenticated) {
-        return null;
-    }
-
-    if (!isAdmin) {
-        return <AdminAccessRequired userEmail={userEmail} />;
-    }
-
+    // This wrapper (isolation class, font, blocking theme-init script, and
+    // the linear token CSS vars) always renders, including while auth is
+    // still being checked — it previously only wrapped the authenticated
+    // branch, so the loading/login/access-required states fell outside the
+    // admin-migrate-root isolation boundary (see isolation.css) entirely
+    // and rendered with plain unthemed Tailwind gray instead of matching
+    // the admin's actual (dark-by-default) theme.
     return (
-        <div className="flex h-screen bg-gray-50">
-            <MobileHeader />
-            <Suspense fallback={<div className="hidden md:flex flex-col w-64 border-r border-gray-200 bg-white h-screen" />}>
-                <Sidebar />
-            </Suspense>
-            <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
-                <div className="max-w-7xl mx-auto px-4 py-4 md:px-8 md:py-8">
-                    {children}
-                </div>
-            </main>
-            <MobileNav />
+        <div
+            className={`admin-migrate-root ${inter.variable}`}
+            style={{
+                height: "100vh",
+                fontFamily: "var(--font-inter), system-ui, sans-serif",
+                ...linearTokenVars,
+            } as React.CSSProperties}
+        >
+            <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+            {content}
         </div>
     );
 }

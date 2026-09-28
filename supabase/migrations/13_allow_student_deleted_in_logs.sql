@@ -1,3 +1,4 @@
+-- Migration 13: Allow student deleted in logs
 -- Allow 'student_deleted' in logs.action_type for audit logging when a student is removed
 ALTER TABLE logs
   DROP CONSTRAINT IF EXISTS logs_action_type_check;

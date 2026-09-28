@@ -1,24 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { computeFingerprint } from "@/lib/error-reporting/fingerprint";
+import { reportClientError } from "@/lib/error-reporting/report-client-error";
 import type { ClientErrorPayload } from "@/lib/error-reporting/types";
 
 const REPORT_ENDPOINT = "/api/errors/report";
-const DEDUPE_WINDOW_MS = 60_000;
-
-const recentFingerprints = new Map<string, number>();
-
-function shouldReport(fingerprint: string): boolean {
-  const now = Date.now();
-  const lastReported = recentFingerprints.get(fingerprint);
-  if (lastReported && now - lastReported < DEDUPE_WINDOW_MS) {
-    return false;
-  }
-
-  recentFingerprints.set(fingerprint, now);
-  return true;
-}
 
 function isReportEndpoint(url: string): boolean {
   try {
@@ -46,42 +32,8 @@ async function readResponseBody(response: Response): Promise<string | undefined>
   }
 }
 
-function sendReport(payload: ClientErrorPayload): void {
-  const fingerprint = computeFingerprint({
-    kind: payload.kind,
-    message: payload.message,
-    stack: payload.stack,
-    requestUrl: payload.requestUrl,
-  });
-
-  if (!shouldReport(fingerprint)) {
-    return;
-  }
-
-  const body = JSON.stringify(payload);
-
-  if (navigator.sendBeacon) {
-    const blob = new Blob([body], { type: "application/json" });
-    if (navigator.sendBeacon(REPORT_ENDPOINT, blob)) {
-      return;
-    }
-  }
-
-  void fetch(REPORT_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    keepalive: true,
-  }).catch(() => {
-    // Reporting failures must not affect the app.
-  });
-}
-
 function reportError(payload: Omit<ClientErrorPayload, "timestamp">): void {
-  sendReport({
-    ...payload,
-    timestamp: new Date().toISOString(),
-  });
+  reportClientError(payload);
 }
 
 function getErrorMessage(reason: unknown): string {

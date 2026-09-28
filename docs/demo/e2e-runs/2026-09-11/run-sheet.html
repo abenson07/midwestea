@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registration to Renewal</title>
+<style>
+:root{
+  --ink:#16212b;
+  --ink-soft:#3f4d59;
+  --paper:#f2f4f6;
+  --raised:#ffffff;
+  --line:#d8dee3;
+  --accent:#c1691f;
+  --accent-soft:#f3e2d1;
+  --ok:#2f7a4f;
+  --ok-soft:#e3efe7;
+  --flag:#b3403a;
+  --flag-soft:#f6e4e2;
+  --pending:#9a7b1f;
+  --pending-soft:#f3ecd5;
+  --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --sans:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e7ecf0;
+    --ink-soft:#a9b6c0;
+    --paper:#121820;
+    --raised:#1a222c;
+    --line:#2b3540;
+    --accent:#e08a3d;
+    --accent-soft:#3a2c1c;
+    --ok:#5cb283;
+    --ok-soft:#1d2e24;
+    --flag:#e18077;
+    --flag-soft:#3a2321;
+    --pending:#dcb64a;
+    --pending-soft:#332a15;
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e7ecf0;
+  --ink-soft:#a9b6c0;
+  --paper:#121820;
+  --raised:#1a222c;
+  --line:#2b3540;
+  --accent:#e08a3d;
+  --accent-soft:#3a2c1c;
+  --ok:#5cb283;
+  --ok-soft:#1d2e24;
+  --flag:#e18077;
+  --flag-soft:#3a2321;
+  --pending:#dcb64a;
+  --pending-soft:#332a15;
+}
+*{box-sizing:border-box;}
+html{color-scheme:light dark;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  line-height:1.5;
+}
+.wrap{max-width:820px;margin:0 auto;padding:40px 24px 80px;}
+
+header{margin-bottom:28px;}
+.eyebrow{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 8px;
+}
+h1{
+  font-size:28px;
+  font-weight:600;
+  margin:0 0 6px;
+  letter-spacing:-.01em;
+  text-wrap:balance;
+}
+.sub{color:var(--ink-soft);font-size:14.5px;margin:0;}
+.base-url{
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--ink-soft);
+  margin-top:10px;
+  word-break:break-all;
+}
+.base-url a{color:var(--ink-soft);}
+
+.quickref{
+  background:var(--raised);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:16px 18px;
+  margin:24px 0 32px;
+}
+.quickref-title{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  margin:0 0 12px;
+}
+.cred-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:14px 20px;
+}
+@media (min-width:600px){
+  .cred-grid{grid-template-columns:repeat(4,1fr);}
+}
+.cred{display:flex;flex-direction:column;gap:2px;}
+.cred .role{font-size:12.5px;color:var(--ink-soft);}
+.cred .email{font-family:var(--mono);font-size:13px;}
+.cred a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line);}
+.cred a:hover{border-color:var(--accent);}
+.otp-note{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px dashed var(--line);
+  font-size:13px;
+  color:var(--ink-soft);
+}
+.otp-note strong{color:var(--ink);}
+
+.gaps{
+  border:1px solid var(--flag);
+  background:var(--flag-soft);
+  border-radius:10px;
+  padding:16px 18px;
+  margin-bottom:32px;
+}
+.gaps-title{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--flag);
+  margin:0 0 10px;
+}
+.gaps ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-soft);}
+.gaps li{margin-bottom:4px;}
+.gaps li:last-child{margin-bottom:0;}
+
+.demo{
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:var(--raised);
+  margin-bottom:28px;
+  overflow:hidden;
+}
+.demo-head{
+  padding:18px 20px 16px;
+  border-bottom:1px solid var(--line);
+}
+.demo-num{
+  font-family:var(--mono);
+  font-size:11px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin:0 0 4px;
+}
+.demo-title{font-size:19px;font-weight:600;margin:0 0 10px;text-wrap:balance;}
+.setup{
+  font-size:13.5px;
+  color:var(--ink-soft);
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:10px 12px;
+  font-family:var(--mono);
+  line-height:1.55;
+}
+.setup b{color:var(--ink);font-family:var(--sans);font-weight:600;}
+
+.steps{padding:6px 20px 16px;}
+.step{
+  display:grid;
+  grid-template-columns:28px 1fr;
+  gap:0 14px;
+  padding:14px 0;
+  border-bottom:1px solid var(--line);
+}
+.step:last-child{border-bottom:none;}
+.step-num{
+  font-family:var(--mono);
+  font-size:13px;
+  color:var(--ink-soft);
+  padding-top:2px;
+}
+.step-body{min-width:0;}
+.step-top{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.role{
+  font-family:var(--mono);
+  font-size:10.5px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  padding:2px 7px;
+  border-radius:4px;
+  font-weight:600;
+}
+.role.admin{background:var(--accent-soft);color:var(--accent);}
+.role.student{background:var(--ok-soft);color:var(--ok);}
+.step-label{font-weight:600;font-size:14.5px;}
+.step-text{font-size:14px;color:var(--ink-soft);margin:0 0 8px;}
+.step-text b{color:var(--ink);font-weight:600;}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
+.link-btn{
+  font-family:var(--mono);
+  font-size:12.5px;
+  color:var(--ink);
+  background:var(--paper);
+  border:1px solid var(--line);
+  border-radius:6px;
+  padding:5px 10px;
+  text-decoration:none;
+  display:inline-block;
+}
+.link-btn:hover{border-color:var(--accent);color:var(--accent);}
+.sql-row{margin-top:2px;margin-bottom:8px;}
+.sql-btn{
+  font-family:var(--mono);
+  font-size:12.5px;
+  color:var(--accent);
+  background:var(--accent-soft);
+  border:1px solid var(--accent);
+  border-radius:6px;
+  padding:5px 10px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+.sql-btn:hover{filter:brightness(1.08);}
+.sql-btn:active{transform:translateY(1px);}
+.sql-btn .tag{
+  font-size:10px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  opacity:.75;
+}
+.sql-payload{display:none;}
+.flag-inline{
+  margin-top:8px;
+  border-left:3px solid var(--flag);
+  background:var(--flag-soft);
+  border-radius:0 6px 6px 0;
+  padding:8px 10px;
+  font-size:12.5px;
+  color:var(--ink-soft);
+}
+.flag-inline b{color:var(--flag);}
+.pending-inline{
+  margin-top:8px;
+  border-left:3px solid var(--pending);
+  background:var(--pending-soft);
+  border-radius:0 6px 6px 0;
+  padding:8px 10px;
+  font-size:12.5px;
+  color:var(--ink-soft);
+}
+.pending-inline b{color:var(--pending);}
+
+.shot{
+  margin-top:10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  overflow:hidden;
+  background:var(--paper);
+}
+.shot img{display:block;width:100%;height:auto;}
+.shot-cap{
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--ink-soft);
+  padding:6px 10px;
+  border-top:1px solid var(--line);
+}
+footer{
+  margin-top:36px;
+  font-size:12px;
+  color:var(--ink-soft);
+  text-align:center;
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Client demo · Midwest Emergency Academy</p>
+    <h1>Registration to Renewal</h1>
+    <p class="sub">One connected story across three students, run live on staging — admin side only, student views shown as screenshots.</p>
+    <p class="base-url">Base URL: <a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app" target="_blank">midwestea-git-staging-alex-bensons-projects.vercel.app</a></p>
+  </header>
+
+  <div class="quickref">
+    <p class="quickref-title">Quick reference — logins</p>
+    <div class="cred-grid">
+      <div class="cred">
+        <span class="role">Admin</span>
+        <span class="email"><a href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/login" target="_blank">alexbensonux+demoadmin@gmail.com</a></span>
+      </div>
+      <div class="cred">
+        <span class="role">Student A · Jordan</span>
+        <span class="email">alexbensonux+studenta@gmail.com</span>
+      </div>
+      <div class="cred">
+        <span class="role">Student B · Casey</span>
+        <span class="email">alexbensonux+studentb@gmail.com</span>
+      </div>
+      <div class="cred">
+        <span class="role">Student C · Demo</span>
+        <span class="email">alexbensonux+demostudent@gmail.com</span>
+      </div>
+    </div>
+    <p class="otp-note"><strong>You only need the Admin login.</strong> The student logins above are for reference — every student-side moment in this script is a pre-captured screenshot, not a live login, so you never have to switch accounts.</p>
+  </div>
+
+  <div class="gaps">
+    <p class="gaps-title">Do not click these live — two gaps, flagged again inline where they'd come up</p>
+    <ul>
+      <li><b>Ranked related certifications</b> as an admin-configurable list doesn't exist — the recommendations are real, just hardcoded, and only visible inside the certificate email.</li>
+      <li><b>Campaign attribution view and the marketing opt-out setting</b> don't exist at all — no screen, no toggle. Skip Demo 3's step 4 or describe it as roadmap.</li>
+    </ul>
+  </div>
+
+  <!-- ===================== DEMO 1 ===================== -->
+  <section class="demo">
+    <div class="demo-head">
+      <p class="demo-num">Demo 1 of 3</p>
+      <h2 class="demo-title">From registration to cleared enrollment</h2>
+      <p class="setup"><b>Setup —</b> Jordan Reyes is registered for the Paramedic Program, paid the registration fee, owes the first tuition installment, and has <b>one</b> outstanding prerequisite (Orientation Acknowledgment — CPR Certification and Immunization Record are already approved).</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Program &amp; class setup</span></div>
+          <p class="step-text">Open the Paramedic program: registration fee ($150.00) and the certificate-expiration reminder (13 months) live here. Then open the class — the same prerequisite type is assigned at both levels (the "copied down" story), and class settings has its own JB Learning URL field, set as an override on top of the program's.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Program & class config: registration fee, cert reminder, JB Learning link
+UPDATE courses
+SET certificate_reminder_months = 13, registration_fee = 15000
+WHERE id = 'd589efa2-1c3f-48db-b93e-5c594f8751a2';
+
+UPDATE classes
+SET jb_learning_label = 'JB Learning', jb_learning_url = 'https://www.jblearning.com/'
+WHERE id = 'e77b3830-196d-4d6b-a864-3b51dfb55cd7';
+            </script>
+          </div>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/d589efa2-1c3f-48db-b93e-5c594f8751a2" target="_blank">Program: Paramedic settings</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/settings" target="_blank">Class PARA-001: settings</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/prerequisites" target="_blank">Class PARA-001: prerequisites</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Registration confirmation</span></div>
+          <p class="step-text">Jordan was seeded directly into the database, so there's no real email in that inbox — this is the same email, rendered with Jordan's real data through the template. Call out — registered on the registration fee; tuition is tracked and billed separately.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/dev/email-preview" target="_blank">Email previewer</a>
+          </div>
+          <div class="shot">
+            <img src="screenshots/email-01-enrollment-successful.png" alt="Enrollment Successful email for Jordan Reyes, Paramedic Program">
+            <div class="shot-cap">Registration confirmation email — Jordan Reyes, real tuition/installment data</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Passwordless login</span></div>
+          <p class="step-text">Real OTP login, already captured below — one account, one home for enrollment, requirements, payments, and certificates.</p>
+          <div class="shot">
+            <img src="screenshots/studentA-01-dashboard.png" alt="Jordan Reyes dashboard, 3 items needing attention">
+            <div class="shot-cap">Jordan's dashboard — 3 items needing attention (1 prerequisite, past-due payment, upcoming payment)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Enrollment &amp; payment visibility</span></div>
+          <p class="step-text">Registered status, first tuition installment past due, second not due yet, registration fee already paid — all in one view. Prerequisites sit right below it: two approved, one (Orientation Acknowledgment) not started.</p>
+          <div class="shot">
+            <img src="screenshots/studentA-02-class-before-approval.png" alt="Jordan's Paramedic Program class page before approval">
+            <div class="shot-cap">Class page — before: 1 prerequisite outstanding, payment past due</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Prerequisite submission</span></div>
+          <p class="step-text">Same class page — Jordan checks the Orientation Acknowledgment box and submits. No new screenshot needed; narrate off the "before" shot above, then move straight to the admin review.</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">06</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Review</span></div>
+          <p class="step-text">Open the class roster — Jordan now shows a Review button. Open the review, and separately their student record shows the same registration and payment context alongside the submission. Approve.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Jordan: exactly one pending submission (Orientation Acknowledgment) waiting for review
+DELETE FROM student_credentials
+WHERE student_id = '5cbb41d6-12be-4813-8a1a-fb4b1afbf347'
+  AND prerequisite_type_id = '1ee025a8-aef7-47e8-af22-4696e5bc3711';
+
+INSERT INTO student_credentials
+  (student_id, prerequisite_type_id, submitted_for_class_id, value_boolean, review_status, submitted_at)
+VALUES
+  ('5cbb41d6-12be-4813-8a1a-fb4b1afbf347', '1ee025a8-aef7-47e8-af22-4696e5bc3711', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', true, 'pending', now());
+            </script>
+          </div>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001" target="_blank">Class roster</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/5cbb41d6-12be-4813-8a1a-fb4b1afbf347" target="_blank">Jordan's student record</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">07</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Cleared access</span></div>
+          <p class="step-text">All three prerequisites now show approved, and the JB Learning link is live (the same URL you just saw configured on the class settings page in step 1). It opens jblearning.com's homepage, not a deep link into a specific course — say so, don't oversell it as SSO or progress sync.</p>
+          <div class="shot">
+            <img src="screenshots/studentA-04-class-after-approval.png" alt="Jordan's class page after approval, all requirements complete">
+            <div class="shot-cap">Class page — after: all requirements complete, class materials unlocked</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">08</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Payment history</span></div>
+          <p class="step-text">If asked about billing detail specifically — full invoice history lives on its own page too.</p>
+          <div class="shot">
+            <img src="screenshots/studentA-03-invoices.png" alt="Jordan's invoices page">
+            <div class="shot-cap">Invoices — registration fee paid, one past due, one upcoming</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== DEMO 2 ===================== -->
+  <section class="demo">
+    <div class="demo-head">
+      <p class="demo-num">Demo 2 of 3</p>
+      <h2 class="demo-title">Staff review and student self-service</h2>
+      <p class="setup"><b>Setup —</b> Casey Nguyen's CPR Certification was rejected, with a reason on file, and is still awaiting resubmission. Immunization Record and Orientation Acknowledgment are already approved, in the background. Same Paramedic Program class as Demo 1.</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Show the rejection</span></div>
+          <p class="step-text">Open Casey's record — CPR Certification is sitting rejected, with the real reason on file: <i>"Certificate image was blurry and the expiration date was not legible — please resubmit a clearer copy."</i> Point out the other two are already cleared, so this is the one thing blocking Casey.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Casey: CPR Certification back to a single rejected row (clears out any
+-- resubmission from a prior rehearsal), Immunization Record and
+-- Orientation Acknowledgment stay approved.
+DELETE FROM student_credentials
+WHERE student_id = '2446731b-7247-4065-881b-b298205fa39e'
+  AND prerequisite_type_id = '01b0258b-3dbf-4aad-ac04-3e8357f65f4b';
+
+INSERT INTO student_credentials
+  (student_id, prerequisite_type_id, submitted_for_class_id, review_status, rejection_reason, reviewed_by, reviewed_at, submitted_at)
+VALUES
+  ('2446731b-7247-4065-881b-b298205fa39e', '01b0258b-3dbf-4aad-ac04-3e8357f65f4b', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', 'rejected',
+   'Certificate image was blurry and the expiration date was not legible — please resubmit a clearer copy.',
+   'fdd21ee5-a2bf-45ae-94fb-755f443245f3', now(), now());
+
+-- Immunization Record + Orientation Acknowledgment should already be
+-- approved and untouched — only re-run this pair if one somehow got
+-- cleared out too:
+-- INSERT INTO student_credentials
+--   (student_id, prerequisite_type_id, submitted_for_class_id, value_boolean, review_status, reviewed_by, reviewed_at, submitted_at)
+-- VALUES
+--   ('2446731b-7247-4065-881b-b298205fa39e', 'd6dac437-7d3f-4a59-b81d-bae723040479', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', null, 'approved', 'fdd21ee5-a2bf-45ae-94fb-755f443245f3', now(), now()),
+--   ('2446731b-7247-4065-881b-b298205fa39e', '1ee025a8-aef7-47e8-af22-4696e5bc3711', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7', true, 'approved', 'fdd21ee5-a2bf-45ae-94fb-755f443245f3', now(), now());
+            </script>
+          </div>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/students/2446731b-7247-4065-881b-b298205fa39e/prerequisites" target="_blank">Casey's prerequisite status</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">What Casey sees</span></div>
+          <p class="step-text">Same rejection, from her side — CPR Certification flagged "Needs resubmission" with the reason spelled out in red.</p>
+          <div class="shot">
+            <img src="screenshots/studentB-02-class-rejected.png" alt="Casey's class page showing CPR Certification needs resubmission">
+            <div class="shot-cap">Casey's class page — CPR Certification: Needs resubmission, real rejection reason shown in red</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Fix the issue</span></div>
+          <p class="step-text">Casey uploads a fresh file. This is a live write: it supersedes the rejected row and creates a new pending one.</p>
+          <div class="shot">
+            <img src="screenshots/studentB-03-class-pending-resubmission.png" alt="Casey's class page after resubmitting, pending review">
+            <div class="shot-cap">Casey's class page — resubmitted, awaiting review</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Approve and verify</span></div>
+          <p class="step-text">Back to the review screen — approve the new submission, show the record flip to cleared.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Casey: run this AFTER step 01's SQL. Supersedes the rejected row and
+-- creates the pending resubmission for admin to approve live.
+UPDATE student_credentials
+SET review_status = 'superseded'
+WHERE student_id = '2446731b-7247-4065-881b-b298205fa39e'
+  AND prerequisite_type_id = '01b0258b-3dbf-4aad-ac04-3e8357f65f4b'
+  AND review_status = 'rejected';
+
+INSERT INTO student_credentials
+  (student_id, prerequisite_type_id, submitted_for_class_id, file_url, review_status, submitted_at)
+VALUES
+  ('2446731b-7247-4065-881b-b298205fa39e', '01b0258b-3dbf-4aad-ac04-3e8357f65f4b', 'e77b3830-196d-4d6b-a864-3b51dfb55cd7',
+   '2446731b-7247-4065-881b-b298205fa39e/01b0258b-3dbf-4aad-ac04-3e8357f65f4b/demo-resubmit.pdf', 'pending', now());
+            </script>
+          </div>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/class/PARA-001/prerequisites" target="_blank">Class review queue</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">05</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">What Casey sees now</span></div>
+          <p class="step-text">All requirements complete, from her side.</p>
+          <div class="shot">
+            <img src="screenshots/studentB-04-class-cleared.png" alt="Casey's class page after approval, all requirements complete">
+            <div class="shot-cap">Casey's class page — after: all requirements complete</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">06</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Account self-service</span></div>
+          <p class="step-text">Profile page, a real editable field (phone number), saved for real — not a demo toast. The dashboard is also where enrolled and waitlisted classes would sit side by side; none of the seeded students are currently waitlisted, so mention it rather than show it.</p>
+          <div class="shot">
+            <img src="screenshots/studentB-01-dashboard.png" alt="Casey's dashboard">
+            <div class="shot-cap">Casey's dashboard</div>
+          </div>
+          <div class="shot">
+            <img src="screenshots/studentB-05-profile.png" alt="Casey's profile page">
+            <div class="shot-cap">Casey's profile</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===================== DEMO 3 ===================== -->
+  <section class="demo">
+    <div class="demo-head">
+      <p class="demo-num">Demo 3 of 3</p>
+      <h2 class="demo-title">Completion to certificate renewal</h2>
+      <p class="setup"><b>Setup —</b> Demo Student has completed the Paramedic Program twice over (two class instances), holds two active issued certificates, and has a third enrollment — a different program, still in progress — sitting as a "coming soon" placeholder.</p>
+    </div>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role admin">Admin</span><span class="step-label">Configure the lifecycle</span></div>
+          <p class="step-text">The certificate-expiration reminder is real and set to 13 months — show it on the Paramedic program. The system does know what to recommend after the Paramedic Program (Community Paramedic, Critical Care Transport, Advanced Tactical Casualty Care) — but that list isn't an admin-editable screen yet, it's fixed in code, and this particular list was added just now for the demo (not real program-director input like the rest of that list). Don't promise a config screen for it; the payoff shows up for real in step 3.</p>
+          <div class="sql-row">
+            <button class="sql-btn" data-label="Copy SQL for this state" onclick="copySql(this)"><span class="tag">SQL</span><span class="label">Copy SQL for this state</span></button>
+            <script type="text/plain" class="sql-payload">
+-- Paramedic program: certificate-expiration reminder
+UPDATE courses
+SET certificate_reminder_months = 13
+WHERE id = 'd589efa2-1c3f-48db-b93e-5c594f8751a2';
+            </script>
+          </div>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/admin/courses/d589efa2-1c3f-48db-b93e-5c594f8751a2" target="_blank">Program: Paramedic settings</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Certificate experience</span></div>
+          <p class="step-text">Certificate history — two active, issued certificates (both Paramedic Program), plus a "Not yet issued" placeholder for EMT, the class still in progress. Download one — it's a real, generated PDF, not a stub. Lives under "Documents" in the nav, not a separate "Certificates" page.</p>
+          <div class="shot">
+            <img src="screenshots/studentC-02-certificates.png" alt="Demo Student's documents page showing two active certificates and one not-yet-issued">
+            <div class="shot-cap">Documents — 2 active Paramedic Program certificates, EMT not yet issued</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <div class="step-top"><span class="role student">Student</span><span class="step-label">Re-engagement</span></div>
+          <p class="step-text">This is the real email Demo Student would get — the recommendations (Community Paramedic, Critical Care Transport, Advanced Tactical Casualty Care) are the actual output of the upsell logic for a completed Paramedic Program, not sample filler. Then click through a landing page and register for the next offering with a real test-card checkout.</p>
+          <div class="links">
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/dev/email-preview" target="_blank">Email previewer</a>
+            <a class="link-btn" href="https://midwestea-git-staging-alex-bensons-projects.vercel.app/preview-landing-pages/student-success-story" target="_blank">Landing page</a>
+          </div>
+          <div class="shot">
+            <img src="screenshots/email-02-completed-followups.png" alt="Completed Class + Suggested Followups email for Demo Student, Paramedic Program">
+            <div class="shot-cap">Re-engagement email — real Paramedic Program follow-up recommendations</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>Seeded 2026-09-11 · staging · Paramedic Program (PARA-001 / PARA-002) replaces the earlier ACLS classes throughout · all three demos captured</footer>
+
+</div>
+<script>
+function copySql(btn) {
+  var sql = btn.parentElement.querySelector('.sql-payload').textContent.trim();
+  var done = function () {
+    var original = btn.dataset.label;
+    btn.querySelector('.label').textContent = 'Copied — paste into Supabase';
+    setTimeout(function () { btn.querySelector('.label').textContent = original; }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(sql).then(done, function () { fallbackCopy(sql, done); });
+  } else {
+    fallbackCopy(sql, done);
+  }
+}
+function fallbackCopy(text, done) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+  done();
+}
+</script>
+</body>
+</html>

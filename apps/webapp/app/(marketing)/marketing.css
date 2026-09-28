@@ -76,7 +76,7 @@
   }
 
   .mea-heading-h3 {
-    @apply font-heading text-[length:var(--heading-h3)] font-bold leading-[0.9];
+    @apply font-heading text-[length:var(--heading-h3)] font-bold uppercase leading-[0.9];
   }
 
   .mea-heading-h3-sentence {

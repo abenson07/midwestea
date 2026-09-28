@@ -1,0 +1,145 @@
+/*
+ * Admin-scoped base styles, ported from updated-admin-migrate's globals.css.
+ * apps/webapp already has its own @tailwind directives (in its own root
+ * globals.css) — this file only adds what the admin section itself needs.
+ *
+ * The original body/h1-h6/border-color rules used bare selectors, which is
+ * fine in a standalone app but would leak into marketing and checkout here
+ * (they share this one Next.js app and its one compiled stylesheet). Scoped
+ * everything under .admin-migrate-root (see isolation.css, which already
+ * solves the reverse problem — the host app's styles bleeding in) so none
+ * of this can affect anything outside the admin section.
+ *
+ * The mercury, brand, gray, etc color and shadow tokens themselves live as
+ * literal values directly in tailwind.config.ts, not as CSS custom
+ * properties here — confirmed nothing references them via inline
+ * `var(--color-...)` styles, only through Tailwind utility classes, so the
+ * :root variable block from the source globals.css wasn't needed at all.
+ */
+
+.admin-migrate-root,
+.admin-migrate-root *,
+.admin-migrate-root ::after,
+.admin-migrate-root ::before,
+.admin-migrate-root ::file-selector-button {
+  border-color: color-mix(in srgb, #b4b7c8 28%, #ffffff 72%);
+}
+
+.admin-migrate-root button:not(:disabled),
+.admin-migrate-root [role="button"]:not(:disabled) {
+  cursor: pointer;
+}
+
+.admin-migrate-root {
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100;
+  @apply relative z-1 bg-mercury-bg font-mercury-text text-mercury-body-lg font-normal text-mercury-ink antialiased;
+}
+
+.admin-migrate-root h1 {
+  @apply font-mercury-display text-mercury-display font-[450] tracking-normal text-mercury-ink;
+}
+.admin-migrate-root h2 {
+  @apply font-mercury-display text-mercury-h1 font-[450] tracking-normal text-mercury-ink;
+}
+.admin-migrate-root h3 {
+  @apply font-mercury-display text-mercury-h2 antialiased font-[450] tracking-normal text-mercury-ink;
+}
+.admin-migrate-root h4 {
+  @apply font-mercury-display text-mercury-h3 font-[450] tracking-normal text-mercury-ink;
+}
+.admin-migrate-root h5 {
+  @apply font-mercury-display text-mercury-h4 font-[450] tracking-normal text-mercury-ink;
+}
+.admin-migrate-root h6 {
+  @apply font-mercury-display text-mercury-caption font-medium tracking-normal text-mercury-ink;
+}
+
+.admin-migrate-root tbody tr {
+  @apply transition-colors duration-150;
+}
+.admin-migrate-root tbody tr:hover {
+  @apply bg-admin-gray-50 dark:bg-white/[0.06];
+}
+
+/*
+ * Class-based, confirmed no collision with marketing/checkout — safe unscoped.
+ * Not wrapped in @layer utilities: this file is its own top-level CSS import
+ * (from admin/layout.tsx), separate from app/globals.css's @tailwind
+ * utilities directive, so Tailwind has no matching layer to merge into here.
+ * Plain rules cascade the same way in practice since these are custom
+ * app-specific classes, not stock Tailwind utilities.
+ */
+.menu-item {
+  @apply relative flex items-center w-full gap-3 rounded-mercury-button px-3 py-2 font-medium text-mercury-xs;
+}
+.menu-item-active {
+  @apply bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300;
+}
+.menu-item-inactive {
+  @apply text-mercury-ink hover:bg-admin-gray-50 group-hover:text-mercury-ink dark:text-white/80 dark:hover:bg-white/5 dark:hover:text-white/90;
+}
+.menu-item-icon {
+  @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
+}
+.menu-item-icon-active {
+  @apply text-brand-600 dark:text-brand-300;
+}
+.menu-item-icon-inactive {
+  @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
+}
+.menu-item-arrow {
+  @apply relative;
+}
+.menu-item-arrow-active {
+  @apply rotate-180 text-brand-600 dark:text-brand-300;
+}
+.menu-item-arrow-inactive {
+  @apply text-mercury-muted group-hover:text-mercury-ink dark:text-white/45 dark:group-hover:text-white/80;
+}
+.menu-dropdown-item {
+  @apply relative flex items-center gap-3 rounded-mercury-button px-3 py-2.5 font-medium text-mercury-caption;
+}
+.menu-dropdown-item-active {
+  @apply bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300;
+}
+.menu-dropdown-item-inactive {
+  @apply text-mercury-ink hover:bg-admin-gray-50 dark:text-white/80 dark:hover:bg-white/5;
+}
+.menu-dropdown-badge {
+  @apply block rounded-mercury-pill px-2.5 py-0.5 text-xs font-medium uppercase text-brand-600 dark:text-brand-300;
+}
+.menu-dropdown-badge-active {
+  @apply bg-brand-100 dark:bg-brand-500/25;
+}
+.menu-dropdown-badge-inactive {
+  @apply bg-brand-50 group-hover:bg-brand-100 dark:bg-brand-500/15 dark:group-hover:bg-brand-500/25;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  @apply size-1.5;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply rounded-full;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-admin-gray-200 rounded-full dark:bg-admin-gray-700;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #344054;
+}
+
+input[type="time"]::-webkit-inner-spin-button,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}

@@ -17,10 +17,50 @@ const legacyRedirects = [
   { source: "/app/:path*", destination: "/:path*", permanent: true },
 ];
 
+// BEN-1517: old admin routes with no direct new-admin equivalent, or that
+// moved to a differently-named segment. Keeps old bookmarks/links out of
+// a 404 instead of porting the old page.
+const adminCutoverRedirects = [
+  { source: "/new-admin-migrate", destination: "/admin", permanent: true },
+  { source: "/new-admin-migrate/:path*", destination: "/admin/:path*", permanent: true },
+  // Order matters: specific segments must come before the :id wildcard below.
+  { source: "/admin/classes/add", destination: "/admin/classes", permanent: true },
+  // Negative-lookahead excludes the real /admin/classes/open and /classes/closed list routes.
+  { source: "/admin/classes/:id((?!open|closed)[^/]+)", destination: "/admin/class/:id", permanent: true },
+  { source: "/admin/students/:id/classes/:classId", destination: "/admin/students/:id", permanent: true },
+  { source: "/admin/instructors", destination: "/admin/settings/trainers", permanent: true },
+  { source: "/admin/instructors/:id", destination: "/admin/settings/trainers", permanent: true },
+  { source: "/admin/payments", destination: "/admin/transactions", permanent: true },
+  { source: "/admin/reconcile", destination: "/admin/settings/reconcile", permanent: true },
+  { source: "/admin/approvals", destination: "/admin/prerequisites", permanent: true },
+  { source: "/admin/follow-up", destination: "/admin/prerequisites", permanent: true },
+  { source: "/admin/recommend-courses", destination: "/admin/overview", permanent: true },
+];
+
+const studentPortalRedirects = [
+  { source: "/student/billing", destination: "/student/invoices", permanent: false },
+  { source: "/student/certificates", destination: "/student/documents", permanent: false },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // @react-pdf/renderer's reconciler is a separate package with its own
+  // React/react-reconciler resolution — if it's not also externalized, Next
+  // bundles it through the RSC webpack layer, which resolves `react` under
+  // the "react-server" condition. That's a *different* React module
+  // instance than the one @react-pdf/reconciler's React elements were
+  // created with, so React's element-validity check (Symbol.for("react.element")
+  // identity) fails and throws "Minified React error #31" (object with
+  // {$$typeof, type, key, props, ...} keys not recognized as an element).
+  serverExternalPackages: ["@react-pdf/renderer", "@react-pdf/reconciler"],
   async redirects() {
-    return [...programRedirects, ...templateRedirects, ...legacyRedirects];
+    return [
+      ...programRedirects,
+      ...templateRedirects,
+      ...legacyRedirects,
+      ...adminCutoverRedirects,
+      ...studentPortalRedirects,
+    ];
   },
   webpack: (config, { isServer }) => {
     if (!isServer) {

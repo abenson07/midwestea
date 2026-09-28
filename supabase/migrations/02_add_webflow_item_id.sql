@@ -1,3 +1,4 @@
+-- Migration 02: Add webflow item ID
 -- Add webflow_item_id column to classes table for storing Webflow CMS collection item IDs
 ALTER TABLE classes ADD COLUMN IF NOT EXISTS webflow_item_id TEXT;
 
