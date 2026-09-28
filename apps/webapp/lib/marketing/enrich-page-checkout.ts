@@ -95,8 +95,13 @@ function applyPricingToProps(
     }
   }
 
-  if (pricing.classStartDate && typeof props.classStartDate === "string") {
-    props.classStartDate = formatClassStartDateOrdinal(pricing.classStartDate);
+  if (typeof props.classStartDate === "string") {
+    if (pricing.classStartDate) {
+      props.classStartDate = formatClassStartDateOrdinal(pricing.classStartDate);
+    } else if (isWaitlist) {
+      props.classStartLabel = "Be first in line for the next class";
+      props.classStartDate = "";
+    }
   }
 
   if (pricing.mode === "register" && pricing.actionUrl) {
