@@ -29,6 +29,7 @@ import {
   type ProgramEnrollmentTransaction,
 } from '@/lib/email';
 import { evaluateClassPrerequisites } from '@/lib/prerequisite-evaluation';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export const runtime = 'nodejs';
 
@@ -139,6 +140,13 @@ export async function POST(request: NextRequest) {
     // Important: body must be the raw string, signature must be from headers
     // If this fails, the body was likely modified before reaching this handler
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);  } catch (err: any) {    console.error('[webhook] Webhook signature verification failed:', err.message);
+    void logServerError({
+      message: err.message,
+      stack: err.stack,
+      requestUrl: '/api/webhooks/stripe',
+      statusCode: 400,
+      context: { route: 'webhooks/stripe', step: 'verify_signature' },
+    });
     return NextResponse.json(
       { error: `Webhook signature verification failed: ${err.message}` },
       { status: 400 }
@@ -502,16 +510,23 @@ export async function POST(request: NextRequest) {
         transaction_ids: transactions.map(t => t.id),
       });
     } catch (error: any) {
+      const sessionId = (event.data.object as Stripe.Checkout.Session).id;
       console.error('[webhook] Error processing checkout.session.completed:', {
         error: error.message,
         stack: error.stack,
-        session_id: (event.data.object as Stripe.Checkout.Session).id,
+        session_id: sessionId,
       });
-      
+      void logServerError({
+        message: error.message,
+        stack: error.stack,
+        requestUrl: '/api/webhooks/stripe',
+        statusCode: 500,
+        context: { route: 'webhooks/stripe', event: 'checkout.session.completed', sessionId },
+      });
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to process webhook',
-          details: error.message 
+          details: error.message
         },
         { status: 500 }
       );
@@ -638,12 +653,19 @@ export async function POST(request: NextRequest) {
         transactions_updated: updatedTransactions?.length || 0,
       });
     } catch (error: any) {
+      const payoutId = (event.data.object as Stripe.Payout).id;
       console.error('[webhook] Error processing payout.paid:', {
         error: error.message,
         stack: error.stack,
-        payout_id: (event.data.object as Stripe.Payout).id,
+        payout_id: payoutId,
       });
-      
+      void logServerError({
+        message: error.message,
+        stack: error.stack,
+        requestUrl: '/api/webhooks/stripe',
+        statusCode: 500,
+        context: { route: 'webhooks/stripe', event: 'payout.paid', payoutId },
+      });
       return NextResponse.json(
         {
           error: 'Failed to process payout.paid webhook',
@@ -959,16 +981,23 @@ export async function POST(request: NextRequest) {
         transaction_ids: transactions.map(t => t.id),
       });
     } catch (error: any) {
+      const paymentIntentId = (event.data.object as Stripe.PaymentIntent).id;
       console.error('[webhook] Error processing payment_intent.succeeded:', {
         error: error.message,
         stack: error.stack,
-        payment_intent_id: (event.data.object as Stripe.PaymentIntent).id,
+        payment_intent_id: paymentIntentId,
       });
-      
+      void logServerError({
+        message: error.message,
+        stack: error.stack,
+        requestUrl: '/api/webhooks/stripe',
+        statusCode: 500,
+        context: { route: 'webhooks/stripe', event: 'payment_intent.succeeded', paymentIntentId },
+      });
       return NextResponse.json(
-        { 
+        {
           error: 'Failed to process webhook',
-          details: error.message 
+          details: error.message
         },
         { status: 500 }
       );
@@ -1009,9 +1038,17 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ received: true, matched: result.matched, alreadyProcessed: result.alreadyProcessed });
     } catch (error: any) {
+      const invoiceId = (event.data.object as Stripe.Invoice).id;
       console.error('[webhook] Error processing invoice.paid:', {
         error: error.message,
-        invoice_id: (event.data.object as Stripe.Invoice).id,
+        invoice_id: invoiceId,
+      });
+      void logServerError({
+        message: error.message,
+        stack: error.stack,
+        requestUrl: '/api/webhooks/stripe',
+        statusCode: 500,
+        context: { route: 'webhooks/stripe', event: 'invoice.paid', invoiceId },
       });
       return NextResponse.json(
         { error: 'Failed to process invoice.paid', details: error.message },

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin } from '@/lib/logging';
 import { createAndFinalizeStripeInvoice, voidStripeInvoice } from '@/lib/stripe-invoices';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export const runtime = 'nodejs';
 
@@ -125,6 +126,13 @@ export async function POST(
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('[admin/transactions/amount] Error:', err);
+    void logServerError({
+      message: err?.message || 'Failed to update amount',
+      stack: err?.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'admin/transactions/[id]/amount' },
+    });
     return NextResponse.json({ success: false, error: err?.message || 'Failed to update amount' }, { status: 500 });
   }
 }

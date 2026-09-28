@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export async function POST(
   request: NextRequest,
@@ -41,6 +42,13 @@ export async function POST(
     return NextResponse.json({ success: true, checkoutUrl: transaction.stripe_hosted_invoice_url });
   } catch (err: any) {
     console.error('[student/transactions/pay] Error:', err);
+    void logServerError({
+      message: err?.message || 'Failed to start payment',
+      stack: err?.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'student/transactions/[id]/pay' },
+    });
     return NextResponse.json({ success: false, error: err?.message || 'Failed to start payment' }, { status: 500 });
   }
 }

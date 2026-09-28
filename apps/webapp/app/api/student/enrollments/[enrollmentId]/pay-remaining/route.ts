@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { createStripeCustomerWithFetch, createStripeCheckoutSessionForAmountWithFetch } from '@/lib/stripe';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export async function POST(
   request: NextRequest,
@@ -90,6 +91,13 @@ export async function POST(
     return NextResponse.json({ success: true, checkoutUrl: session.url });
   } catch (err: any) {
     console.error('[student/enrollments/pay-remaining] Error:', err);
+    void logServerError({
+      message: err?.message || 'Failed to start payment',
+      stack: err?.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'student/enrollments/[enrollmentId]/pay-remaining' },
+    });
     return NextResponse.json({ success: false, error: err?.message || 'Failed to start payment' }, { status: 500 });
   }
 }

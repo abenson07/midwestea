@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin } from '@/lib/logging';
 import { sendTuitionReminderEmail } from '@/lib/email';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export const runtime = 'nodejs';
 
@@ -74,6 +75,13 @@ export async function POST(
     return NextResponse.json({ success: true, emailId: result.id, dueDateSent: transaction.due_date });
   } catch (err: any) {
     console.error('[transactions/send-reminder] Error:', err);
+    void logServerError({
+      message: err?.message || 'Failed to send reminder',
+      stack: err?.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'admin/transactions/[id]/send-reminder' },
+    });
     return NextResponse.json({ success: false, error: err?.message || 'Failed to send reminder' }, { status: 500 });
   }
 }

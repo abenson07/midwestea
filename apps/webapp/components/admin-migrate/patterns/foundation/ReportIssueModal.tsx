@@ -6,7 +6,8 @@ import { Bug, Lightbulb } from "lucide-react";
 import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
 import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
-import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
+import { getSession } from "@/lib/auth";
+import { captureBrowserInfo } from "@/lib/error-reporting/capture-browser-info";
 
 export type ReportIssueModalProps = {
   isOpen: boolean;
@@ -62,7 +63,6 @@ const typeCopy: Record<IssueType, { title: string; placeholder: string; submitLa
   },
 };
 
-/** In the full app, sends a bug report or feature request to Linear. Disabled in this demo export. */
 export function ReportIssueModal({ isOpen, onClose, sectionLabel }: ReportIssueModalProps) {
   const [type, setType] = useState<IssueType>("bug");
   const [title, setTitle] = useState("");
@@ -87,10 +87,41 @@ export function ReportIssueModal({ isOpen, onClose, sectionLabel }: ReportIssueM
   async function handleSubmit() {
     if (!title.trim() || isSubmitting) return;
     setIsSubmitting(true);
-    // This export has no backend — Linear reporting is disabled, not wired to a stub endpoint.
-    toast.success("Noted — issue reporting isn't wired up in this demo export.");
-    setIsSubmitting(false);
-    onClose();
+    try {
+      const { session } = await getSession();
+      if (!session) {
+        toast.error("Your session expired — please sign in again.");
+        return;
+      }
+
+      const response = await fetch("/api/admin/report-issue", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          type,
+          title,
+          description,
+          pageContext,
+          browserInfo: captureBrowserInfo(),
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        toast.error(result.error || "Failed to submit report");
+        return;
+      }
+
+      toast.success(type === "bug" ? "Bug reported — thanks!" : "Feature request submitted — thanks!");
+      onClose();
+    } catch {
+      toast.error("Failed to submit report");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const copy = typeCopy[type];
@@ -136,19 +167,6 @@ export function ReportIssueModal({ isOpen, onClose, sectionLabel }: ReportIssueM
           multiline
           rows={4}
         />
-        {pageContext.breadcrumb || pageContext.panelOpen ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <Text size="sm" color="secondary">
-              Attached context
-            </Text>
-            <Text size="sm" color="disabled">
-              {pageContext.breadcrumb || "Unknown page"}
-              {pageContext.panelOpen
-                ? ` · panel open${pageContext.panelPreview ? `: "${pageContext.panelPreview}"` : ""}`
-                : ""}
-            </Text>
-          </div>
-        ) : null}
       </div>
     </Modal>
   );

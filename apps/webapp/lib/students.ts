@@ -87,7 +87,7 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
       .from("students")
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
     console.log("[getStudentById] Query result:", { data, error });
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 /**
  * Get a Stripe payment link for a class from the database
@@ -58,7 +59,13 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error in get-payment-link API:', error);
-
+    void logServerError({
+      message: error.message || 'Internal server error',
+      stack: error.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'get-payment-link' },
+    });
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

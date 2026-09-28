@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin } from '@/lib/logging';
 import { createTransaction, getNextTransactionInvoiceNumber } from '@/lib/enrollments';
 import { createAndFinalizeStripeInvoice, voidStripeInvoice } from '@/lib/stripe-invoices';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export const runtime = 'nodejs';
 
@@ -184,6 +185,13 @@ export async function POST(
     });
   } catch (err: any) {
     console.error('[enrollments/void-and-reissue] Error:', err);
+    void logServerError({
+      message: err?.message || 'Failed to void and reissue',
+      stack: err?.stack,
+      requestUrl: request.nextUrl.pathname,
+      statusCode: 500,
+      context: { route: 'admin/enrollments/[enrollmentId]/void-and-reissue' },
+    });
     return NextResponse.json({ success: false, error: err?.message || 'Failed to void and reissue' }, { status: 500 });
   }
 }
