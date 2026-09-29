@@ -239,7 +239,7 @@ function OTPForm() {
                   ref={(el) => {
                     inputRefs.current[index] = el;
                   }}
-                  className="w-12 h-14 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-center text-2xl font-semibold disabled:opacity-50"
+                  className="w-12 h-14 border border-gray-300 rounded-md bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-center text-2xl font-semibold disabled:opacity-50"
                 />
               ))}
             </div>

@@ -9,7 +9,6 @@ import {
   courseLinkColumns,
   courseLinkColumnsNarrow,
   courseLinks,
-  navTestimonial,
   programLinkColumns,
   programLinks,
 } from "@/lib/marketing/nav-data";
@@ -50,15 +49,6 @@ function HowItWorksCard({
         <ChevronRight />
       </div>
     </Link>
-  );
-}
-
-function TestimonialCard() {
-  return (
-    <div className="flex h-full flex-col justify-between gap-4 rounded-mea-sm bg-neutral-lightest p-6 text-text">
-      <p className="text-xs leading-relaxed">&ldquo;{navTestimonial.quote}&rdquo;</p>
-      <p className="text-xs font-semibold">{navTestimonial.attribution}</p>
-    </div>
   );
 }
 
@@ -153,7 +143,7 @@ function MegaMenuPanel({
   const linkColumns = narrowColumns ?? columns;
 
   return (
-    <div className="grid w-full min-w-0 items-stretch grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)] min-[1100px]:grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)_minmax(13.75rem,17.5rem)]">
+    <div className="grid w-full min-w-0 items-stretch grid-cols-[minmax(12rem,15rem)_minmax(0,1fr)]">
       <div className="shrink-0 p-6 xl:p-8">
         <HowItWorksCard
           href={howItWorksHref}
@@ -177,10 +167,6 @@ function MegaMenuPanel({
             <MegaMenuLinkList columns={columns} />
           </div>
         )}
-      </div>
-
-      <div className="hidden min-[1100px]:block shrink-0 p-6 xl:p-8">
-        <TestimonialCard />
       </div>
     </div>
   );

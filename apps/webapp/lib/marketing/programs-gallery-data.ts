@@ -24,7 +24,7 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
   {
     title: "Emergency Medical Techinician",
     description:
-      "Train to assess, stabilize, and care for patients during emergencies. Our state-approved EMT program blends online learning with in-person skills days so you can learn with confidence and at a pace that supports your schedule.",
+      "Train to assess, stabilize, and care for patients during emergencies. Our state-approved EMT program combines in-person classroom instruction and hands-on skills days so you can learn with confidence and at a pace that supports your schedule.",
     classLabel: "Next class starts",
     classDate: "January 17th",
     priceNote:
@@ -35,7 +35,7 @@ export const programGalleryPanels: ProgramGalleryPanel[] = [
   {
     title: "Advanced Emergency Medical Technician",
     description:
-      "Build on your EMT foundation with advanced assessment, medication administration, and expanded scope skills. Our state-approved AEMT program blends online learning with in-person skills days.",
+      "Build on your EMT foundation with advanced assessment, medication administration, and expanded scope skills. Our state-approved AEMT program combines in-person classroom instruction and hands-on skills days.",
     classLabel: "Orientation",
     classDate: "August 19–20, 2026 · Topeka, Kansas",
     priceNote:

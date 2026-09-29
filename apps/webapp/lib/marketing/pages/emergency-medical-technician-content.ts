@@ -9,7 +9,7 @@ export const emergencyMedicalTechnicianSections: PageSection[] = [
     props: {
       titleLines: ["Emergency Medical", "Technician"],
       description:
-        "Train to assess, stabilize, and care for patients during emergencies. Our state-approved EMT program blends online learning with in-person skills days so you can learn with confidence and at a pace that supports your schedule.",
+        "Train to assess, stabilize, and care for patients during emergencies. Our state-approved EMT program combines in-person classroom instruction and hands-on skills days so you can learn with confidence and at a pace that supports your schedule.",
       classStartLabel: "Next class starts",
       classStartDate: "lawrence, KS jun 6th / Raytownn , MO July 11th",
       priceNote:
@@ -100,7 +100,7 @@ export const emergencyMedicalTechnicianSections: PageSection[] = [
         {
           heading: "Learn From Expert Instructors",
           description:
-            "Each program blends online learning with hands-on instruction. You'll study with experienced EMS educators who break down complex topics into clear, practical lessons you can apply right away.",
+            "Each program centers on in-person classroom education and hands-on instruction, with occasional online sessions offered when appropriate. You'll study with experienced EMS educators who break down complex topics into clear, practical lessons you can apply right away.",
           image: { src: "/images/student.avif", alt: "Learn from expert instructors" },
         },
         {

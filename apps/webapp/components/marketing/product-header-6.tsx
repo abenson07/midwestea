@@ -72,7 +72,7 @@ export type CourseHeaderContent = {
   registerUrl: string;
   registerPrice: string;
   classDetails: { label: string }[];
-  testimonial: { quote: string; attribution: string };
+  testimonial?: { quote: string; attribution: string };
   credentials: string[];
   sections: { title: string; items: string[] }[];
   variant?: "waitlist" | "register";
@@ -320,10 +320,12 @@ function CourseHeaderPanel({
       </div>
 
       <div className="flex flex-col gap-4 py-4">
-        <div className="flex flex-col gap-4 rounded-mea-sm bg-neutral-lightest p-4 shadow-sm">
-          <p className="leading-relaxed">&ldquo;{courseHeader.testimonial.quote}&rdquo;</p>
-          <p className="text-sm text-neutral-dark">{courseHeader.testimonial.attribution}</p>
-        </div>
+        {courseHeader.testimonial && (
+          <div className="flex flex-col gap-4 rounded-mea-sm bg-neutral-lightest p-4 shadow-sm">
+            <p className="leading-relaxed">&ldquo;{courseHeader.testimonial.quote}&rdquo;</p>
+            <p className="text-sm text-neutral-dark">{courseHeader.testimonial.attribution}</p>
+          </div>
+        )}
 
         <ul className="flex flex-col gap-4">
           {courseHeader.credentials.map((credential) => (
