@@ -157,20 +157,6 @@ export const courseGallerySections = [
   },
   {
     type: "component" as const,
-    component: "Testimonial 1" as const,
-    props: {
-      tagline: "Trusted by Industry Professionals",
-      quote:
-        "The process was seamless and streamlined and allowed my team members work at their own pace throughout the course.",
-      name: "John Smith",
-      position: "Fire Chief, KCFD",
-      companyName: "",
-      showLogo: false,
-      showAvatar: false,
-    },
-  },
-  {
-    type: "component" as const,
     component: "Product 1" as const,
     props: {
       layout: "class-grid",

@@ -110,6 +110,17 @@ export function Footer() {
                   </svg>
                 </a>
                 <a
+                  href="https://www.tiktok.com/@midwestemergencyacademy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Midwest EA on TikTok"
+                  className="text-text-alternative hover:opacity-80"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="size-6">
+                    <path d="M16.6 5.82c-.8-.87-1.24-2-1.24-3.16h-3.18v13.4a2.85 2.85 0 1 1-2-2.72V9.98a5.99 5.99 0 0 0-1-.08A6.05 6.05 0 1 0 15.2 16.9V9.36a8.16 8.16 0 0 0 4.77 1.53V7.72a4.85 4.85 0 0 1-3.37-1.9Z" />
+                  </svg>
+                </a>
+                <a
                   href="https://www.midwesternoriginals.com/?utm_source=midwestea&utm_medium=footer_link&utm_campaign=brand_attribution"
                   target="_blank"
                   rel="noopener noreferrer"

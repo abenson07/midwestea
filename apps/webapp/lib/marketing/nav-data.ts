@@ -37,9 +37,3 @@ export const courseLinkColumnsNarrow = [
   courseLinks.slice(0, 5),
   courseLinks.slice(5, 10),
 ] as const;
-
-export const navTestimonial = {
-  quote:
-    "The hands-on scenarios made a huge difference — I left feeling confident I could actually respond in a real emergency. The instructors were knowledgeable, supportive, and kept the training engaging from start to finish.",
-  attribution: "John Smith, Fire Chief",
-};

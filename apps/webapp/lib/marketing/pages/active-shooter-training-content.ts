@@ -17,11 +17,6 @@ export const activeShooterTrainingSections = [
           { label: "2.5 - 5 hours" },
           { label: "95% graduation rate" },
         ],
-        testimonial: {
-          quote:
-            "The hands-on scenarios made a huge difference — I left feeling confident I could actually respond in a real emergency. The instructors were knowledgeable, supportive, and kept the training engaging from start to finish.",
-          attribution: "John Smith, Fire chief",
-        },
         credentials: [
           "Certification provided by American Safety and Health Institute",
           "Meets requirements of the Joint Commission and the Commission on Accreditation of Medical Transport Services",

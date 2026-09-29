@@ -1,7 +1,11 @@
 import { MarketingPage } from "@/components/marketing/marketing-page";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 const route = "/about";
+
+// Not ready to launch yet — remove this guard when the About page should go live.
+const IS_LIVE = false;
 
 export const metadata: Metadata = {
   title: "About Midwest Emergency Academy",
@@ -18,5 +22,9 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  if (!IS_LIVE) {
+    notFound();
+  }
+
   return <MarketingPage route={route} />;
 }
