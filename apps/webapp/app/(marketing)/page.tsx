@@ -6,7 +6,7 @@ const route = "/";
 export const metadata: Metadata = {
   title: "Midwest Emergency Academy – Trusted EMS Training in the Kansas City Area",
   description:
-    "Start your EMS training with confidence. Midwest Emergency Academy offers state-approved EMT, Paramedic, BLS, ACLS, and continuing education programs with flexible online and hands-on options. Learn from expert instructors trusted across Missouri and Kansas",
+    "Start your EMS training with confidence. Midwest Emergency Academy offers state-approved EMT, Paramedic, BLS, ACLS, and continuing education programs with in-person, hands-on training. Learn from expert instructors trusted across Missouri and Kansas",
   openGraph: {
     title: "Your Path to Trusted EMS Training Starts Here",
     description:

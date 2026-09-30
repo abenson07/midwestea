@@ -206,8 +206,8 @@ export const emergencyMedicalResponderSections = [
           answer: "47–50 hours for initial certification and 16 hours for renewal.",
         },
         {
-          title: "Is the course offered in-person or online?",
-          answer: "EMR is taught in a traditional classroom format with hands-on practice.",
+          title: "Do I need to attend in person?",
+          answer: "Yes, this is an in-person course.",
         },
       ],
     },
