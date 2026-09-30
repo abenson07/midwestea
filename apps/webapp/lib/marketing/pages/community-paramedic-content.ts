@@ -13,7 +13,7 @@ export const communityParamedicSections: PageSection[] = [
       classStartLabel: "Next class starts",
       classStartDate: "January",
       priceNote:
-        "This short, two-week Community Paramedic program helps you build advanced care and coordination skills — all in a flexible, hybrid format.",
+        "This short, two-week Community Paramedic program helps you build advanced care and coordination skills through hands-on, in-person training.",
       variant: "waitlist",
       waitlistLabel: "Coming soon",
       registerHref,
@@ -175,7 +175,7 @@ export const communityParamedicSections: PageSection[] = [
         },
         {
           title: "How long is the program?",
-          answer: "Two weeks, with two meetings per week in a hybrid format.",
+          answer: "Two weeks with two in-person meetings per week.",
         },
         {
           title: "Is this focused on emergency skills?",

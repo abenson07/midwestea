@@ -147,7 +147,7 @@ export const emergencyMedicalTechnicianSections: PageSection[] = [
         },
         {
           title: "How long is the program?",
-          answer: "Twelve weeks, with a mix of online and in-person sessions.",
+          answer: "Twelve weeks, delivered primarily in person, with occasional online sessions when appropriate.",
         },
         {
           title: "Is this program state-approved?",
