@@ -37,7 +37,7 @@ footer update in lockstep across all 8 emails.
 | Waitlist Spot Opens | `waitlist-spot-opens.tsx` | **Not wired** — natural hook is `app/api/enrollments/remove/route.ts` | same shape as Waitlist Opens |
 | Completed Class + Followups | `completed-class-followups.tsx` | **Not wired** — blocked on missing "completed" status + certifications data | studentName, className, certificateUrl, suggestedFollowUps[] (pre-filtered by caller), allCoursesUrl |
 | Rate Class | `rate-class.tsx` | **Not wired** — admin-initiated, manual send | className, reviewUrl (carries query params) |
-| Class Reminder | `class-reminder.tsx` | **Not wired** — needs a 14-day-before-start cron | studentName, className, startDate, heroImageUrl, missingPrerequisites (hardcoded placeholder) |
+| Class Reminder | `class-reminder.tsx` | `sendClassReminderEmail` in `lib/email.ts`, called by the daily Vercel Cron `app/api/cron/class-reminders/route.ts` (14 days before start; `vercel.json`) | studentName, className, startDate, heroImageUrl, prerequisiteDueDate, missingPrerequisites (real outstanding prerequisites via `evaluateClassPrerequisites`) |
 | OTP / Login code | `otp-login-code.tsx` | Wired manually into `lib/email-templates/admin-otp.html` (Supabase Auth SMTP paste-in, not rendered by app code) | code |
 | Prerequisite Rejected | `prerequisite-rejected.tsx` | `sendPrerequisiteRejectedEmail` in `lib/email.ts` (called from `app/api/admin/prerequisites/review/route.ts`) | studentName, prerequisiteTypeName, className, rejectionReason, resubmitUrl, resubmitLabel |
 | Prerequisite Pending Review | `prerequisite-pending-review.tsx` | `sendPrerequisitePendingReviewEmail` in `lib/email.ts` | studentName, className, outstandingList, actionUrl |
@@ -59,12 +59,9 @@ To add content for a new course:
 - **Bulk-send helpers**: Waitlist Opens and Waitlist Spot Opens need a function that, given a
   `course_code`, queries the `waitlist` table and sends to every matching student. Not built —
   only the templates exist.
-- **14-day class-reminder cron**: needs a scheduled job (extend `apps/cron-worker` or add a
-  Vercel Cron route in `apps/webapp`) that finds classes starting in 14 days and sends
-  `class-reminder.tsx` to enrolled students.
 - **Completion data**: no `completed` enrollment status or certifications table exists. Completed
-  Class + Followups and the "missing prerequisites" logic in Class Reminder both need this before
-  they can be triggered automatically — see the pseudocode comments in each file.
+  Class + Followups needs this before it can be triggered automatically — see the pseudocode
+  comment in that file.
 - **Prerequisites**: not modeled in the database at all. Every prerequisite list in every email is
   hardcoded to literal Figma placeholder text ("PRERESQUISITE TITLE HERE" / "Details go here") —
   deliberate, per product decision, not a bug. Swap via prompt-edit once real content exists.

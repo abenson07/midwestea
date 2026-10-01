@@ -411,6 +411,10 @@ export function getFullyEnrolledSubject(className: string): string {
   return `You're fully enrolled in ${className}`;
 }
 
+export function getClassReminderSubject(className: string): string {
+  return `${className} starts soon`;
+}
+
 /** Supabase Auth OTP subject line (paste into Supabase dashboard) */
 export const ADMIN_OTP_SUBJECT = 'Your Midwest EA admin login code';
 
