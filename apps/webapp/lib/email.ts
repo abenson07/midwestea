@@ -999,6 +999,81 @@ export function logEmailResult(
 }
 
 // ============================================================================
+// Admin New-Enrollment Notification
+// ============================================================================
+
+/**
+ * Notify admins with admins.notify_new_enrollment = true that a student enrolled.
+ * One email per admin; not written to email_logs (Resend is the record). Best-effort: never throws, so it
+ * can't break the student confirmation flow.
+ */
+async function sendAdminEnrollmentNotification(params: {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  className: string;
+  amountPaidCents: number | null;
+  enrollmentId: string;
+}): Promise<void> {
+  try {
+    const { createSupabaseAdminClient } = await import('@midwestea/utils');
+    const supabase = createSupabaseAdminClient();
+
+    const { data: admins, error } = await supabase
+      .from('admins')
+      .select('email')
+      .eq('notify_new_enrollment', true)
+      .is('deleted_at', null);
+
+    if (error) {
+      console.error('[sendAdminEnrollmentNotification] Failed to load admins:', error.message);
+      return;
+    }
+    if (!admins || admins.length === 0) {
+      console.warn('[sendAdminEnrollmentNotification] No admins have notify_new_enrollment enabled');
+      return;
+    }
+
+    const profileUrl = `${SITE_URL.replace(/\/$/, '')}/admin/students/${params.studentId}`;
+    const amount = formatCurrency(params.amountPaidCents || 0);
+    const enrolledAt = new Date().toLocaleString('en-US', {
+      timeZone: 'America/Chicago',
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+    const subject = `New enrollment: ${params.studentName} – ${params.className}`;
+    const html = `<div style="font-family:Arial,sans-serif;font-size:16px;line-height:1.5;color:#191920">
+<h2 style="margin:0 0 16px">New student enrolled</h2>
+<p style="margin:0 0 4px"><strong>Student:</strong> ${escapeHtml(params.studentName)} (${escapeHtml(params.studentEmail)})</p>
+<p style="margin:0 0 4px"><strong>Class:</strong> ${escapeHtml(params.className)}</p>
+<p style="margin:0 0 4px"><strong>Amount paid:</strong> ${escapeHtml(amount)}</p>
+<p style="margin:0 0 16px"><strong>Enrolled:</strong> ${escapeHtml(enrolledAt)} CT</p>
+<p style="margin:0"><a href="${profileUrl}">View student profile in admin</a></p>
+</div>`;
+
+    await Promise.all(
+      admins.map(async (admin) => {
+        const result = await sendEmail({
+          from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+          to: admin.email,
+          subject,
+          html,
+          tags: [
+            { name: 'email_type', value: 'admin_enrollment_notification' },
+            { name: 'enrollment_id', value: params.enrollmentId },
+          ],
+        });
+        if (!result.success) {
+          console.error('[sendAdminEnrollmentNotification] Failed:', admin.email, result.error);
+        }
+      })
+    );
+  } catch (error) {
+    console.error('[sendAdminEnrollmentNotification] Error:', error);
+  }
+}
+
+// ============================================================================
 // Course Enrollment Email Function
 // ============================================================================
 
@@ -1205,6 +1280,17 @@ export async function sendCourseEnrollmentEmail(
     }).catch((logError) => {
       // Don't fail email sending if logging fails
       console.error('[sendCourseEnrollmentEmail] Failed to log to database:', logError);
+    });
+  }
+
+  if (result.success) {
+    await sendAdminEnrollmentNotification({
+      studentId: student.id,
+      studentName,
+      studentEmail,
+      className: courseName,
+      amountPaidCents: transaction.amount_paid,
+      enrollmentId: enrollment.id,
     });
   }
 
@@ -2159,6 +2245,17 @@ export async function getEmailDeliveryMetrics(
     console.error('[getEmailDeliveryMetrics] Database error:', error);
     throw new Error(`Failed to fetch email metrics: ${error.message}`);
   }
+  if (result.success) {
+    await sendAdminEnrollmentNotification({
+      studentId: student.id,
+      studentName,
+      studentEmail,
+      className: programName,
+      amountPaidCents: paidTransaction.amount_paid,
+      enrollmentId: enrollment.id,
+    });
+  }
+
 
   const totalSent = logs?.filter(log => log.success).length || 0;
   const totalFailed = logs?.filter(log => !log.success).length || 0;
