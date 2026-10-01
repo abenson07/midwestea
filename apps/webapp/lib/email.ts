@@ -1003,7 +1003,7 @@ export function logEmailResult(
 // ============================================================================
 
 /**
- * Notify admins with admins.notify_new_enrollment = true that a student enrolled.
+ * Notify the admins listed in ADMIN_NOTIFICATION_EMAILS (comma-separated) that a student enrolled.
  * One email per admin; not written to email_logs (Resend is the record). Best-effort: never throws, so it
  * can't break the student confirmation flow.
  */
@@ -1016,21 +1016,12 @@ async function sendAdminEnrollmentNotification(params: {
   enrollmentId: string;
 }): Promise<void> {
   try {
-    const { createSupabaseAdminClient } = await import('@midwestea/utils');
-    const supabase = createSupabaseAdminClient();
-
-    const { data: admins, error } = await supabase
-      .from('admins')
-      .select('email')
-      .eq('notify_new_enrollment', true)
-      .is('deleted_at', null);
-
-    if (error) {
-      console.error('[sendAdminEnrollmentNotification] Failed to load admins:', error.message);
-      return;
-    }
-    if (!admins || admins.length === 0) {
-      console.warn('[sendAdminEnrollmentNotification] No admins have notify_new_enrollment enabled');
+    const admins = (process.env.ADMIN_NOTIFICATION_EMAILS || '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (admins.length === 0) {
+      console.warn('[sendAdminEnrollmentNotification] ADMIN_NOTIFICATION_EMAILS not set; skipping');
       return;
     }
 
@@ -1055,7 +1046,7 @@ async function sendAdminEnrollmentNotification(params: {
       admins.map(async (admin) => {
         const result = await sendEmail({
           from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
-          to: admin.email,
+          to: admin,
           subject,
           html,
           tags: [
@@ -1064,7 +1055,7 @@ async function sendAdminEnrollmentNotification(params: {
           ],
         });
         if (!result.success) {
-          console.error('[sendAdminEnrollmentNotification] Failed:', admin.email, result.error);
+          console.error('[sendAdminEnrollmentNotification] Failed:', admin, result.error);
         }
       })
     );
