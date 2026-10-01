@@ -1002,8 +1002,15 @@ export function logEmailResult(
 // Admin New-Enrollment Notification
 // ============================================================================
 
+// Kyle, Gabe, Sarah
+const ADMIN_NOTIFICATION_EMAILS = [
+  'kbrower@midwestea.com',
+  'ghajmohammad@midwestea.com',
+  'sbrooks@midwestea.com',
+];
+
 /**
- * Notify the admins listed in ADMIN_NOTIFICATION_EMAILS (comma-separated) that a student enrolled.
+ * Notify the admins in ADMIN_NOTIFICATION_EMAILS that a student enrolled.
  * One email per admin; not written to email_logs (Resend is the record). Best-effort: never throws, so it
  * can't break the student confirmation flow.
  */
@@ -1016,15 +1023,6 @@ async function sendAdminEnrollmentNotification(params: {
   enrollmentId: string;
 }): Promise<void> {
   try {
-    const admins = (process.env.ADMIN_NOTIFICATION_EMAILS || '')
-      .split(',')
-      .map((e) => e.trim())
-      .filter(Boolean);
-    if (admins.length === 0) {
-      console.warn('[sendAdminEnrollmentNotification] ADMIN_NOTIFICATION_EMAILS not set; skipping');
-      return;
-    }
-
     const profileUrl = `${SITE_URL.replace(/\/$/, '')}/admin/students/${params.studentId}`;
     const amount = formatCurrency(params.amountPaidCents || 0);
     const enrolledAt = new Date().toLocaleString('en-US', {
@@ -1043,7 +1041,7 @@ async function sendAdminEnrollmentNotification(params: {
 </div>`;
 
     await Promise.all(
-      admins.map(async (admin) => {
+      ADMIN_NOTIFICATION_EMAILS.map(async (admin) => {
         const result = await sendEmail({
           from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
           to: admin,
