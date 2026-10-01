@@ -17,19 +17,9 @@ export interface ClassReminderProps {
 /**
  * Sent 14 days before a class starts, as a reminder + outstanding prerequisites.
  *
- * Trigger: no existing cron hits this. apps/cron-worker exists (Cloudflare Worker)
- * but today only does an unrelated daily logging job — either extend it with a
- * daily "find classes starting in 14 days" check, or add a Vercel Cron route in
- * apps/webapp. Not wired up here.
- *
- * Intended real behavior for `missingPrerequisites`: only list prerequisites the
- * student HASN'T completed yet (check against real completion data once that
- * exists). Prerequisites aren't modeled in the database today, so this ships with
- * the same hardcoded-placeholder approach as Enrollment Successful — see
- * apps/webapp/emails/EMAILS-GUIDE.md.
- *
- *   function getMissingPrerequisites(allPrerequisites, studentCompletedItemIds):
- *     return allPrerequisites.filter(p => !studentCompletedItemIds.includes(p.id))
+ * Trigger: the daily Vercel Cron app/api/cron/class-reminders/route.ts (schedule in
+ * apps/webapp/vercel.json) via sendClassReminderEmail in lib/email.ts, which passes
+ * only the prerequisites the student hasn't satisfied (lib/prerequisite-evaluation.ts).
  *
  * Figma: node 9947-9938 ("Class Reminder (2 weeks away)"). The Figma closing line
  * ("We will follow up with a reminder a few weeks before class...") is copy-pasted

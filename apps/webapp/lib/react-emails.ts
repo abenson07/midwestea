@@ -17,6 +17,7 @@ import PrerequisitePendingReview, {
   type PrerequisitePendingReviewProps,
 } from '../emails/prerequisite-pending-review';
 import FullyEnrolled, { type FullyEnrolledProps } from '../emails/fully-enrolled';
+import ClassReminder, { type ClassReminderProps } from '../emails/class-reminder';
 
 /**
  * Send functions for the new React Email-based transactional emails
@@ -100,4 +101,8 @@ export async function renderPrerequisitePendingReviewEmail(
 
 export async function renderFullyEnrolledEmail(props: FullyEnrolledProps): Promise<string> {
   return render(React.createElement(FullyEnrolled, props));
+}
+
+export async function renderClassReminderEmail(props: ClassReminderProps): Promise<string> {
+  return render(React.createElement(ClassReminder, props));
 }

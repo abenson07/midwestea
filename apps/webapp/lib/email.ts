@@ -1711,6 +1711,156 @@ export async function sendFullyEnrolledEmail(
 }
 
 // ============================================================================
+// Class Reminder Email Function
+// ============================================================================
+
+/**
+ * Sent ahead of a class start by app/api/cron/class-reminders/route.ts. The
+ * cron owns "who is due" and dedup against email_logs; this only resolves the
+ * student's email/name/outstanding prerequisites and sends + logs one email.
+ */
+export async function sendClassReminderEmail(
+  params: {
+    studentId: string;
+    enrollmentId: string;
+    classId: string;
+    className: string;
+    classStartDate: string;
+    classImage?: string | null;
+  },
+  options?: { preview?: boolean }
+): Promise<EmailSendResult & { previewHtml?: string }> {
+  // Import here to avoid circular dependencies
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { getClassReminderSubject } = await import('./email-templates');
+  const { renderClassReminderEmail } = await import('./react-emails');
+  const { evaluateClassPrerequisites } = await import('./prerequisite-evaluation');
+
+  const supabase = createSupabaseAdminClient();
+  let studentEmail: string | null = null;
+
+  try {
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(params.studentId);
+
+    if (getUserError) {
+      console.error('[sendClassReminderEmail] Failed to get student email:', getUserError.message);
+      return {
+        success: false,
+        error: `Failed to get student email: ${getUserError.message}`,
+        retries: 0,
+      };
+    }
+
+    if (!authUser?.user?.email) {
+      return {
+        success: false,
+        error: 'Student email not found',
+        retries: 0,
+      };
+    }
+
+    studentEmail = authUser.user.email;
+  } catch (error: any) {
+    console.error('[sendClassReminderEmail] Error fetching student email:', error);
+    return {
+      success: false,
+      error: `Failed to fetch student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Invalid student email: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  // students has no email column -- resolve the display name separately.
+  const { data: studentRow } = await supabase
+    .from('students')
+    .select('first_name, last_name')
+    .eq('id', params.studentId)
+    .maybeSingle();
+  const studentName = `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() || 'Student';
+
+  // Only list what the student still has to do. A failed lookup omits the
+  // section rather than blocking the reminder.
+  const { evaluation } = await evaluateClassPrerequisites(supabase, params.studentId, params.classId);
+  const missingPrerequisites: PrerequisiteItem[] = (evaluation?.outstanding ?? []).map((item) => ({
+    title: item.prerequisite_type?.name || 'Requirement',
+    details: item.prerequisite_type?.description || '',
+  }));
+
+  let html: string;
+  try {
+    html = await renderClassReminderEmail({
+      studentName,
+      className: params.className,
+      startDate: formatDate(params.classStartDate, 'date'),
+      heroImageUrl: params.classImage || DEFAULT_HERO_IMAGE_URL,
+      prerequisiteDueDate: formatDate(params.classStartDate, 'date'),
+      missingPrerequisites,
+    });
+  } catch (error: any) {
+    console.error('[sendClassReminderEmail] Template rendering error:', error);
+    return {
+      success: false,
+      error: `Failed to render email template: ${error.message}`,
+      retries: 0,
+    };
+  }
+
+  const subject = getClassReminderSubject(params.className);
+
+  if (options?.preview) {
+    return {
+      success: true,
+      previewHtml: html,
+      retries: 0,
+    };
+  }
+
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'class_reminder' },
+      { name: 'enrollment_id', value: params.enrollmentId },
+      { name: 'student_id', value: params.studentId },
+    ],
+    metadata: {
+      enrollment_id: params.enrollmentId,
+      student_id: params.studentId,
+    },
+  });
+
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: 'class_reminder',
+      enrollment_id: params.enrollmentId,
+      student_id: params.studentId,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      console.error('[sendClassReminderEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
 // Tuition Reminder Email Function
 // ============================================================================
 
