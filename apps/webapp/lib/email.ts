@@ -2095,6 +2095,17 @@ export async function sendProgramEnrollmentEmail(
     });
   }
 
+  if (result.success) {
+    await sendAdminEnrollmentNotification({
+      studentId: student.id,
+      studentName,
+      studentEmail,
+      className: programName,
+      amountPaidCents: paidTransaction.amount_paid,
+      enrollmentId: enrollment.id,
+    });
+  }
+
   return result;
 }
 
@@ -2245,17 +2256,6 @@ export async function getEmailDeliveryMetrics(
     console.error('[getEmailDeliveryMetrics] Database error:', error);
     throw new Error(`Failed to fetch email metrics: ${error.message}`);
   }
-  if (result.success) {
-    await sendAdminEnrollmentNotification({
-      studentId: student.id,
-      studentName,
-      studentEmail,
-      className: programName,
-      amountPaidCents: paidTransaction.amount_paid,
-      enrollmentId: enrollment.id,
-    });
-  }
-
 
   const totalSent = logs?.filter(log => log.success).length || 0;
   const totalFailed = logs?.filter(log => !log.success).length || 0;

@@ -786,6 +786,38 @@ export async function isPaymentIntentProcessed(paymentIntentId: string): Promise
 }
 
 /**
+ * Save the date of birth and mailing address collected on the checkout details step.
+ * Values arrive via Stripe session metadata; missing fields (e.g. sessions created
+ * before this step existed) are skipped rather than overwriting existing data.
+ */
+export async function updateStudentProfileInfo(
+  studentId: string,
+  info: {
+    dateOfBirth?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    state?: string | null;
+    postalCode?: string | null;
+  }
+): Promise<void> {
+  const updates: Record<string, string> = {};
+  if (info.dateOfBirth) updates.date_of_birth = info.dateOfBirth;
+  if (info.addressLine1) updates.address_line_1 = info.addressLine1;
+  if (info.addressLine2) updates.address_line_2 = info.addressLine2;
+  if (info.city) updates.city = info.city;
+  if (info.state) updates.state = info.state;
+  if (info.postalCode) updates.postal_code = info.postalCode;
+  if (Object.keys(updates).length === 0) return;
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.from('students').update(updates).eq('id', studentId);
+  if (error) {
+    throw new Error(`Failed to update student profile info: ${error.message}`);
+  }
+}
+
+/**
  * Update student's full_name if it differs from the provided full name
  */
 export async function updateStudentNameIfNeeded(
