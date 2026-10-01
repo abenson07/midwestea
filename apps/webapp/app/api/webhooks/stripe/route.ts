@@ -15,6 +15,7 @@ import {
   createFullPaymentTransaction,
   isPaymentIntentProcessed,
   updateStudentNameIfNeeded,
+  updateStudentProfileInfo,
   updateStudentStripeCustomerId,
 } from '@/lib/enrollments';
 import { insertLog } from '@/lib/logging';
@@ -300,6 +301,16 @@ export async function POST(request: NextRequest) {
       // Update student name if needed
       await updateStudentNameIfNeeded(student.id, fullName);
       console.log('[webhook] Student name updated if needed');
+
+      // Save date of birth + mailing address collected at checkout
+      await updateStudentProfileInfo(student.id, {
+        dateOfBirth: session.metadata?.dob,
+        addressLine1: session.metadata?.address_line_1,
+        addressLine2: session.metadata?.address_line_2,
+        city: session.metadata?.city,
+        state: session.metadata?.state,
+        postalCode: session.metadata?.postal_code,
+      });
 
       // Update student stripe_customer_id if we have it
       if (customerId) {

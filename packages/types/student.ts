@@ -12,6 +12,12 @@ export type Student = {
   vaccination_card_url: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
+  date_of_birth: string | null; // YYYY-MM-DD
+  address_line_1: string | null;
+  address_line_2: string | null;
+  city: string | null;
+  state: string | null;
+  postal_code: string | null;
   created_at: string | null;
   updated_at: string | null;
 };

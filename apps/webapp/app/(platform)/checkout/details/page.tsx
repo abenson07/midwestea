@@ -7,7 +7,15 @@ import CheckoutLayout from '@/components/CheckoutLayout';
 import CheckoutClassDescription from '@/components/CheckoutClassDescription';
 import CheckoutClassCard from '@/components/CheckoutClassCard';
 import CheckoutPaymentSchedule from '@/components/CheckoutPaymentSchedule';
+import CheckoutTextField from '@/components/CheckoutTextField';
 import { getStoredUtmParams } from '@/lib/utmAttribution';
+
+const US_STATES = [
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'DC', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA',
+  'KS', 'KY', 'LA', 'ME', 'MD', 'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM',
+  'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA',
+  'WV', 'WI', 'WY',
+];
 
 function CheckoutDetailsContent() {
   const searchParams = useSearchParams();
@@ -21,13 +29,21 @@ function CheckoutDetailsContent() {
   const [classesCache, setClassesCache] = useState<Record<string, Class>>({});
   const classesCacheRef = useRef<Record<string, Class>>({});
   const isInternalUpdate = useRef(false);
+  // Step 1: choose class. Step 2: student info, then on to payment.
+  const [step, setStep] = useState<'class' | 'info'>('class');
   // Form fields
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [fullNameError, setFullNameError] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [addressLine1, setAddressLine1] = useState('');
+  const [addressLine2, setAddressLine2] = useState('');
+  const [city, setCity] = useState('');
+  const [stateCode, setStateCode] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Helper to update both state and ref
   const updateCache = (updates: Record<string, Class>) => {
     classesCacheRef.current = { ...classesCacheRef.current, ...updates };
@@ -169,73 +185,45 @@ function CheckoutDetailsContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+  const validateEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  const todayIso = new Date().toISOString().split('T')[0];
+
+  const validateInfo = (): Record<string, string> => {
+    const next: Record<string, string> = {};
+    if (!fullName.trim()) next.fullName = 'Full name is required';
+    if (!email.trim()) next.email = 'Email is required';
+    else if (!validateEmail(email.trim())) next.email = 'Please enter a valid email address';
+    if (!dateOfBirth) next.dateOfBirth = 'Date of birth is required';
+    else if (dateOfBirth > todayIso || dateOfBirth < '1900-01-01') {
+      next.dateOfBirth = 'Please enter a valid date of birth';
+    }
+    if (!addressLine1.trim()) next.addressLine1 = 'Address is required';
+    if (!city.trim()) next.city = 'City is required';
+    if (!stateCode) next.state = 'State is required';
+    if (!postalCode.trim()) next.postalCode = 'Zip code is required';
+    else if (!/^\d{5}(-\d{4})?$/.test(postalCode.trim())) next.postalCode = 'Enter a valid zip code';
+    return next;
   };
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-    // Only clear error if email becomes valid while typing
-    if (emailError && validateEmail(value)) {
-      setEmailError('');
-    }
-  };
-
-  const handleEmailBlur = () => {
-    // Validate on blur
-    if (email && !validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
-    } else {
-      setEmailError('');
-    }
-  };
-
-  const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setFullName(value);
-    // Only clear error if fullName becomes valid while typing
-    if (fullNameError && value.trim()) {
-      setFullNameError('');
-    }
-  };
-
-  const handleFullNameBlur = () => {
-    // Validate on blur
-    if (!fullName.trim()) {
-      setFullNameError('Full name is required');
-    } else {
-      setFullNameError('');
-    }
+  // Clears a field's error as soon as the user edits it
+  const setField = (key: string, setter: (v: string) => void) => (value: string) => {
+    setter(value);
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: '' }));
   };
 
   const handleContinue = async () => {
-    // Validate email before continuing
-    if (!email) {
-      setEmailError('Email is required');
+    if (step === 'class') {
+      if (selectedClassId && classData) setStep('info');
       return;
     }
 
-    if (!validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
-      return;
-    }
-
-    // Validate full name before continuing
-    if (!fullName.trim()) {
-      setFullNameError('Full name is required');
-      return;
-    }
-
-    if (!selectedClassId || !classData) {
-      return;
-    }
+    const found = validateInfo();
+    setErrors(found);
+    setSubmitError('');
+    if (Object.keys(found).length > 0 || !selectedClassId || !classData) return;
 
     setIsSubmitting(true);
-    setEmailError('');
-    setFullNameError('');
-
     try {
       if (!classData?.class_id) {
         throw new Error('Class data is missing');
@@ -249,6 +237,12 @@ function CheckoutDetailsContent() {
           email: email.trim(),
           fullName: fullName.trim(),
           classId: classData.class_id,
+          dateOfBirth,
+          addressLine1: addressLine1.trim(),
+          addressLine2: addressLine2.trim(),
+          city: city.trim(),
+          state: stateCode,
+          postalCode: postalCode.trim(),
           ...getStoredUtmParams(),
         }),
       });
@@ -268,10 +262,18 @@ function CheckoutDetailsContent() {
       // Redirect to Stripe checkout
       window.location.href = checkoutUrl;
     } catch (err: any) {
-      setEmailError(err.message || 'Failed to initiate checkout');
+      setSubmitError(err.message || 'Failed to initiate checkout');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleBack = () => {
+    if (step === 'info') {
+      setStep('class');
+      return;
+    }
+    router.back();
   };
 
   const handleClassSelection = (classId: string) => {
@@ -381,147 +383,13 @@ function CheckoutDetailsContent() {
       price={classData.price || undefined}
       registrationFee={classData.registration_fee || undefined}
       imageUrl={imageUrlValue}
-      buttonText={isSubmitting ? 'Processing...' : 'Continue to Payment'}
+      buttonText={
+        isSubmitting ? 'Processing...' : step === 'class' ? 'Continue' : 'Continue to Payment'
+      }
       onButtonClick={handleContinue}
-      onBackClick={() => router.back()}
-      fullNameField={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                  color: 'var(--Semantics-Text, #191920)',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Full Name <span style={{ color: '#ef4444' }}>*</span>
-              </p>
-            </div>
-          </div>
-          <div
-            style={{
-              backgroundColor: 'white',
-              border: fullNameError ? '1px solid #ef4444' : '1px solid var(--color-neutral-light, #969699)',
-              borderRadius: 'var(--radius-extra-small, 4px)',
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center',
-              padding: '12px',
-              width: '100%'
-            }}
-          >
-            <input
-              type="text"
-              value={fullName}
-              onChange={handleFullNameChange}
-              onBlur={handleFullNameBlur}
-              placeholder="John Doe"
-              className="checkout-fullname-input"
-              style={{
-                flex: 1,
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '16px',
-                fontWeight: 400,
-                lineHeight: 1.4,
-                color: 'var(--text-input-text-input-text, #191920)',
-                backgroundColor: 'transparent',
-                border: 'none',
-                outline: 'none',
-                minWidth: 0,
-                padding: 0
-              }}
-            />
-          </div>
-          {fullNameError && (
-            <p
-              style={{
-                margin: 0,
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '14px',
-                color: '#ef4444'
-              }}
-            >
-              {fullNameError}
-            </p>
-          )}
-        </div>
-      }
-      emailField={
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'start', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: '"DM Sans", sans-serif',
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  lineHeight: 1.4,
-                  color: 'var(--Semantics-Text, #191920)',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                Email Address <span style={{ color: '#ef4444' }}>*</span>
-              </p>
-            </div>
-          </div>
-          <div
-            style={{
-              backgroundColor: 'white',
-              border: emailError ? '1px solid #ef4444' : '1px solid var(--color-neutral-light, #969699)',
-              borderRadius: 'var(--radius-extra-small, 4px)',
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center',
-              padding: '12px',
-              width: '100%'
-            }}
-          >
-            <input
-              type="email"
-              value={email}
-              onChange={handleEmailChange}
-              onBlur={handleEmailBlur}
-              placeholder="example@email.com"
-              className="checkout-email-input"
-              style={{
-                flex: 1,
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '16px',
-                fontWeight: 400,
-                lineHeight: 1.4,
-                color: 'var(--text-input-text-input-text, #191920)',
-                backgroundColor: 'transparent',
-                border: 'none',
-                outline: 'none',
-                minWidth: 0,
-                padding: 0
-              }}
-            />
-          </div>
-          {emailError && (
-            <p
-              style={{
-                margin: 0,
-                fontFamily: '"DM Sans", sans-serif',
-                fontSize: '14px',
-                color: '#ef4444'
-              }}
-            >
-              {emailError}
-            </p>
-          )}
-        </div>
-      }
+      onBackClick={handleBack}
       classesContent={
-        hasMultipleClasses ? (
+        step === 'class' && hasMultipleClasses ? (
           <>
             <p
               style={{
@@ -587,6 +455,90 @@ function CheckoutDetailsContent() {
         ) : null
       }
     >
+      {step === 'info' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+          <CheckoutTextField
+            label="Full Name"
+            required
+            value={fullName}
+            onChange={setField('fullName', setFullName)}
+            error={errors.fullName}
+            placeholder="John Doe"
+            autoComplete="name"
+          />
+          <CheckoutTextField
+            label="Email Address"
+            required
+            type="email"
+            value={email}
+            onChange={setField('email', setEmail)}
+            error={errors.email}
+            placeholder="example@email.com"
+            autoComplete="email"
+          />
+          <CheckoutTextField
+            label="Date of Birth"
+            required
+            type="date"
+            value={dateOfBirth}
+            onChange={setField('dateOfBirth', setDateOfBirth)}
+            error={errors.dateOfBirth}
+            max={todayIso}
+            autoComplete="bday"
+          />
+          <CheckoutTextField
+            label="Address 1"
+            required
+            value={addressLine1}
+            onChange={setField('addressLine1', setAddressLine1)}
+            error={errors.addressLine1}
+            autoComplete="address-line1"
+          />
+          <CheckoutTextField
+            label="Address 2"
+            value={addressLine2}
+            onChange={setAddressLine2}
+            autoComplete="address-line2"
+          />
+          <CheckoutTextField
+            label="City"
+            required
+            value={city}
+            onChange={setField('city', setCity)}
+            error={errors.city}
+            autoComplete="address-level2"
+          />
+          <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <CheckoutTextField
+                label="State"
+                required
+                value={stateCode}
+                onChange={setField('state', setStateCode)}
+                error={errors.state}
+                options={US_STATES.map((st) => ({ value: st, label: st }))}
+                autoComplete="address-level1"
+              />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <CheckoutTextField
+                label="Zip"
+                required
+                value={postalCode}
+                onChange={setField('postalCode', setPostalCode)}
+                error={errors.postalCode}
+                maxLength={10}
+                autoComplete="postal-code"
+              />
+            </div>
+          </div>
+          {submitError && (
+            <p style={{ margin: 0, fontFamily: '"DM Sans", sans-serif', fontSize: '14px', color: '#ef4444' }}>
+              {submitError}
+            </p>
+          )}
+        </div>
+      ) : (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', width: '100%' }}>
         {/* Show description only when there's a single class */}
         {!hasMultipleClasses && (
@@ -618,6 +570,7 @@ function CheckoutDetailsContent() {
           invoice2DueDate={(classData as any)['invoice_2_due_date'] || undefined}
         />
       </div>
+      )}
     </CheckoutLayout>
   );
 }

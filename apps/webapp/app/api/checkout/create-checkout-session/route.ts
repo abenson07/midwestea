@@ -21,7 +21,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, fullName, classId, utmSource, utmMedium, utmCampaign } = body;
+    const {
+      email,
+      fullName,
+      classId,
+      dateOfBirth,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      utmSource,
+      utmMedium,
+      utmCampaign,
+    } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
@@ -33,6 +46,21 @@ export async function POST(request: NextRequest) {
 
     if (!classId) {
       return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
+    }
+
+    if (typeof dateOfBirth !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+      return NextResponse.json({ error: 'Date of birth is required' }, { status: 400 });
+    }
+    const dob = new Date(`${dateOfBirth}T00:00:00Z`);
+    if (isNaN(dob.getTime()) || dob > new Date() || dob.getUTCFullYear() < 1900) {
+      return NextResponse.json({ error: 'Please enter a valid date of birth' }, { status: 400 });
+    }
+
+    if (!addressLine1?.trim() || !city?.trim() || !state?.trim() || !postalCode?.trim()) {
+      return NextResponse.json(
+        { error: 'Address, city, state and zip are required' },
+        { status: 400 }
+      );
     }
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -218,6 +246,12 @@ export async function POST(request: NextRequest) {
         {
           full_name: fullName,
           class_id: classId,
+          dob: dateOfBirth,
+          address_line_1: String(addressLine1).trim().slice(0, 200),
+          ...(addressLine2?.trim() ? { address_line_2: String(addressLine2).trim().slice(0, 200) } : {}),
+          city: String(city).trim().slice(0, 100),
+          state: String(state).trim().slice(0, 50),
+          postal_code: String(postalCode).trim().slice(0, 20),
           charge_full_amount_at_registration: String(!!classRecord.charge_full_amount_at_registration),
           ...(utmSource ? { utm_source: utmSource } : {}),
           ...(utmMedium ? { utm_medium: utmMedium } : {}),
