@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { logServerError } from '@/lib/error-reporting/log-server-error';
+import { ensureStripeInvoiceForTransaction } from '@/lib/stripe-invoices';
 
 export async function POST(
   request: NextRequest,
@@ -35,11 +36,16 @@ export async function POST(
     if (transaction.transaction_status !== 'pending') {
       return NextResponse.json({ success: false, error: 'This invoice is not open for payment' }, { status: 400 });
     }
-    if (!transaction.stripe_hosted_invoice_url) {
+    // Legacy / failed-creation rows have no Stripe invoice yet — create one on demand.
+    let payUrl = transaction.stripe_hosted_invoice_url;
+    if (!payUrl) {
+      payUrl = (await ensureStripeInvoiceForTransaction(transaction.id)).hostedInvoiceUrl;
+    }
+    if (!payUrl) {
       return NextResponse.json({ success: false, error: 'This invoice does not have a payment link yet. Please contact support.' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, checkoutUrl: transaction.stripe_hosted_invoice_url });
+    return NextResponse.json({ success: true, checkoutUrl: payUrl });
   } catch (err: any) {
     console.error('[student/transactions/pay] Error:', err);
     void logServerError({
