@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin } from '@/lib/logging';
 import { sendTuitionReminderEmail } from '@/lib/email';
 import { logServerError } from '@/lib/error-reporting/log-server-error';
+import { ensureStripeInvoiceForTransaction } from '@/lib/stripe-invoices';
 
 export const runtime = 'nodejs';
 
@@ -64,6 +65,12 @@ export async function POST(
         .eq('id', transaction.class_id)
         .maybeSingle();
       if (classRow) classRecord = { class_name: classRow.class_name };
+    }
+
+    // Legacy / failed-creation rows have no Stripe invoice yet — create one so the email has a Pay link.
+    if (!transaction.stripe_hosted_invoice_url) {
+      const ensured = await ensureStripeInvoiceForTransaction(transaction.id);
+      transaction.stripe_hosted_invoice_url = ensured.hostedInvoiceUrl;
     }
 
     const result = await sendTuitionReminderEmail(studentRecord, transaction, classRecord);

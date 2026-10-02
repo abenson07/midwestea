@@ -18,7 +18,9 @@ export async function applyPaidUpdate(
   }
 
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
+  // Conditional on not-yet-paid so that of two concurrent/duplicate events exactly one
+  // reports alreadyProcessed:false -- callers use that to send the receipt email once.
+  const { data: updated, error } = await supabase
     .from('transactions')
     .update({
       transaction_status: 'paid',
@@ -26,13 +28,15 @@ export async function applyPaidUpdate(
       amount_paid: update.amountPaidCents,
       stripe_payment_intent_id: update.paymentIntentId,
     })
-    .eq('id', transaction.id);
+    .eq('id', transaction.id)
+    .neq('transaction_status', 'paid')
+    .select('id');
 
   if (error) {
     throw new Error(`Failed to mark transaction ${transaction.id} paid: ${error.message}`);
   }
 
-  return { success: true, alreadyProcessed: false };
+  return { success: true, alreadyProcessed: !updated || updated.length === 0 };
 }
 
 export async function markTransactionPaidFromCheckout(
@@ -61,7 +65,7 @@ export async function markTransactionPaidFromCheckout(
 export async function markTransactionsPaidFromCollapsedCheckout(
   transactionIds: string[],
   paymentIntentId: string
-): Promise<{ success: boolean; paidCount: number; alreadyProcessedCount: number }> {
+): Promise<{ success: boolean; paidCount: number; alreadyProcessedCount: number; newlyPaidIds: string[] }> {
   const supabase = createSupabaseAdminClient();
 
   const { data: transactions, error } = await supabase
@@ -75,6 +79,7 @@ export async function markTransactionsPaidFromCollapsedCheckout(
 
   let paidCount = 0;
   let alreadyProcessedCount = 0;
+  const newlyPaidIds: string[] = [];
 
   for (const transaction of transactions || []) {
     const amountPaidCents = (transaction.amount_due || 0) * (transaction.quantity || 1);
@@ -83,8 +88,9 @@ export async function markTransactionsPaidFromCollapsedCheckout(
       alreadyProcessedCount++;
     } else {
       paidCount++;
+      newlyPaidIds.push(transaction.id);
     }
   }
 
-  return { success: true, paidCount, alreadyProcessedCount };
+  return { success: true, paidCount, alreadyProcessedCount, newlyPaidIds };
 }

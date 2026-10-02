@@ -20,6 +20,7 @@ import {
 import { insertLog } from '@/lib/logging';
 import { markTransactionPaidFromCheckout, markTransactionsPaidFromCollapsedCheckout } from '@/lib/invoice-payments';
 import { createRegistrationFeeInvoices } from '@/lib/invoices';
+import { sendTuitionReceiptEmail } from '@/lib/tuition-receipt';
 import { markTransactionPaidByInvoiceId, payStripeInvoiceOutOfBand } from '@/lib/stripe-invoices';
 import {
   sendCourseEnrollmentEmail,
@@ -170,6 +171,7 @@ export async function POST(request: NextRequest) {
         }
         const amountTotal = session.amount_total || 0;
         const result = await markTransactionPaidFromCheckout(transactionId, piId || '', amountTotal);
+        if (!result.alreadyProcessed) await sendTuitionReceiptEmail([transactionId]);
         return NextResponse.json({ success: true, transactionId, alreadyProcessed: result.alreadyProcessed });
       }
 
@@ -184,6 +186,8 @@ export async function POST(request: NextRequest) {
           piId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent.id;
         }
         const result = await markTransactionsPaidFromCollapsedCheckout(transactionIds, piId || '');
+        // One combined receipt for everything this payment settled (never throws).
+        await sendTuitionReceiptEmail(result.newlyPaidIds);
 
         // Reconcile each underlying Stripe Invoice as paid out-of-band, since the
         // actual charge went through this combined Checkout Session, not through
@@ -1031,6 +1035,10 @@ export async function POST(request: NextRequest) {
         paymentIntentId,
         amountPaidCents,
       });
+
+      if (result.matched && !result.alreadyProcessed && result.transactionId) {
+        await sendTuitionReceiptEmail([result.transactionId]);
+      }
 
       if (!result.matched) {
         console.warn('[webhook] invoice.paid for unknown stripe_invoice_id — no matching transaction:', stripeInvoiceId);
