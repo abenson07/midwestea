@@ -126,7 +126,7 @@ function OTPForm() {
     if (result.success) {
       // Show success message briefly
       setError("");
-      alert("OTP code resent successfully!");
+      alert("If your email is on file, a new code is on its way.");
     } else {
       setError(result.error || "Failed to resend OTP");
     }
@@ -155,7 +155,11 @@ function OTPForm() {
         {/* Welcome Text */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-semibold text-gray-900 mb-2">Login</h1>
-          <p className="text-gray-600">Check your email for the code</p>
+          <p className="text-gray-600">
+            If your email is on file, you will get a code shortly. If you don&apos;t get a code within a few minutes,
+            contact support at{" "}
+            <a href="mailto:sbrooks@midwestea.com" className="underline">sbrooks@midwestea.com</a>.
+          </p>
         </div>
 
         {/* Error Message */}
@@ -181,7 +185,7 @@ function OTPForm() {
             />
             {email && (
               <p className="mt-2 text-sm text-gray-500 text-center">
-                Code sent to {email}
+                Requested for {email}
               </p>
             )}
           </div>
