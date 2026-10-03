@@ -60,6 +60,44 @@ function getErrorStack(reason: unknown): string | undefined {
   return undefined;
 }
 
+function getThirdPartyScriptHosts(): string[] {
+  const hosts = new Set<string>();
+  for (const script of Array.from(document.scripts)) {
+    if (!script.src) continue;
+    try {
+      const url = new URL(script.src);
+      if (url.origin !== window.location.origin) hosts.add(url.host);
+    } catch {
+      // ignore malformed src
+    }
+  }
+  return Array.from(hosts).slice(0, 10);
+}
+
+/**
+ * Browsers hide the details of errors thrown by cross-origin scripts (analytics,
+ * Stripe, etc.) and report only "Script error." with no stack, file or line. When
+ * we do have a file/line (same-origin errors with no Error object) keep it; when
+ * the error is opaque, record which third-party script hosts were on the page so
+ * the report can still be traced to a likely source.
+ */
+function getUncaughtErrorStack(event: ErrorEvent): string | undefined {
+  if (event.error instanceof Error && event.error.stack) {
+    return event.error.stack;
+  }
+
+  if (event.filename) {
+    return `at ${event.filename}:${event.lineno}:${event.colno}`;
+  }
+
+  if (!event.message || /^script error\.?$/i.test(event.message.trim())) {
+    const hosts = getThirdPartyScriptHosts();
+    return `Opaque cross-origin script error (browser hid details). Third-party script hosts on page: ${hosts.length ? hosts.join(", ") : "none found"}`;
+  }
+
+  return undefined;
+}
+
 export function ErrorReporter() {
   useEffect(() => {
     const handleWindowError = (event: ErrorEvent) => {
@@ -67,7 +105,7 @@ export function ErrorReporter() {
         pageUrl: window.location.href,
         kind: "uncaught",
         message: event.message || "Uncaught error",
-        stack: event.error instanceof Error ? event.error.stack : undefined,
+        stack: getUncaughtErrorStack(event),
       });
     };
 
