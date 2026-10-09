@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Enrollment state (waitlist vs. register) is read from the database.
+export const revalidate = 60;
+
 export default async function Page() {
   return <MarketingPage route={route} />;
 }
