@@ -138,7 +138,7 @@ export function ClassPrerequisitesQueue({
   function seeAll() {
     if (!classId) return;
     closeModal();
-    router.push(`${basePath}/${classId}/prerequisites`);
+    router.push(`${basePath}/class/${classId}/prerequisites`);
   }
 
   const selected = rows.find((row) => row.id === selectedId) ?? null;
