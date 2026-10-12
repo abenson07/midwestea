@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         stack: supabaseError instanceof Error ? supabaseError.stack : undefined,
         requestUrl: request.nextUrl.pathname,
         statusCode: 500,
-        context: { route: 'create-checkout-session', step: 'init_supabase_client', classId },
+        context: { route: 'create-checkout-session', step: 'init_supabase_client', classId, email },
       });
       return NextResponse.json(
         { error: `Database connection error: ${message}` },
@@ -132,14 +132,14 @@ export async function POST(request: NextRequest) {
     try {
       let { data, error: classError } = await supabase
         .from('classes')
-        .select('product_id, registration_fee, price, charge_full_amount_at_registration, id, class_id')
+        .select('class_name, registration_fee, price, charge_full_amount_at_registration, id, class_id')
         .eq('class_id', classId)
         .maybeSingle();
 
       if (!data && !classError) {
         const { data: caseInsensitiveData, error: caseInsensitiveError } = await supabase
           .from('classes')
-          .select('product_id, registration_fee, price, charge_full_amount_at_registration, id, class_id')
+          .select('class_name, registration_fee, price, charge_full_amount_at_registration, id, class_id')
           .ilike('class_id', classId)
           .maybeSingle();
 
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         stack: dbError instanceof Error ? dbError.stack : undefined,
         requestUrl: request.nextUrl.pathname,
         statusCode: 500,
-        context: { route: 'create-checkout-session', step: 'fetch_class', classId },
+        context: { route: 'create-checkout-session', step: 'fetch_class', classId, email },
       });
       return NextResponse.json(
         { error: `Failed to fetch class information: ${message}. Please try again.` },
@@ -179,14 +179,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!classRecord.product_id) {
-      return NextResponse.json(
-        { error: `Class ${classId} does not have a product_id configured` },
-        { status: 400 }
-      );
-    }
-
     if (!classRecord.registration_fee) {
+      void logServerError({
+        message: `Class ${classId} does not have a registration_fee configured`,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 400,
+        context: { route: 'create-checkout-session', step: 'validate_class', classId, email, fullName },
+      });
       return NextResponse.json(
         { error: `Class ${classId} does not have a registration_fee configured` },
         { status: 400 }
@@ -240,7 +239,7 @@ export async function POST(request: NextRequest) {
 
       const sessionResult = await createStripeCheckoutSessionWithFetch(
         customerId,
-        { productId: classRecord.product_id, unitAmount },
+        { productName: classRecord.class_name || classRecord.class_id, unitAmount },
         successUrl,
         cancelUrl,
         {

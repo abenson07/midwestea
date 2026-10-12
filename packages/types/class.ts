@@ -15,14 +15,12 @@ export type Class = {
   is_online: boolean | null; // default: false
   created_at: string | null; // timestamp with time zone
   updated_at: string | null; // timestamp with time zone
-  product_id: string | null;
   programming_offering: string | null;
   class_image: string | null;
   length_of_class: string | null;
   certification_length: number | null;
   graduation_rate: number | null;
   registration_limit: number | null;
-  stripe_product_id: string | null;
   price: number | null;
   registration_fee: number | null;
   charge_full_amount_at_registration: boolean;

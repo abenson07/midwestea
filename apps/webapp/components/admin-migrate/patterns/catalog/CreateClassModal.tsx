@@ -197,7 +197,6 @@ export function CreateClassModal({
         online ? null : parseLeadingInt(form.registrationLimit),
         parseDisplayCents(form.price),
         parseDisplayCents(isCourse ? selectedTemplate.registrationFee : form.registrationFee),
-        selectedTemplate.stripeProductId ?? null,
         isClassOnline(form.classFormat) ? null : empty(form.location),
         null,
         form.chargeFullAmountAtRegistration,

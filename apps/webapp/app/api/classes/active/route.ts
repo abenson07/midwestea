@@ -91,7 +91,6 @@ export async function GET(request: NextRequest) {
       classCloseDate: classItem.class_close_date,
       location: classItem.location,
       isOnline: classItem.is_online,
-      productId: classItem.product_id,
       lengthOfClass: classItem.length_of_class,
       certificationLength: classItem.certification_length,
       graduationRate: classItem.graduation_rate,
