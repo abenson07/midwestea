@@ -339,12 +339,6 @@ export function CatalogSettingsPage({ template, onSave }: CatalogSettingsPagePro
                   />
                 }
               />
-              <Divider />
-              <SettingsRow
-                label="Stripe Product ID"
-                description="Assigned when the template is created"
-                control={<Text style={lockedValueStyle}>{draft.stripeProductId || "Not set"}</Text>}
-              />
             </VStack>
           </Card>
         </VStack>

@@ -16,7 +16,6 @@ export interface Course {
   registration_limit: number | null;
   price: number | null;
   registration_fee: number | null;
-  stripe_product_id: string | null;
   jb_learning_label: string | null;
   jb_learning_url: string | null;
   platinum_ed_label: string | null;
@@ -49,7 +48,6 @@ export interface Class {
   price: number | null;
   registration_fee: number | null;
   charge_full_amount_at_registration: boolean;
-  product_id: string | null;
   webflow_item_id: string | null;
   wf_class_link: string | null;
   location: string | null;
@@ -123,7 +121,7 @@ export async function getCourses(): Promise<{ courses: Course[] | null; error: s
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee")
       .or("program_type.eq.course,program_type.is.null")
       .order("course_code");
 
@@ -146,7 +144,7 @@ export async function getPrograms(): Promise<{ programs: Course[] | null; error:
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase
       .from("courses")
-      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee, stripe_product_id")
+      .select("id, course_name, course_code, program_type, programming_offering, course_image, length_of_class, certification_length, graduation_rate, registration_limit, price, registration_fee")
       .eq("program_type", "program")
       .order("course_code");
 
@@ -244,7 +242,6 @@ export async function createClass(
   registrationLimit?: number | null,
   price?: number | null,
   registrationFee?: number | null,
-  productId?: string | null,
   location?: string | null,
   locationId?: string | null,
   chargeFullAmountAtRegistration?: boolean | null
@@ -289,7 +286,6 @@ export async function createClass(
         registrationLimit,
         price,
         registrationFee,
-        productId,
         location,
         locationId,
         chargeFullAmountAtRegistration,
@@ -487,8 +483,7 @@ export async function updateCourse(
   certificationLength?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
-  registrationFee?: number | null,
-  stripeProductId?: string | null
+  registrationFee?: number | null
 ): Promise<ClassResponse> {
   try {
     const supabase = await createSupabaseClient();
@@ -504,7 +499,6 @@ export async function updateCourse(
     if (registrationLimit !== undefined) updateData.registration_limit = registrationLimit;
     if (price !== undefined) updateData.price = price;
     if (registrationFee !== undefined) updateData.registration_fee = registrationFee;
-    if (stripeProductId !== undefined) updateData.stripe_product_id = stripeProductId;
 
     const { error } = await supabase
       .from("courses")
@@ -577,8 +571,7 @@ export async function createCourse(
   certificationLength?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
-  registrationFee?: number | null,
-  stripeProductId?: string | null
+  registrationFee?: number | null
 ): Promise<{ success: boolean; course?: Course; error?: string }> {
   try {
     const supabase = await createSupabaseClient();
@@ -593,7 +586,6 @@ export async function createCourse(
         registration_limit: registrationLimit || null,
         price: price || null,
         registration_fee: registrationFee || null,
-        stripe_product_id: stripeProductId || null,
       })
       .select()
       .single();
@@ -619,8 +611,7 @@ export async function createProgram(
   certificationLength?: number | null,
   registrationLimit?: number | null,
   price?: number | null,
-  registrationFee?: number | null,
-  stripeProductId?: string | null
+  registrationFee?: number | null
 ): Promise<{ success: boolean; program?: Course; error?: string }> {
   try {
     const supabase = await createSupabaseClient();
@@ -635,7 +626,6 @@ export async function createProgram(
         registration_limit: registrationLimit || null,
         price: price || null,
         registration_fee: registrationFee || null,
-        stripe_product_id: stripeProductId || null,
       })
       .select()
       .single();

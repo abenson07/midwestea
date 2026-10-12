@@ -47,7 +47,6 @@ export type CatalogTemplate = {
   certificateReminderMonths?: number | null;
   courseImageUrl?: string;
   /** Assigned when the template is created — read-only in settings. */
-  stripeProductId?: string;
   /** Ordered, per-item required flag. Falls back to `prerequisites` (all required) when unset. */
   prerequisiteAssignments?: CatalogPrerequisiteAssignment[];
 };
@@ -90,7 +89,6 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
       { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
     ],
     courseImageUrl: "https://assets.midwestea.example/programs/emt-basic.jpg",
-    stripeProductId: "prod_EMTBasic001",
   },
   aemt: {
     id: "aemt",
@@ -126,7 +124,6 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
       { id: "platinum", name: "Platinum ED", url: "https://www.platinumed.com" },
     ],
     courseImageUrl: "https://assets.midwestea.example/programs/paramedic.jpg",
-    stripeProductId: "prod_ParamedicProgram",
   },
   atcc: {
     id: "atcc",
@@ -204,7 +201,6 @@ export const CATALOG_TEMPLATES: Record<string, CatalogTemplate> = {
     classLength: "—",
     prerequisites: [],
     courseImageUrl: "https://assets.midwestea.example/courses/bls.jpg",
-    stripeProductId: "prod_BLSProvider",
   },
   "acls-provider": {
     id: "acls-provider",
