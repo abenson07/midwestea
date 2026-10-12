@@ -33,7 +33,7 @@ footer update in lockstep across all 8 emails.
 |---|---|---|---|
 | Enrollment Successful | `enrollment-successful.tsx` | Stripe webhook (`sendCourseEnrollmentEmail`/`sendProgramEnrollmentEmail` in `lib/email.ts`) | studentName, courseCode, courseName, heroImageUrl, startDateLabel, endDateLabel, remainingCost, installments, invoicesUrl, portalLoginUrl, prerequisites (hardcoded placeholder) |
 | Waitlist Successful | `waitlist-successful.tsx` | `app/api/waitlist/submit/route.ts` (now wired — previously never sent) | studentName, courseName, heroImageUrl |
-| Waitlist Opens | `waitlist-opens.tsx` | **Not wired** — needs a bulk-send helper, see below | studentName, className, startDate, registrationCloseDate, heroImageUrl, registerUrl |
+| Waitlist Opens | `waitlist-opens.tsx` | `notifyWaitlistForClass` in `lib/waitlist-notifications.ts`, called on class creation (`app/api/classes/create/route.ts`) and by the daily Vercel Cron `app/api/cron/waitlist-opens/route.ts` for classes whose enrollment opens later. Deduped per student per class via `email_logs.email_type = 'waitlist_opens:<class uuid>'`. Students are removed from the course waitlist when they enroll (`createEnrollment`). | studentName, className, startDate, registrationCloseDate, heroImageUrl, registerUrl |
 | Waitlist Spot Opens | `waitlist-spot-opens.tsx` | **Not wired** — natural hook is `app/api/enrollments/remove/route.ts` | same shape as Waitlist Opens |
 | Completed Class + Followups | `completed-class-followups.tsx` | **Not wired** — blocked on missing "completed" status + certifications data | studentName, className, certificateUrl, suggestedFollowUps[] (pre-filtered by caller), allCoursesUrl |
 | Rate Class | `rate-class.tsx` | **Not wired** — admin-initiated, manual send | className, reviewUrl (carries query params) |
@@ -56,9 +56,8 @@ To add content for a new course:
 
 ## Known gaps / TODOs (see the build plan for full context)
 
-- **Bulk-send helpers**: Waitlist Opens and Waitlist Spot Opens need a function that, given a
-  `course_code`, queries the `waitlist` table and sends to every matching student. Not built —
-  only the templates exist.
+- **Bulk-send helpers**: Waitlist Spot Opens still needs a trigger (Waitlist Opens is wired via
+  `lib/waitlist-notifications.ts`).
 - **Completion data**: no `completed` enrollment status or certifications table exists. Completed
   Class + Followups needs this before it can be triggered automatically — see the pseudocode
   comment in that file.

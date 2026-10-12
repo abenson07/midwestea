@@ -1,8 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin, insertLog } from '@/lib/logging';
 import { snapshotClassPrerequisites } from '@/lib/class-prerequisites';
+import { notifyWaitlistForClass, type WaitlistClass } from '@/lib/waitlist-notifications';
+import { logServerError } from '@/lib/error-reporting/log-server-error';
 import type { PostgrestError } from '@supabase/supabase-js';
+
+export const maxDuration = 60;
 
 /**
  * Maps Supabase/PostgREST errors to user-friendly messages
@@ -229,6 +233,25 @@ export async function POST(request: NextRequest) {
       // Log error but don't fail class creation
       console.error('[API] Failed to log class creation:', logError);
     }
+
+    // Tell the course's waitlist that registration is open. Runs after the
+    // response so the admin isn't kept waiting; a class whose enrollment opens
+    // later is picked up by the daily cron (app/api/cron/waitlist-opens).
+    after(async () => {
+      try {
+        const result = await notifyWaitlistForClass(classData as WaitlistClass, { maxSends: 60 });
+        console.log('[API] Waitlist notified for new class:', result);
+      } catch (notifyError: any) {
+        console.error('[API] Failed to notify waitlist for new class:', notifyError);
+        void logServerError({
+          message: notifyError.message,
+          stack: notifyError.stack,
+          requestUrl: '/api/classes/create',
+          statusCode: 500,
+          context: { route: 'classes/create', step: 'notify_waitlist', classId: classData.class_id },
+        });
+      }
+    });
 
     return NextResponse.json({
       success: true,
