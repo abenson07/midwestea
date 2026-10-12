@@ -415,6 +415,10 @@ export function getClassReminderSubject(className: string): string {
   return `${className} starts soon`;
 }
 
+export function getWaitlistOpensSubject(className: string): string {
+  return `Registration is open for ${className}`;
+}
+
 /** Supabase Auth OTP subject line (paste into Supabase dashboard) */
 export const ADMIN_OTP_SUBJECT = 'Your Midwest EA admin login code';
 

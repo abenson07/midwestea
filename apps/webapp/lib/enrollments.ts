@@ -5,6 +5,7 @@ import { createAndFinalizeStripeInvoice, voidStripeInvoice } from './stripe-invo
 import Stripe from 'stripe';
 import type { Student, Class, Enrollment, Payment, Transaction } from '@midwestea/types';
 import { formatDate } from './email';
+import { removeFromWaitlistOnEnrollment } from './waitlist-notifications';
 
 /**
  * Find or create a student by email
@@ -261,6 +262,8 @@ export async function createEnrollment(
   if (!enrollment) {
     throw new Error('Failed to create enrollment: no data returned');
   }
+
+  await removeFromWaitlistOnEnrollment(studentId, classId);
 
   return enrollment as Enrollment;
 }

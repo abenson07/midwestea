@@ -17,11 +17,8 @@ export interface WaitlistOpensProps {
 /**
  * Sent when a new class instance opens for a course someone is waitlisted for.
  *
- * Trigger: no existing call site. Needs a bulk-send helper — given a course_code,
- * look up all `waitlist` rows for that code and send this to each student. See
- * apps/webapp/emails/EMAILS-GUIDE.md for the suggested `notifyWaitlistOfNewClass()`
- * shape; not implemented here since it needs an admin action or a hook off class
- * creation to actually call it.
+ * Trigger: notifyWaitlistForClass() in lib/waitlist-notifications.ts, on class
+ * creation and from the daily app/api/cron/waitlist-opens cron.
  *
  * Figma: node 9947-9933 ("Waitlist Class Opens").
  */

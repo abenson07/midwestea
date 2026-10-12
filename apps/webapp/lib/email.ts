@@ -1861,6 +1861,121 @@ export async function sendClassReminderEmail(
 }
 
 // ============================================================================
+// Waitlist Opens Email Function
+// ============================================================================
+
+/**
+ * email_logs has no class column, so the class is folded into email_type.
+ * One successful row of this type means the student was already told about
+ * that class (see lib/waitlist-notifications.ts).
+ */
+export function waitlistOpensEmailType(classId: string): string {
+  return `waitlist_opens:${classId}`;
+}
+
+/**
+ * Tell a waitlisted student that registration opened for a class of their
+ * course. Mirrors sendClassReminderEmail: resolves the email from auth.users,
+ * renders the React Email template, sends, and logs to email_logs.
+ */
+export async function sendWaitlistOpensEmail(params: {
+  studentId: string;
+  classId: string;
+  classCode: string;
+  courseCode: string;
+  className: string;
+  classStartDate: string | null;
+  enrollmentClose: string | null;
+  classImage?: string | null;
+}): Promise<EmailSendResult> {
+  const { createSupabaseAdminClient } = await import('@midwestea/utils');
+  const { getWaitlistOpensSubject } = await import('./email-templates');
+  const { renderWaitlistOpensEmail } = await import('./react-emails');
+  const { checkoutDetailsUrl } = await import('./marketing/checkout-url');
+
+  const supabase = createSupabaseAdminClient();
+
+  const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(params.studentId);
+  if (getUserError || !authUser?.user?.email) {
+    return {
+      success: false,
+      error: `Failed to get student email: ${getUserError?.message || 'Student email not found'}`,
+      retries: 0,
+    };
+  }
+  const studentEmail = authUser.user.email;
+
+  try {
+    validateEmail(studentEmail, 'student email');
+  } catch (error: any) {
+    return { success: false, error: `Invalid student email: ${error.message}`, retries: 0 };
+  }
+
+  // students has no email column -- resolve the display name separately.
+  const { data: studentRow } = await supabase
+    .from('students')
+    .select('first_name, last_name, full_name')
+    .eq('id', params.studentId)
+    .maybeSingle();
+  const studentName =
+    `${studentRow?.first_name ?? ''} ${studentRow?.last_name ?? ''}`.trim() ||
+    (studentRow as { full_name?: string | null } | null)?.full_name?.trim() ||
+    'there';
+
+  let html: string;
+  try {
+    html = await renderWaitlistOpensEmail({
+      studentName,
+      className: params.className,
+      startDate: params.classStartDate ? formatDate(params.classStartDate, 'date') : 'soon',
+      registrationCloseDate: params.enrollmentClose ? formatDate(params.enrollmentClose, 'date') : 'the class fills',
+      heroImageUrl: params.classImage || DEFAULT_HERO_IMAGE_URL,
+      registerUrl: `${SITE_URL.replace(/\/$/, '')}${checkoutDetailsUrl(params.classCode, params.courseCode)}`,
+    });
+  } catch (error: any) {
+    console.error('[sendWaitlistOpensEmail] Template rendering error:', error);
+    return { success: false, error: `Failed to render email template: ${error.message}`, retries: 0 };
+  }
+
+  const subject = getWaitlistOpensSubject(params.className);
+  const emailType = waitlistOpensEmailType(params.classId);
+
+  const result = await sendEmail({
+    from: process.env.EMAIL_FROM || 'noreply@midwestea.com',
+    to: studentEmail,
+    subject,
+    html,
+    tags: [
+      { name: 'email_type', value: 'waitlist_opens' },
+      { name: 'class_id', value: params.classId },
+      { name: 'student_id', value: params.studentId },
+    ],
+    metadata: {
+      class_id: params.classId,
+      student_id: params.studentId,
+    },
+  });
+
+  if (result.success || result.error) {
+    await logEmailToDatabase({
+      recipient_email: studentEmail,
+      recipient_name: studentName,
+      subject,
+      email_type: emailType,
+      student_id: params.studentId,
+      success: result.success,
+      email_id: result.id,
+      error: result.error,
+      retries: result.retries || 0,
+    }).catch((logError) => {
+      console.error('[sendWaitlistOpensEmail] Failed to log to database:', logError);
+    });
+  }
+
+  return result;
+}
+
+// ============================================================================
 // Tuition Reminder Email Function
 // ============================================================================
 
