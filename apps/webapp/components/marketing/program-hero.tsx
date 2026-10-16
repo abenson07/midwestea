@@ -148,6 +148,11 @@ export const ProgramHero = (props: ProgramHeroProps) => {
                     {registerPrice ? ` $${registerPrice}` : null}
                   </a>
                 )}
+                {variant !== "waitlist" && registerPrice && Number(registerPrice) > 0 ? (
+                  <p className="mt-3 text-xs text-text-alternative/80">
+                    The registration fee is non-refundable.
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

@@ -12,6 +12,7 @@ import {
   getMarketingPricingByCourseCodes,
   getMarketingPricingForRoute,
   getProgramPriceCents,
+  getInstallmentSchedule,
   getRegisterPriceCents,
   getTotalPriceCents,
   type MarketingPricing,
@@ -118,21 +119,37 @@ function applyParamedicPricingToProps(
     registrationFee: pricing.registrationFee,
   };
   const regCents = getRegisterPriceCents(priceFields);
-  const totalCents = getProgramPriceCents(priceFields);
+  const schedule = getInstallmentSchedule(pricing.price, pricing.classStartDate);
 
   const defaults = ParamedicPricingDefaults;
   const payments = [...defaults.payments];
   if (regCents != null) {
-    const regFormatted = formatPriceForProse(regCents);
     payments[0] = {
       ...payments[0],
-      amount: `$${regFormatted} registration fee`,
+      amount: `$${formatPriceForProse(regCents)} registration fee`,
+    };
+  }
+
+  if (schedule) {
+    payments[1] = {
+      ...payments[1],
+      amount: `$${formatPriceForProse(schedule.firstCents)}`,
+      note: schedule.firstDueDate
+        ? `Due ${schedule.firstDueDate}`
+        : "Due 3 weeks before class starts",
+    };
+    payments[2] = {
+      ...payments[2],
+      amount: `$${formatPriceForProse(schedule.secondCents)}`,
+      note: schedule.secondDueDate
+        ? `Due ${schedule.secondDueDate}`
+        : "Due 1 week after class starts",
     };
   }
 
   const included = { ...defaults.included };
-  if (totalCents != null) {
-    const totalFormatted = (totalCents / 100).toLocaleString("en-US", {
+  if (schedule) {
+    const totalFormatted = (schedule.totalCents / 100).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });

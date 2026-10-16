@@ -50,6 +50,44 @@ export function getProgramPriceCents(fields: PriceFields): number | null {
   return fields.price ?? fields.registrationFee;
 }
 
+export type InstallmentSchedule = {
+  firstCents: number;
+  secondCents: number;
+  /** Sum of the two installment invoices. */
+  totalCents: number;
+  /** MM/DD/YYYY, or null when the class has no start date. */
+  firstDueDate: string | null;
+  secondDueDate: string | null;
+};
+
+function shiftedDateLabel(startDate: string, days: number): string | null {
+  const d = new Date(startDate);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + days);
+  const [year, month, day] = d.toISOString().split("T")[0].split("-");
+  return `${month}/${day}/${year}`;
+}
+
+/**
+ * Mirrors the checkout split: tuition is two installments (half rounded down,
+ * remainder second), due 21 days before and 7 days after the class start.
+ */
+export function getInstallmentSchedule(
+  priceCents: number | null,
+  classStartDate?: string | null
+): InstallmentSchedule | null {
+  if (priceCents == null || priceCents <= 0) return null;
+  const firstCents = Math.floor(priceCents / 2);
+  const secondCents = priceCents - firstCents;
+  return {
+    firstCents,
+    secondCents,
+    totalCents: firstCents + secondCents,
+    firstDueDate: classStartDate ? shiftedDateLabel(classStartDate, -21) : null,
+    secondDueDate: classStartDate ? shiftedDateLabel(classStartDate, 7) : null,
+  };
+}
+
 function pricingFromClass(activeClass: ActiveClass): MarketingPricing {
   return {
     source: "class",

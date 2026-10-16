@@ -192,7 +192,7 @@ export default function CheckoutPaymentSchedule({
                 color: 'var(--semantics-text-neutral, #6e6e70)'
               }}
             >
-              Due today
+              Due today · non-refundable
             </p>
           </div>
         </div>

@@ -264,6 +264,11 @@ export const paramedicSections = [
             </div>
           ),
         },
+        {
+          title: "Is the registration fee refundable?",
+          answer:
+            "No. The registration fee is non-refundable. It is due at enrollment to hold your seat.",
+        },
       ],
     },
   },
