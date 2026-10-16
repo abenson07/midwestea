@@ -163,6 +163,11 @@ export const emergencyMedicalTechnicianSections: PageSection[] = [
           answer:
             "Yes. Students participate in clinical and field experiences as available through our EMS partners.",
         },
+        {
+          title: "Is the registration fee refundable?",
+          answer:
+            "No. The registration fee is non-refundable. It is due at enrollment to hold your seat.",
+        },
       ],
     },
   },

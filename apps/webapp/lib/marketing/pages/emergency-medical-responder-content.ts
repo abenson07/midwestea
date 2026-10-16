@@ -209,6 +209,11 @@ export const emergencyMedicalResponderSections = [
           title: "Do I need to attend in person?",
           answer: "Yes, this is an in-person course.",
         },
+        {
+          title: "Is the registration fee refundable?",
+          answer:
+            "No. The registration fee is non-refundable. It is due at enrollment to hold your seat.",
+        },
       ],
     },
   },

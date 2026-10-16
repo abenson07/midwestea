@@ -197,6 +197,11 @@ export const communityParamedicSections: PageSection[] = [
           answer:
             "Patients with chronic conditions, limited healthcare access, recent hospital discharges, and those needing regular monitoring.",
         },
+        {
+          title: "Is the registration fee refundable?",
+          answer:
+            "No. The registration fee is non-refundable. It is due at enrollment to hold your seat.",
+        },
       ],
     },
   },

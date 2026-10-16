@@ -192,6 +192,11 @@ export const criticalCareTransportSections: PageSection[] = [
           answer:
             "Yes. Critical Care Transport (CCT) certification is widely recognized for transport, flight, and advanced EMS roles.",
         },
+        {
+          title: "Is the registration fee refundable?",
+          answer:
+            "No. The registration fee is non-refundable. It is due at enrollment to hold your seat.",
+        },
       ],
     },
   },

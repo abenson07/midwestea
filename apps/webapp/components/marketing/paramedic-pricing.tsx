@@ -133,18 +133,18 @@ export const ParamedicPricingDefaults: Props = {
     {
       label: "Due Today:",
       amount: "$50 registration fee",
-      note: "Due right now at enrollment, non-refundable",
+      note: "Due at enrollment, non-refundable",
       emphasized: true,
     },
     {
       label: "Payment 1:",
-      amount: "$1,000",
-      note: "Due 3 days before class starts",
+      amount: "Half of tuition",
+      note: "Due 3 weeks before class starts",
     },
     {
       label: "Payment 2:",
-      amount: "$1,000",
-      note: "Due 2 weeks after class starts",
+      amount: "Half of tuition",
+      note: "Due 1 week after class starts",
     },
   ],
   included: {

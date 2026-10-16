@@ -77,9 +77,12 @@ export const termsOfServiceSections: PageSection[] = [
             <strong>5. Refunds &amp; Cancellations</strong>
           </h4>
           <p>
-            Refund eligibility varies by course or program.
-            <br />
-            Refunds are not guaranteed and may be subject to administrative fees.
+            The registration fee is non-refundable.
+          </p>
+          <p>
+            Any other refund, including tuition payments, is granted only at the sole discretion of
+            Midwest Emergency Academy and varies by course or program. Refunds are not guaranteed and
+            may be subject to administrative fees.
           </p>
           <p>
             Details are provided on each course or program page.
