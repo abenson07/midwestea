@@ -36,7 +36,7 @@ export function RotatingEnrollmentBanner({ items }: RotatingEnrollmentBannerProp
   return (
     <Link
       href={item.href}
-      className="hidden h-12 w-full bg-neutral-lighter text-text transition-colors md:flex md:items-center md:justify-center hover:bg-mea-yellow hover:text-black"
+      className="hidden h-12 w-full bg-neutral-lighter text-text transition-colors duration-300 ease-in-out md:flex md:items-center md:justify-center hover:bg-mea-yellow hover:text-black"
     >
       <span
         className="px-4 text-center text-xs leading-[1.4] transition-opacity duration-300"
