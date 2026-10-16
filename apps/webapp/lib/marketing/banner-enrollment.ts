@@ -82,7 +82,7 @@ function buildMessage(
   }
 
   if (row.class_start_date) {
-    const startDate = formatDate(row.class_start_date, "long");
+    const startDate = formatDate(row.class_start_date, "date");
     return {
       headline: `Enroll in ${programName} class today.`,
       detail: `Classes start ${startDate}`,
