@@ -441,7 +441,7 @@ function ClassDetailDemoInner({
           </div>
         )}
       </FoundationLayout>
-      <ClassMessageAllModal isOpen={messageOpen} onClose={() => setMessageOpen(false)} />
+      <ClassMessageAllModal isOpen={messageOpen} classId={classId} onClose={() => setMessageOpen(false)} />
       <ClassAddStudentModal
         isOpen={addStudentOpen}
         onClose={() => setAddStudentOpen(false)}
