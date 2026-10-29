@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin } from '@/lib/logging';
 import { createTransaction, getNextTransactionInvoiceNumber } from '@/lib/enrollments';
-import { createAndFinalizeStripeInvoice, voidStripeInvoice } from '@/lib/stripe-invoices';
+import { createAndFinalizeStripeInvoice, getStripeInvoiceStatus, voidStripeInvoice } from '@/lib/stripe-invoices';
 import { logServerError } from '@/lib/error-reporting/log-server-error';
 
 export const runtime = 'nodejs';
+
+const DUE_DATE_MARGIN_MS = 60 * 1000;
 
 export async function POST(
   request: NextRequest,
@@ -42,6 +44,13 @@ export async function POST(
       if (!item.dueDate || Number.isNaN(new Date(item.dueDate).getTime())) {
         return NextResponse.json({ success: false, error: 'Each replacement invoice needs a valid dueDate' }, { status: 400 });
       }
+      // Stripe rejects a due_date that is not in the future (see
+      // createAndFinalizeStripeInvoice). Reject it now, before anything is
+      // voided; the small margin covers the time between this check and the
+      // actual Stripe call.
+      if (new Date(item.dueDate).getTime() <= Date.now() + DUE_DATE_MARGIN_MS) {
+        return NextResponse.json({ success: false, error: `Replacement invoice due date ${item.dueDate} is not in the future. Stripe requires a future due date. Nothing was voided.` }, { status: 400 });
+      }
     }
 
     if (payInFull && replacementInvoices.length !== 1) {
@@ -67,35 +76,6 @@ export async function POST(
     }
     if (!openTransactions || openTransactions.length === 0) {
       return NextResponse.json({ success: false, error: 'No open invoices to void for this enrollment' }, { status: 400 });
-    }
-
-    // Void each row's Stripe Invoice (if any) before marking it cancelled in the
-    // DB, not the reverse — otherwise a DB-cancelled row's old Stripe invoice
-    // would briefly still be technically open and payable via its old hosted
-    // URL. Looping instead of one bulk UPDATE means a single Stripe failure
-    // doesn't silently leave the rest of the batch in a DB/Stripe mismatch.
-    const voidErrors: string[] = [];
-    for (const row of openTransactions) {
-      try {
-        if (row.stripe_invoice_id) {
-          await voidStripeInvoice(row.stripe_invoice_id);
-        }
-        const { error: cancelError } = await supabase
-          .from('transactions')
-          .update({ transaction_status: 'cancelled' })
-          .eq('id', row.id);
-        if (cancelError) {
-          voidErrors.push(`${row.id}: ${cancelError.message}`);
-        }
-      } catch (err: any) {
-        voidErrors.push(`${row.id}: ${err.message}`);
-      }
-    }
-    if (voidErrors.length > 0) {
-      return NextResponse.json(
-        { success: false, error: `Failed to void ${voidErrors.length} of ${openTransactions.length} existing invoices`, voidErrors },
-        { status: 500 }
-      );
     }
 
     // No findClassWithCourseById() exists in lib/enrollments.ts (the sibling
@@ -137,45 +117,122 @@ export async function POST(
       }
     }
 
-    let nextInvoiceNumber = await getNextTransactionInvoiceNumber();
-    const created = [];
-    for (const item of replacementInvoices) {
-      const description = payInFull ? 'Pay in Full' : 'Revised Invoice';
-      const invoice = await createAndFinalizeStripeInvoice({
-        customerId: stripeCustomerId!,
-        amountCents: item.amountCents,
-        dueDate: item.dueDate,
-        description,
-        metadata: { enrollment_id: enrollment.id },
-      });
-
-      let transaction;
+    // Every pending transaction with a Stripe invoice must be voidable (or
+    // already void) in Stripe. Read-only. If any is paid / draft / missing,
+    // refuse the whole operation so nothing is voided.
+    const VOIDABLE_STATUSES = new Set(['open', 'uncollectible', 'void']);
+    for (const row of openTransactions) {
+      if (!row.stripe_invoice_id) continue;
+      let status: string | null;
       try {
-        transaction = await createTransaction({
-          enrollmentId: enrollment.id,
-          studentId: enrollment.student_id,
-          classId: enrollment.class_id,
-          classType,
-          transactionType: payInFull ? 'pay_in_full' : 'custom',
-          quantity: 1,
-          stripePaymentIntentId: null,
-          stripeInvoiceId: invoice.stripeInvoiceId,
-          stripeHostedInvoiceUrl: invoice.hostedInvoiceUrl,
-          transactionStatus: 'pending',
-          paymentDate: null,
-          dueDate: new Date(item.dueDate).toISOString(),
-          amountDue: item.amountCents,
-          amountPaid: null,
-          invoiceNumber: nextInvoiceNumber,
-        });
-      } catch (err) {
-        await voidStripeInvoice(invoice.stripeInvoiceId).catch((voidErr) =>
-          console.error('[enrollments/void-and-reissue] Failed to compensate-void orphaned replacement invoice', invoice.stripeInvoiceId, voidErr)
+        status = await getStripeInvoiceStatus(row.stripe_invoice_id);
+      } catch (err: any) {
+        const missing = err?.code === 'resource_missing' || err?.statusCode === 404;
+        return NextResponse.json(
+          {
+            success: false,
+            error: missing
+              ? `Stripe invoice ${row.stripe_invoice_id} could not be found, so it cannot be voided. Nothing was voided.`
+              : `Could not check Stripe invoice ${row.stripe_invoice_id} before voiding (${err?.message || 'Stripe error'}). Nothing was voided; please retry.`,
+          },
+          { status: missing ? 409 : 502 }
         );
-        throw err;
       }
-      created.push(transaction);
-      nextInvoiceNumber++;
+      if (!status || !VOIDABLE_STATUSES.has(status)) {
+        return NextResponse.json(
+          { success: false, error: `Stripe invoice ${row.stripe_invoice_id} is "${status ?? 'unknown'}" and cannot be voided. Nothing was voided.` },
+          { status: 409 }
+        );
+      }
+    }
+
+    // Read-only; resolving it here means a failure surfaces before any void.
+    let nextInvoiceNumber = await getNextTransactionInvoiceNumber();
+
+    // ---- Pre-flight passed. Everything below writes. ----
+
+    // Void each row's Stripe Invoice (if any) before marking it cancelled in the
+    // DB, not the reverse — otherwise a DB-cancelled row's old Stripe invoice
+    // would briefly still be technically open and payable via its old hosted
+    // URL. Looping instead of one bulk UPDATE means a single Stripe failure
+    // doesn't silently leave the rest of the batch in a DB/Stripe mismatch.
+    const voidErrors: string[] = [];
+    for (const row of openTransactions) {
+      try {
+        if (row.stripe_invoice_id) {
+          await voidStripeInvoice(row.stripe_invoice_id);
+        }
+        const { error: cancelError } = await supabase
+          .from('transactions')
+          .update({ transaction_status: 'cancelled' })
+          .eq('id', row.id);
+        if (cancelError) {
+          voidErrors.push(`${row.id}: ${cancelError.message}`);
+        }
+      } catch (err: any) {
+        voidErrors.push(`${row.id}: ${err.message}`);
+      }
+    }
+    if (voidErrors.length > 0) {
+      return NextResponse.json(
+        { success: false, error: `Failed to void ${voidErrors.length} of ${openTransactions.length} existing invoices. The others were already voided and cancelled; no replacement invoices were created.`, voidErrors },
+        { status: 500 }
+      );
+    }
+
+    const created = [];
+    try {
+      for (const item of replacementInvoices) {
+        const description = payInFull ? 'Pay in Full' : 'Revised Invoice';
+        const invoice = await createAndFinalizeStripeInvoice({
+          customerId: stripeCustomerId!,
+          amountCents: item.amountCents,
+          dueDate: item.dueDate,
+          description,
+          metadata: { enrollment_id: enrollment.id },
+        });
+
+        let transaction;
+        try {
+          transaction = await createTransaction({
+            enrollmentId: enrollment.id,
+            studentId: enrollment.student_id,
+            classId: enrollment.class_id,
+            classType,
+            transactionType: payInFull ? 'pay_in_full' : 'custom',
+            quantity: 1,
+            stripePaymentIntentId: null,
+            stripeInvoiceId: invoice.stripeInvoiceId,
+            stripeHostedInvoiceUrl: invoice.hostedInvoiceUrl,
+            transactionStatus: 'pending',
+            paymentDate: null,
+            dueDate: new Date(item.dueDate).toISOString(),
+            amountDue: item.amountCents,
+            amountPaid: null,
+            invoiceNumber: nextInvoiceNumber,
+          });
+        } catch (err) {
+          await voidStripeInvoice(invoice.stripeInvoiceId).catch((voidErr) =>
+            console.error('[enrollments/void-and-reissue] Failed to compensate-void orphaned replacement invoice', invoice.stripeInvoiceId, voidErr)
+          );
+          throw err;
+        }
+        created.push(transaction);
+        nextInvoiceNumber++;
+      }
+    } catch (err: any) {
+      // Only failures that could not be detected up front (Stripe/DB outage)
+      // land here. The old invoices are already voided at this point.
+      const detail = `${openTransactions.length} existing invoice(s) were already voided and cancelled; ${created.length} of ${replacementInvoices.length} replacement invoice(s) were created before the failure (${err?.message || 'unknown error'}). Create the remaining replacement invoice(s) manually.`;
+      console.error('[enrollments/void-and-reissue] Failed after voiding:', detail, err);
+      void logServerError({
+        message: `Void-and-reissue failed after voiding: ${detail}`,
+        stack: err?.stack,
+        requestUrl: request.nextUrl.pathname,
+        statusCode: 500,
+        context: { route: 'admin/enrollments/[enrollmentId]/void-and-reissue', enrollmentId, voidedCount: openTransactions.length, createdCount: created.length },
+      });
+      return NextResponse.json({ success: false, error: `Partial failure: ${detail}`, voidedCount: openTransactions.length, createdCount: created.length }, { status: 500 });
     }
 
     return NextResponse.json({
