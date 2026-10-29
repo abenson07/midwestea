@@ -1,6 +1,15 @@
 import { getSession } from "@/lib/auth";
 
-type RouteResult = { ok: true } | { ok: false; error: string };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RouteResult = { ok: true; data?: any } | { ok: false; error: string };
+
+export type RemoveEnrollmentResult =
+  | {
+      ok: true;
+      refundedCents: number;
+      manualRefundNeeded: { transactionId: string; amountCents: number }[];
+    }
+  | { ok: false; error: string };
 
 async function callEnrollmentRoute(
   path: string,
@@ -24,7 +33,7 @@ async function callEnrollmentRoute(
     if (!response.ok || !result?.success) {
       return { ok: false, error: result?.error || failure };
     }
-    return { ok: true };
+    return { ok: true, data: result };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : failure };
   }
@@ -32,15 +41,15 @@ async function callEnrollmentRoute(
 
 /**
  * Soft-removes an enrollment via DELETE /api/enrollments/remove. The route takes a
- * refund PERCENTAGE (0-100) and only records it on the paid transactions in the
- * database; it does not call Stripe or move money. Pass `null` to remove without
- * touching any transactions.
+ * refund PERCENTAGE (0-100); when above 0 it refunds each paid transaction through
+ * Stripe before recording it. Rows with no Stripe payment come back in
+ * `manualRefundNeeded`. Pass `null` to remove without touching any transactions.
  */
 export function removeEnrollment(params: {
   studentId: string;
   classId: string;
   refundPercentage: number | null;
-}): Promise<RouteResult> {
+}): Promise<RemoveEnrollmentResult> {
   return callEnrollmentRoute(
     "/api/enrollments/remove",
     "DELETE",
@@ -50,7 +59,15 @@ export function removeEnrollment(params: {
       refund_percentage: params.refundPercentage,
     },
     "Failed to remove student",
-  );
+  ).then((res): RemoveEnrollmentResult => {
+    if (!res.ok) return res;
+    const manual = Array.isArray(res.data?.manualRefundNeeded) ? res.data.manualRefundNeeded : [];
+    return {
+      ok: true,
+      refundedCents: typeof res.data?.refundedCents === "number" ? res.data.refundedCents : 0,
+      manualRefundNeeded: manual,
+    };
+  });
 }
 
 /** Restores a soft-removed enrollment via POST /api/enrollments/restore. Does not touch transactions. */
