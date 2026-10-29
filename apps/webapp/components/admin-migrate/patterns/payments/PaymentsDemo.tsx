@@ -14,7 +14,7 @@ import { PaymentsOverviewPage } from "./PaymentsOverviewPage";
 import { TransactionsListPage } from "./TransactionsListPage";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 import { TransactionSidePanel } from "./TransactionSidePanel";
-import { CreateTransactionModal } from "./CreateTransactionModal";
+import { CreateTransactionModal, type InvoiceTarget } from "./CreateTransactionModal";
 import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { TRANSACTION_STATUS_FILTER_OPTIONS } from "./transactionColumns";
 import { TransactionRowsProvider, useTransactions } from "./useTransactions";
@@ -26,18 +26,20 @@ export type PaymentsDemoProps = {
   navigation?: ReactNode;
   /** When omitted, the list stays on demo mocks (`/admin-preview`). */
   rows?: TransactionRow[];
+  /** Real enrolled student/class pairs for the New Invoice modal (live pages only). */
+  invoiceTargets?: InvoiceTarget[];
 };
 
-export function PaymentsDemo({ navigation, rows }: PaymentsDemoProps = {}) {
+export function PaymentsDemo({ navigation, rows, invoiceTargets }: PaymentsDemoProps = {}) {
   const live = useIsNewAdminMigrate();
-  const inner = <PaymentsDemoInner navigation={navigation} />;
+  const inner = <PaymentsDemoInner navigation={navigation} invoiceTargets={invoiceTargets} />;
   if (rows || live) {
     return <TransactionRowsProvider rows={rows ?? []}>{inner}</TransactionRowsProvider>;
   }
   return inner;
 }
 
-function PaymentsDemoInner({ navigation }: { navigation?: ReactNode }) {
+function PaymentsDemoInner({ navigation, invoiceTargets }: { navigation?: ReactNode; invoiceTargets?: InvoiceTarget[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -166,6 +168,7 @@ function PaymentsDemoInner({ navigation }: { navigation?: ReactNode }) {
       <CreateTransactionModal
         isOpen={createOpen}
         onClose={() => setCreateOpen(false)}
+        targets={invoiceTargets}
         onCreate={(row) => {
           addTransaction(row);
           selectTransaction(row.id);
