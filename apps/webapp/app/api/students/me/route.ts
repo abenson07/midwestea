@@ -52,7 +52,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'No fields to update' });
     }
 
-    const { error } = await supabase.from('students').update(updateData).eq('id', user.id);
+    const { error } = await supabase.from('students').update(updateData).eq('id', user.id).is('deleted_at', null);
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }

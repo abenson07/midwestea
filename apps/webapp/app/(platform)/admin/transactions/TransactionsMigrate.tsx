@@ -7,7 +7,7 @@ import { mapTransactionRows } from "./fromStaging";
 export async function TransactionsMigrate() {
   const [transactions, students, classes] = await Promise.all([
     listTransactions(),
-    listStudents(),
+    listStudents({ includeDeleted: true }),
     listClasses({ includeDeleted: true }),
   ]);
 

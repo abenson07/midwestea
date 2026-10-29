@@ -44,7 +44,7 @@ export default async function ClassCatchAllRoute({
     : undefined;
 
   const students =
-    enrollments.length || classTransactions.length ? await listStudents() : [];
+    enrollments.length || classTransactions.length ? await listStudents({ includeDeleted: true }) : [];
   const studentsById = new Map(students.map((student) => [student.id, student]));
   const roster = enrollments
     .filter((enrollment) => enrollment.enrollmentStatus !== "removed" && studentsById.has(enrollment.studentId))

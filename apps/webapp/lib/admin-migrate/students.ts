@@ -63,12 +63,20 @@ function toStagingStudent(row: StudentRow, emailMap: Record<string, string>): St
   };
 }
 
-export async function listStudents(): Promise<StagingStudent[]> {
+/**
+ * Lists students. Soft-deleted students (deleted_at set) are hidden by default.
+ * Pass `includeDeleted: true` only when the result is used purely as a lookup
+ * (e.g. mapping names onto historical transactions / class rosters).
+ */
+export async function listStudents(
+  options: { includeDeleted?: boolean } = {},
+): Promise<StagingStudent[]> {
   const supabase = createStagingAdminClient();
-  const { data, error } = await supabase
-    .from("students")
-    .select(STUDENT_IDENTITY_SELECT)
-    .order("created_at", { ascending: false });
+  let query = supabase.from("students").select(STUDENT_IDENTITY_SELECT);
+  if (!options.includeDeleted) {
+    query = query.is("deleted_at", null);
+  }
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(error.message);
@@ -92,6 +100,7 @@ export async function getStudentById(id: string): Promise<StagingStudent | null>
     .from("students")
     .select(STUDENT_IDENTITY_SELECT)
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (error) {
