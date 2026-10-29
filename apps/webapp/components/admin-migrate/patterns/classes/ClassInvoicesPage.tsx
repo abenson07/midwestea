@@ -16,6 +16,7 @@ import {
   TRANSACTION_TYPE_FILTER_OPTIONS,
 } from "../payments/transactionColumns";
 import { getTransactionListStatus, matchesTransactionStatusFilter } from "@/data/mocks/transaction-status";
+import { remindTransaction } from "@/components/admin-migrate/patterns/payments/sendReminder";
 
 export type ClassInvoicesPageProps = {
   classDetail: ClassDetail;
@@ -28,7 +29,7 @@ export function buildClassPastDueInvoiceColumns(options?: {
   return buildPastDueTransactionColumns({
     selectedId: options?.selectedId,
     onSelect: options?.onSelect,
-    onRemind: (row) => toast.success(`Reminder sent to ${row.studentName} — demo mode, not delivered`),
+    onRemind: remindTransaction,
   });
 }
 
@@ -87,8 +88,7 @@ export function ClassInvoicesPage({ classDetail }: ClassInvoicesPageProps) {
         selectedId,
         onSelect: selectTransaction,
         showStudent: true,
-        onRemind: (row) =>
-          toast.success(`Reminder sent to ${row.studentName} — demo mode, not delivered`),
+        onRemind: remindTransaction,
       }),
     [selectedId],
   );

@@ -35,6 +35,7 @@ import { CancelTransactionModal } from "./CancelTransactionModal";
 import { MarkPaidModal } from "./MarkPaidModal";
 import { TransactionStatusToken } from "./TransactionStatusToken";
 import { useTransactions } from "./useTransactions";
+import { remindTransaction } from "./sendReminder";
 
 const dateInputStyle = {
   boxSizing: "border-box" as const,
@@ -178,7 +179,7 @@ export function TransactionDetailPanel({
   }
 
   function remind() {
-    toast.success(`Reminder sent to ${transaction.studentName} — demo mode, not delivered`);
+    void remindTransaction(transaction);
   }
 
   function confirmPaid() {
