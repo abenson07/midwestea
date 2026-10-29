@@ -21,6 +21,7 @@ import { ClassMessageAllModal } from "./ClassMessageAllModal";
 import { ClassAddStudentModal } from "./ClassAddStudentModal";
 import { RemoveStudentModal } from "./RemoveStudentModal";
 import { removeEnrollment, restoreEnrollment } from "./enrollmentRemoval";
+import { describeRemovalOutcome } from "./removalOutcome";
 import { GenerateCertificateModal, type CertificateTarget } from "./GenerateCertificateModal";
 import {
   classActivityFor,
@@ -211,18 +212,14 @@ function ClassDetailDemoInner({
 
     if (refundPercent > 0) {
       // A Stripe refund can't be undone, so no Undo here.
-      const usd = (cents: number) => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
-      const manualCents = result.manualRefundNeeded.reduce((sum, m) => sum + m.amountCents, 0);
-      const stripeCents = result.refundedCents - manualCents;
-      let message = `Removed ${student.name}. ${usd(stripeCents)} (${refundPercent}%) was refunded to their card through Stripe.`;
-      if (result.manualRefundNeeded.length > 0) {
-        message += ` ${usd(manualCents)} across ${result.manualRefundNeeded.length} payment${
-          result.manualRefundNeeded.length === 1 ? "" : "s"
-        } was not paid through Stripe and must be refunded by hand (${result.manualRefundNeeded
-          .map((m) => `${m.transactionId}: ${usd(m.amountCents)}`)
-          .join(", ")}).`;
-      }
-      toast.success(message, { duration: result.manualRefundNeeded.length > 0 ? 30000 : 8000 });
+      const outcome = describeRemovalOutcome({
+        name: student.name,
+        refundPercent,
+        refundedCents: result.refundedCents,
+        manualRefundNeeded: result.manualRefundNeeded,
+      });
+      if (outcome.level === "warning") toast.warning(outcome.message, { duration: 12000 });
+      else toast.success(outcome.message, { duration: 8000 });
       return;
     }
 
