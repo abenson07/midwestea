@@ -25,6 +25,7 @@ import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client
 import { catalogTemplatesOfKind } from "../catalog/catalogMocks";
 import { buildPastDueTransactionColumns } from "./transactionColumns";
 import { useTransactions } from "./useTransactions";
+import { remindTransaction } from "./sendReminder";
 
 function formatUsd(amountCents: number): string {
   return `$${(amountCents / 100).toFixed(2)}`;
@@ -213,8 +214,7 @@ export function PaymentsOverviewPage({ onSelectTransaction }: PaymentsOverviewPa
     () =>
       buildPastDueTransactionColumns({
         onSelect: onSelectTransaction,
-        onRemind: (row) =>
-          toast.success(`Reminder sent to ${row.studentName} — demo mode, not delivered`),
+        onRemind: remindTransaction,
       }),
     [onSelectTransaction],
   );
