@@ -41,6 +41,7 @@ export function Dropdown({
       isOpen={open}
       onOpenChange={onOpenChange}
       hasCloseButton={false}
+      portal
       style={{
         padding: 0,
         background: "transparent",
