@@ -210,31 +210,34 @@ export async function getTransactions(): Promise<{ transactions: TransactionWith
 }
 
 /**
- * Update transaction status
+ * Update transaction status ('paid' or 'cancelled'). Proxies through an admin
+ * API route: transactions are owner-only under RLS, so a browser-client update
+ * by an admin would not persist, and a linked Stripe Invoice must be
+ * settled/voided server-side. Returns the amount recorded as paid, if any.
  */
 export async function updateTransactionStatus(
   transactionId: string,
-  status: 'pending' | 'paid' | 'cancelled' | 'refunded'
-): Promise<{ success: boolean; error: string | null }> {
+  status: 'paid' | 'cancelled'
+): Promise<{ success: boolean; error: string | null; amountPaidCents?: number }> {
   try {
-    console.log("[updateTransactionStatus] Updating transaction:", { transactionId, status });
     const supabase = await createSupabaseClient();
-    
-    const { error } = await supabase
-      .from("transactions")
-      .update({ transaction_status: status })
-      .eq("id", transactionId);
-
-    if (error) {
-      console.error("[updateTransactionStatus] Error updating transaction:", error);
-      return { success: false, error: error.message };
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
     }
-
-    console.log("[updateTransactionStatus] Transaction updated successfully");
-    return { success: true, error: null };
-  } catch (err) {
-    const error = err as PostgrestError;
-    return { success: false, error: error.message || "Failed to update transaction status" };
+    const response = await fetch(`/api/admin/transactions/${transactionId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || !result.success) {
+      return { success: false, error: result.error || "Failed to update transaction status" };
+    }
+    return { success: true, error: null, amountPaidCents: result.amountPaidCents };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Failed to update transaction status" };
   }
 }
 
