@@ -64,6 +64,17 @@ export async function voidStripeInvoice(stripeInvoiceId: string): Promise<void> 
 }
 
 /**
+ * Read-only: fetch a Stripe Invoice's current status (draft | open | paid |
+ * uncollectible | void). Used by the void-and-reissue pre-flight to confirm
+ * every invoice is voidable before anything is voided. Never writes.
+ */
+export async function getStripeInvoiceStatus(stripeInvoiceId: string): Promise<string | null> {
+  const stripe = getStripeClient();
+  const invoice = await stripe.invoices.retrieve(stripeInvoiceId);
+  return invoice.status ?? null;
+}
+
+/**
  * Mark the transaction linked to a Stripe Invoice as paid, in response to an
  * invoice.paid webhook event. Shares its "already paid -> no-op" guard with
  * every other paid-marking path via applyPaidUpdate — this is what makes it
