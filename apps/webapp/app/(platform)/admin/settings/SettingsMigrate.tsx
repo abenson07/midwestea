@@ -1,6 +1,7 @@
 import { SettingsDemo } from "@/components/admin-migrate/patterns/settings";
 import { listAdmins } from "@/lib/admin-migrate/admins";
 import { listCourses } from "@/lib/admin-migrate/courses";
+import { listPendingInvoiceDownloads } from "@/lib/admin-migrate/downloadInvoices";
 import { listLocations } from "@/lib/admin-migrate/locations";
 import { listPrerequisiteTypes, listTemplatePrerequisites } from "@/lib/admin-migrate/prerequisites";
 import {
@@ -12,12 +13,13 @@ import {
 } from "../catalog/fromStaging";
 
 export async function SettingsMigrate() {
-  const [courses, locations, types, assignments, admins] = await Promise.all([
+  const [courses, locations, types, assignments, admins, pendingInvoices] = await Promise.all([
     listCourses(),
     listLocations(),
     listPrerequisiteTypes(),
     listTemplatePrerequisites(),
     listAdmins(),
+    listPendingInvoiceDownloads(),
   ]);
 
   return (
@@ -28,6 +30,7 @@ export async function SettingsMigrate() {
       locations={locations.map(toLocationRow)}
       prerequisites={types.map(toPrerequisiteRow)}
       admins={admins.map(toStaffRow)}
+      pendingInvoices={pendingInvoices}
     />
   );
 }

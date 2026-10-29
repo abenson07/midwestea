@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
@@ -11,45 +12,10 @@ import {
   formatCentsAsUSD,
   formatShortDate,
 } from "@/data/mocks/transaction-status";
-import {
-  getDownloadInvoiceRows,
-  markInvoicesDownloaded,
-  type DownloadInvoiceRow,
-} from "@/data/mocks/download-invoices";
+import { getSession } from "@/lib/auth";
+import type { PendingInvoiceRow } from "@/lib/admin-migrate/downloadInvoices";
 
-function csvEscape(value: string): string {
-  if (/[",\n]/.test(value)) return `"${value.replaceAll('"', '""')}"`;
-  return value;
-}
-
-function downloadCsv(rows: DownloadInvoiceRow[]) {
-  const header = ["Invoice number", "Student", "Email", "Class", "Amount", "Created"];
-  const lines = [
-    header.join(","),
-    ...rows.map((row) =>
-      [
-        row.invoiceNumber ?? "",
-        row.studentName,
-        row.studentEmail ?? "",
-        row.classCode,
-        formatCentsAsUSD(row.amountCents),
-        formatShortDate(row.createdAt),
-      ]
-        .map(csvEscape)
-        .join(","),
-    ),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  const date = new Date().toISOString().slice(0, 10);
-  anchor.href = url;
-  anchor.download = `midwestea-invoices-${date}.csv`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  document.body.removeChild(anchor);
-  URL.revokeObjectURL(url);
-}
+type DownloadInvoiceRow = PendingInvoiceRow;
 
 function buildColumns(): TableColumn<DownloadInvoiceRow>[] {
   return [
@@ -106,20 +72,70 @@ function buildColumns(): TableColumn<DownloadInvoiceRow>[] {
   ];
 }
 
-export function DownloadInvoicesPage() {
-  const [rows, setRows] = useState(() => getDownloadInvoiceRows());
-  const pending = useMemo(() => rows.filter((row) => !row.downloaded), [rows]);
+/**
+ * Calls the real export route (Bearer-authenticated) and saves the CSV it
+ * returns. The route itself marks the exported transactions as downloaded.
+ * Returns false when there was nothing to export.
+ */
+async function downloadInvoicesCsv(): Promise<boolean> {
+  const { session } = await getSession();
+  if (!session?.access_token) throw new Error("Not authenticated");
+
+  const response = await fetch("/api/export-transactions-csv", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+
+  const contentType = response.headers.get("Content-Type") || "";
+  if (contentType.includes("application/json")) {
+    // Either "no new invoices" (200) or an error payload.
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `Export failed (${response.status})`);
+    return false;
+  }
+  if (!response.ok) throw new Error(`Export failed (${response.status})`);
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("Content-Disposition") || "";
+  const match = disposition.match(/filename="(.+)"/);
+  const filename = match?.[1] ?? `midwestea-invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
+  return true;
+}
+
+export function DownloadInvoicesPage({ rows = [] }: { rows?: PendingInvoiceRow[] }) {
+  const router = useRouter();
+  const [downloading, setDownloading] = useState(false);
+  const pending = rows;
   const columns = useMemo(() => buildColumns(), []);
 
-  function handleDownload() {
-    if (pending.length === 0) {
-      toast.message("No new invoices to download");
-      return;
+  async function handleDownload() {
+    if (pending.length === 0 || downloading) return;
+    setDownloading(true);
+    try {
+      const downloaded = await downloadInvoicesCsv();
+      if (downloaded) {
+        toast.success("Invoices downloaded");
+      } else {
+        toast.message("No new invoices to download");
+      }
+      // Re-fetch the server-rendered list so it reflects the new downloaded state.
+      router.refresh();
+    } catch (error) {
+      toast.error(
+        `Failed to download invoices: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
+    } finally {
+      setDownloading(false);
     }
-    downloadCsv(pending);
-    markInvoicesDownloaded(pending.map((row) => row.id));
-    setRows(getDownloadInvoiceRows());
-    toast.success(`Downloaded ${pending.length} invoice${pending.length === 1 ? "" : "s"} — demo mode`);
   }
 
   return (
@@ -132,7 +148,7 @@ export function DownloadInvoicesPage() {
           variant="primary"
           icon={<Download size={14} strokeWidth={1.75} />}
           onClick={handleDownload}
-          disabled={pending.length === 0}
+          disabled={pending.length === 0 || downloading}
         />
       }
       isEmpty={pending.length === 0}
