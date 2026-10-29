@@ -65,6 +65,9 @@ export async function listTemplatePrerequisites(
     .order("sort_order");
 
   if (courseUuid) {
+    // A slug (e.g. a mock template id like `pals-provider`) is not a uuid; Postgres would
+    // reject it and throw, so treat it as "no assignments".
+    if (!isUuid(courseUuid)) return [];
     query = query.eq("course_uuid", courseUuid);
   }
 

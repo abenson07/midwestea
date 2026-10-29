@@ -13,7 +13,6 @@ import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
 import { useAdminBasePath, useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { formatCalendarMonthDay, todayIsoDate } from "@/lib/dates";
-import { catalogTemplateByCode, catalogTemplateFromHref, catalogTemplateHref } from "../catalog/catalogMocks";
 import { ClassOverviewPage } from "./ClassOverviewPage";
 import { ClassSettingsPage } from "./ClassSettingsPage";
 import { ClassInvoicesPage } from "./ClassInvoicesPage";
@@ -303,9 +302,6 @@ function ClassDetailDemoInner({
     const query = params.toString();
     router.replace(`${pathname}${query ? `?${query}` : ""}`);
   }
-  const parentTemplate =
-    catalogTemplateFromHref(classDetail.template?.href) ??
-    catalogTemplateByCode(classDetail.courseCode);
 
   function changeView(next: ClassDetailView) {
     router.push(hrefForView(classRoot, next));
@@ -411,9 +407,9 @@ function ClassDetailDemoInner({
               logSettingsActivity(classDetail, next, logActivity);
             }}
             onDeleted={() => {
-              router.push(
-                parentTemplate ? `${basePath}${catalogTemplateHref(parentTemplate)}` : `${basePath}/classes`,
-              );
+              // The class is soft-deleted, so its own route (and any mock template slug) can no
+              // longer resolve; the classes list is always a safe landing page.
+              router.push(`${basePath}/classes`);
             }}
           />
         ) : view === "transactions" ? (
