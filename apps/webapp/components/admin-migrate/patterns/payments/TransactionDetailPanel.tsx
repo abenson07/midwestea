@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ import { MarkPaidModal } from "./MarkPaidModal";
 import { TransactionStatusToken } from "./TransactionStatusToken";
 import { useTransactions } from "./useTransactions";
 import { remindTransaction } from "./sendReminder";
+import { updateTransactionStatus } from "@/lib/payments";
 
 const dateInputStyle = {
   boxSizing: "border-box" as const,
@@ -145,6 +146,7 @@ export function TransactionDetailPanel({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const statusSavingRef = useRef(false);
 
   useEffect(() => {
     setDueDate(dueDateInputValue(transaction.dueDate));
@@ -182,20 +184,42 @@ export function TransactionDetailPanel({
     void remindTransaction(transaction);
   }
 
-  function confirmPaid() {
-    onChange({
-      transactionStatus: "paid",
-      paymentDate: new Date().toISOString(),
-      amountPaidCents: transaction.amountDueCents,
-    });
-    setMarkPaidOpen(false);
-    toast.success("Marked as paid — demo mode, saved locally only");
+  async function confirmPaid() {
+    if (statusSavingRef.current) return;
+    statusSavingRef.current = true;
+    try {
+      const result = await updateTransactionStatus(transaction.id, "paid");
+      if (!result.success) {
+        toast.error(result.error || "Could not mark as paid");
+        return;
+      }
+      onChange({
+        transactionStatus: "paid",
+        paymentDate: new Date().toISOString(),
+        amountPaidCents: result.amountPaidCents ?? transaction.amountDueCents,
+      });
+      setMarkPaidOpen(false);
+      toast.success("Marked as paid");
+    } finally {
+      statusSavingRef.current = false;
+    }
   }
 
-  function confirmCancel() {
-    onChange({ transactionStatus: "cancelled" });
-    setCancelOpen(false);
-    toast.success("Invoice cancelled — demo mode, saved locally only");
+  async function confirmCancel() {
+    if (statusSavingRef.current) return;
+    statusSavingRef.current = true;
+    try {
+      const result = await updateTransactionStatus(transaction.id, "cancelled");
+      if (!result.success) {
+        toast.error(result.error || "Could not cancel invoice");
+        return;
+      }
+      onChange({ transactionStatus: "cancelled" });
+      setCancelOpen(false);
+      toast.success("Invoice cancelled");
+    } finally {
+      statusSavingRef.current = false;
+    }
   }
 
   async function copyPaymentLink() {

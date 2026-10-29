@@ -31,7 +31,7 @@ export function MarkPaidModal({ isOpen, transaction, onClose, onConfirm }: MarkP
       }
     >
       <Text size="sm" color="secondary">
-        Mark {label} ({amount}) as paid? This only updates the demo list.
+        Mark {label} ({amount}) as paid? This records the full amount as paid and closes any open Stripe invoice.
       </Text>
     </Modal>
   );
