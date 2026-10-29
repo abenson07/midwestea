@@ -21,6 +21,7 @@ import { ClassPrerequisitesPage } from "./ClassPrerequisitesPage";
 import { ClassMessageAllModal } from "./ClassMessageAllModal";
 import { ClassAddStudentModal } from "./ClassAddStudentModal";
 import { RemoveStudentModal } from "./RemoveStudentModal";
+import { removeEnrollment, restoreEnrollment } from "./enrollmentRemoval";
 import { GenerateCertificateModal, type CertificateTarget } from "./GenerateCertificateModal";
 import {
   classActivityFor,
@@ -190,6 +191,62 @@ function ClassDetailDemoInner({
       .map((row) => ({ enrollmentId: row.enrollmentId, studentId: row.id, studentName: row.name }));
     if (targets.length === 0) return;
     setCertificateTargets(targets);
+  }
+
+  async function confirmLiveRemove(student: StudentToRemove, refundAmount: number, refundPercent: number) {
+    // The route takes a percentage and records it on paid transactions. 0% is sent as null so
+    // paid transactions are left untouched (not flipped to "refunded" with a $0 refund).
+    const result = await removeEnrollment({
+      studentId: student.id,
+      classId: student.classId,
+      refundPercentage: refundPercent > 0 ? refundPercent : null,
+    });
+    if (!result.ok) {
+      toast.error(`Failed to remove ${student.name}: ${result.error}`);
+      return;
+    }
+
+    setRoster((prev) => prev.filter((row) => row.id !== student.id));
+    setRemoveStudent(null);
+    router.refresh();
+
+    if (refundPercent > 0) {
+      // Restore only flips the enrollment back; it cannot reverse the recorded refund, so no Undo.
+      const formatted = refundAmount.toLocaleString("en-US", { style: "currency", currency: "USD" });
+      toast.success(
+        `Removed ${student.name}. Refund of ${formatted} (${refundPercent}%) recorded — no money was returned automatically.`,
+      );
+      return;
+    }
+
+    toast.success(`Removed ${student.name}`, {
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const restored = await restoreEnrollment({ studentId: student.id, classId: student.classId });
+          if (!restored.ok) {
+            toast.error(`Failed to restore ${student.name}: ${restored.error}`);
+            return;
+          }
+          setRoster((prev) =>
+            prev.some((row) => row.id === student.id)
+              ? prev
+              : [
+                  ...prev,
+                  {
+                    id: student.id,
+                    name: student.name,
+                    email: student.email,
+                    role: "Student",
+                    status: "Enrolled",
+                  },
+                ],
+          );
+          router.refresh();
+          toast.success(`Restored ${student.name}`);
+        },
+      },
+    });
   }
 
   useEffect(() => {
@@ -389,7 +446,9 @@ function ClassDetailDemoInner({
       <RemoveStudentModal
         student={removeStudent}
         onClose={() => setRemoveStudent(null)}
-        onConfirm={(student, refundAmount) => {
+        live={live}
+        onConfirm={(student, refundAmount, refundPercent) => {
+          if (live) return confirmLiveRemove(student, refundAmount, refundPercent);
           setRoster((prev) => prev.filter((row) => row.id !== student.id));
           setRemoveStudent(null);
           const formatted = refundAmount.toLocaleString("en-US", {

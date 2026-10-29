@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
@@ -21,11 +21,19 @@ function formatUsd(amount: number): string {
 export type RemoveStudentModalProps = {
   student: StudentToRemove | null;
   onClose: () => void;
-  onConfirm: (student: StudentToRemove, refundAmount: number) => void;
+  /**
+   * May return a promise; the modal disables its buttons until it settles. The parent closes
+   * the modal on success and leaves it open (after toasting) on failure.
+   */
+  onConfirm: (student: StudentToRemove, refundAmount: number, refundPercent: number) => void | Promise<void>;
+  /** Live wiring: copy reflects that the refund is only recorded and undo is limited. */
+  live?: boolean;
 };
 
-export function RemoveStudentModal({ student, onClose, onConfirm }: RemoveStudentModalProps) {
+export function RemoveStudentModal({ student, onClose, onConfirm, live = false }: RemoveStudentModalProps) {
   const [refundPercent, setRefundPercent] = useState("100");
+  const [submitting, setSubmitting] = useState(false);
+  const inFlight = useRef(false);
 
   useEffect(() => {
     if (student) setRefundPercent("100");
@@ -37,27 +45,35 @@ export function RemoveStudentModal({ student, onClose, onConfirm }: RemoveStuden
     refundPercent.trim() !== "" && Number.isFinite(parsedPercent) && parsedPercent >= 0 && parsedPercent <= 100;
   const refundAmount = percentValid ? Math.round(paidTotal * (parsedPercent / 100) * 100) / 100 : null;
 
-  function handleConfirm() {
+  async function handleConfirm() {
+    if (inFlight.current) return;
     if (!student || refundAmount == null) {
       toast.error("Enter a refund percentage between 0 and 100");
       return;
     }
-    onConfirm(student, refundAmount);
+    inFlight.current = true;
+    setSubmitting(true);
+    try {
+      await onConfirm(student, refundAmount, parsedPercent);
+    } finally {
+      inFlight.current = false;
+      setSubmitting(false);
+    }
   }
 
   return (
     <Modal
       isOpen={student != null}
-      onClose={onClose}
+      onClose={submitting ? () => {} : onClose}
       title={student ? `Remove ${student.name}` : "Remove student"}
       width={440}
       footer={
         <>
-          <Button label="Cancel" variant="ghost" onClick={onClose} />
+          <Button label="Cancel" variant="ghost" disabled={submitting} onClick={onClose} />
           <Button
-            label="Remove student"
+            label={submitting ? "Removing…" : "Remove student"}
             variant="primary"
-            disabled={refundAmount == null}
+            disabled={refundAmount == null || submitting}
             onClick={handleConfirm}
           />
         </>
@@ -67,7 +83,10 @@ export function RemoveStudentModal({ student, onClose, onConfirm }: RemoveStuden
         <Text size="sm" color="secondary">
           Remove{" "}
           <span style={{ color: "var(--linear-color-ink)", fontWeight: 500 }}>{student?.name}</span>{" "}
-          from {student?.className}? This can be undone immediately after.
+          from {student?.className}?{" "}
+          {live
+            ? "Undo is only available when no refund is recorded."
+            : "This can be undone immediately after."}
         </Text>
 
         <div
@@ -136,7 +155,9 @@ export function RemoveStudentModal({ student, onClose, onConfirm }: RemoveStuden
         </div>
 
         <Text size="sm" color="secondary">
-          Refunds are handled case-by-case — adjust the percentage as needed before confirming.
+          {live
+            ? "The refund is recorded against the student’s paid invoices. No money is returned automatically — issue the refund in Stripe separately."
+            : "Refunds are handled case-by-case — adjust the percentage as needed before confirming."}
         </Text>
       </div>
     </Modal>
