@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       .from('classes')
       .select('*')
       .eq('course_code', resolvedCourseCode)
+      .is('deleted_at', null)
       .order('class_start_date', { ascending: true });
 
     if (error) {

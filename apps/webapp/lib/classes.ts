@@ -100,6 +100,7 @@ export async function getClasses(): Promise<{ classes: Class[] | null; error: st
     const { data, error } = await supabase
       .from("classes")
       .select("*")
+      .is("deleted_at", null)
       .order("class_id");
 
     if (error) {
@@ -319,6 +320,7 @@ export async function getClassById(id: string): Promise<{ class: Class | null; e
       .from("classes")
       .select("*")
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (error) {

@@ -40,6 +40,7 @@ export async function GET(
       .from('classes')
       .select('*')
       .eq('id', classId)
+      .is('deleted_at', null)
       .single();
 
     if (error || !classData) {

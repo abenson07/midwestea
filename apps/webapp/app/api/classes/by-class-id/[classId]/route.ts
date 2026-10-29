@@ -28,6 +28,7 @@ export async function GET(
       .from('classes')
       .select('*')
       .eq('class_id', classId)
+      .is('deleted_at', null)
       .maybeSingle();
 
     // If not found with exact match, try case-insensitive
@@ -36,6 +37,7 @@ export async function GET(
         .from('classes')
         .select('*')
         .ilike('class_id', classId)
+        .is('deleted_at', null)
         .maybeSingle();
       
       classData = caseInsensitiveData;

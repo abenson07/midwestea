@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
 import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
@@ -21,7 +21,7 @@ import {
   type CatalogClassType,
 } from "../catalog/catalogMocks";
 import { isClassOnline, type ClassDetail, type ClassExternalLink } from "./classMocks";
-import { updateClass, updateClassExternalLinks } from "@/lib/classes";
+import { deleteClass, updateClass, updateClassExternalLinks } from "@/lib/classes";
 import { parseDisplayCents, parseLeadingInt } from "@/lib/admin-migrate/display-parsers";
 
 const rowInputStyle: CSSProperties = {
@@ -67,6 +67,8 @@ export function ClassSettingsPage({
   const [editingPrereqId, setEditingPrereqId] = useState<string | null>(null);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deleteInFlight = useRef(false);
 
   useEffect(() => {
     setDraft(classDetail);
@@ -129,9 +131,19 @@ export function ClassSettingsPage({
     toast.success("Class settings saved");
   }
 
-  function handleDelete() {
+  async function handleDelete() {
+    if (deleteInFlight.current) return;
+    deleteInFlight.current = true;
+    setDeleting(true);
+    const result = await deleteClass(classDetail.id);
+    deleteInFlight.current = false;
+    setDeleting(false);
     setDeleteOpen(false);
-    toast.success(`${draft.title} deleted — demo mode, not removed from the list`);
+    if (!result.success) {
+      toast.error(result.error || "Failed to delete class");
+      return;
+    }
+    toast.success(`${draft.title} deleted`);
     onDeleted?.();
   }
 
@@ -504,18 +516,30 @@ export function ClassSettingsPage({
 
       <Modal
         isOpen={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
+        onClose={() => {
+          if (!deleting) setDeleteOpen(false);
+        }}
         title={`Delete ${draft.title}?`}
         width={440}
         footer={
           <>
-            <Button label="Cancel" variant="ghost" onClick={() => setDeleteOpen(false)} />
-            <Button label="Delete class" variant="primary" onClick={handleDelete} />
+            <Button
+              label="Cancel"
+              variant="ghost"
+              disabled={deleting}
+              onClick={() => setDeleteOpen(false)}
+            />
+            <Button
+              label={deleting ? "Deleting…" : "Delete class"}
+              variant="primary"
+              disabled={deleting}
+              onClick={() => void handleDelete()}
+            />
           </>
         }
       >
         <Text size="sm" color="secondary">
-          This permanently removes {draft.title}. It cannot be undone.
+          This hides {draft.title} everywhere in the app and on the website, and it can no longer be enrolled in or paid for. Existing enrollments, invoices and history are kept.
         </Text>
       </Modal>
     </div>

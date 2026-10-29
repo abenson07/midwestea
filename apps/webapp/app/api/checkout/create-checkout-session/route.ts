@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
         .from('classes')
         .select('class_name, registration_fee, price, charge_full_amount_at_registration, id, class_id')
         .eq('class_id', classId)
+        .is('deleted_at', null)
         .maybeSingle();
 
       if (!data && !classError) {
@@ -141,6 +142,7 @@ export async function POST(request: NextRequest) {
           .from('classes')
           .select('class_name, registration_fee, price, charge_full_amount_at_registration, id, class_id')
           .ilike('class_id', classId)
+          .is('deleted_at', null)
           .maybeSingle();
 
         data = caseInsensitiveData;

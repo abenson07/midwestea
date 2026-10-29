@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       .from('classes')
       .select('*')
       .eq('class_id', classId)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (classError) {

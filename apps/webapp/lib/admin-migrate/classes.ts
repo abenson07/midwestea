@@ -78,9 +78,16 @@ function toStagingClass(row: ClassRow): StagingClass {
   };
 }
 
-export async function listClasses(): Promise<StagingClass[]> {
+/**
+ * Lists classes. Soft-deleted classes are hidden by default; pass
+ * `includeDeleted: true` when the list is only used to look up names for
+ * historical records (transactions, enrollments).
+ */
+export async function listClasses(options: { includeDeleted?: boolean } = {}): Promise<StagingClass[]> {
   const supabase = createStagingAdminClient();
-  const { data, error } = await supabase.from("classes").select(CLASS_SELECT).order("class_id");
+  let query = supabase.from("classes").select(CLASS_SELECT);
+  if (!options.includeDeleted) query = query.is("deleted_at", null);
+  const { data, error } = await query.order("class_id");
 
   if (error) {
     throw new Error(error.message);
@@ -91,7 +98,7 @@ export async function listClasses(): Promise<StagingClass[]> {
 
 export async function getClassById(id: string): Promise<StagingClass | null> {
   const supabase = createStagingAdminClient();
-  const query = supabase.from("classes").select(CLASS_SELECT);
+  const query = supabase.from("classes").select(CLASS_SELECT).is("deleted_at", null);
 
   const { data, error } = isUuid(id)
     ? await query.eq("id", id).maybeSingle()
