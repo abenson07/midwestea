@@ -18,8 +18,25 @@ import { removeFromWaitlistOnEnrollment } from './waitlist-notifications';
  * Each email is treated as a fully separate account by design — do not add
  * fuzzy-matching or auto-merge logic across different email addresses.
  */
+export const DELETED_STUDENT_MESSAGE =
+  'This account has been deactivated. Please contact support to restore access.';
+
+export class DeletedStudentError extends Error {
+  constructor() {
+    super(DELETED_STUDENT_MESSAGE);
+    this.name = 'DeletedStudentError';
+  }
+}
+
+/**
+ * `rejectDeleted`: throw DeletedStudentError if the matching student was
+ * soft-deleted (students.deleted_at set). Use on paths that create NEW
+ * enrollments/payments. Leave off for the Stripe webhook, which must still
+ * record payments for invoices that already existed.
+ */
 export async function findOrCreateStudent(
-  email: string
+  email: string,
+  options: { rejectDeleted?: boolean } = {}
 ): Promise<Student> {
   const supabase = createSupabaseAdminClient();
 
@@ -99,6 +116,9 @@ if (authUserId === undefined) {
   }
 
   if (student) {
+    if (options.rejectDeleted && (student as { deleted_at?: string | null }).deleted_at) {
+      throw new DeletedStudentError();
+    }
     return student as Student;
   }
 

@@ -2,6 +2,8 @@
 
 import { useState, type CSSProperties } from "react";
 import { toast } from "sonner";
+import { createSupabaseClient } from "@midwestea/utils";
+import { updateStudent, deleteStudent } from "@/lib/students";
 import { Card } from "@/components/admin-migrate/patterns/primitives/Card";
 import { Heading, Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { VStack } from "@/components/admin-migrate/patterns/primitives/Stack";
@@ -43,24 +45,122 @@ export type StudentSettingsPageProps = {
 /** Student settings — personal fields plus a permanent delete. */
 export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageProps) {
   const [draft, setDraft] = useState(student);
+  // Last values the server confirmed; the form is "dirty" relative to this.
+  const [baseline, setBaseline] = useState(student);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   function patch(next: Partial<StudentRecord>) {
     setDraft((prev) => ({ ...prev, ...next }));
   }
 
-  async function handleSave() {
-    setSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setSaving(false);
-    toast.success("Student details saved — demo mode, saved locally only");
+  /** Best-effort audit entry, same as the old admin; never fails the save. */
+  async function logChanges(changes: Array<{ field_name: string; old_value: string | null; new_value: string | null }>) {
+    if (changes.length === 0) return;
+    try {
+      const supabase = await createSupabaseClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const basePath = window.location.pathname.startsWith("/app") ? "/app" : "";
+      await fetch(`${basePath}/api/logs/detail-update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          reference_id: draft.id,
+          reference_type: "student",
+          field_changes: changes,
+          batch_id: crypto.randomUUID(),
+        }),
+      });
+    } catch (logError) {
+      console.error("Failed to log student changes:", logError);
+    }
   }
 
-  function handleDelete() {
-    setDeleteOpen(false);
-    toast.success(`${draft.name} deleted — demo mode, not removed from the list`);
-    onDeleted?.();
+  async function handleSave() {
+    if (saving || deleting) return;
+    const name = draft.name.trim();
+    const email = draft.email.trim();
+    if (!name) {
+      toast.error("Full name is required");
+      return;
+    }
+    if (email !== baseline.email.trim() && !email) {
+      toast.error("Email cannot be removed. Enter a valid email address.");
+      return;
+    }
+
+    // Send only what changed (undefined = skip), so untouched fields and the
+    // auth email are never rewritten.
+    const changed = <K extends keyof StudentRecord>(key: K, value: StudentRecord[K]) =>
+      value !== baseline[key] ? value : undefined;
+    const nameChange = name !== baseline.name ? name : undefined;
+    const emailChange = email !== baseline.email.trim() ? email : undefined;
+    const phoneChange = changed("phone", draft.phone);
+    const tshirtChange = changed("tshirtSize", draft.tshirtSize);
+    const ecNameChange = changed("emergencyContactName", draft.emergencyContactName);
+    const ecPhoneChange = changed("emergencyContactPhone", draft.emergencyContactPhone);
+    const reqChange = changed("hasRequiredInfo", draft.hasRequiredInfo);
+
+    const fieldChanges: Array<{ field_name: string; old_value: string | null; new_value: string | null }> = [];
+    const track = (field: string, from: string | boolean, to: string | boolean | undefined) => {
+      if (to === undefined) return;
+      fieldChanges.push({ field_name: field, old_value: String(from), new_value: String(to) });
+    };
+    track("full_name", baseline.name, nameChange);
+    track("email", baseline.email, emailChange);
+    track("phone", baseline.phone, phoneChange);
+    track("t_shirt_size", baseline.tshirtSize, tshirtChange);
+    track("emergency_contact_name", baseline.emergencyContactName, ecNameChange);
+    track("emergency_contact_phone", baseline.emergencyContactPhone, ecPhoneChange);
+    track("has_required_info", baseline.hasRequiredInfo, reqChange);
+
+    if (fieldChanges.length === 0) {
+      toast.info("No changes to save");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { success, error } = await updateStudent(
+        draft.id,
+        nameChange,
+        phoneChange,
+        tshirtChange,
+        ecNameChange,
+        ecPhoneChange,
+        reqChange,
+        emailChange
+      );
+      if (!success) {
+        toast.error(`Failed to save student details: ${error ?? "Unknown error"}`);
+        return;
+      }
+      setBaseline({ ...draft, name, email });
+      setDraft((prev) => ({ ...prev, name, email }));
+      toast.success("Student details saved");
+      void logChanges(fieldChanges);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (deleting) return;
+    setDeleting(true);
+    try {
+      const { success, error } = await deleteStudent(draft.id);
+      if (!success) {
+        toast.error(`Failed to delete student: ${error ?? "Unknown error"}`);
+        return;
+      }
+      setDeleteOpen(false);
+      toast.success(`${baseline.name} removed and login blocked`);
+      onDeleted?.();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -177,7 +277,7 @@ export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageP
           <Button
             label={saving ? "Saving…" : "Save changes"}
             variant="primary"
-            disabled={saving}
+            disabled={saving || deleting}
             onClick={() => void handleSave()}
           />
         </div>
@@ -189,7 +289,7 @@ export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageP
           <Card padding={4}>
             <SettingsRow
               label="Delete student"
-              description="Permanently removes the student record. This cannot be undone."
+              description="Hides the student from the admin and blocks their login. All records (enrollments, invoices, payments and history) are kept."
               control={
                 <Button
                   label="Delete student"
@@ -205,18 +305,23 @@ export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageP
 
       <Modal
         isOpen={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
+        onClose={() => (deleting ? undefined : setDeleteOpen(false))}
         title={`Delete ${draft.name}?`}
         width={440}
         footer={
           <>
-            <Button label="Cancel" variant="ghost" onClick={() => setDeleteOpen(false)} />
-            <Button label="Delete student" variant="primary" onClick={handleDelete} />
+            <Button label="Cancel" variant="ghost" disabled={deleting} onClick={() => setDeleteOpen(false)} />
+            <Button
+              label={deleting ? "Deleting…" : "Delete student"}
+              variant="primary"
+              disabled={deleting}
+              onClick={() => void handleDelete()}
+            />
           </>
         }
       >
         <Text size="sm" color="secondary">
-          This permanently removes {draft.name} and their auth account. It cannot be undone.
+          This hides {draft.name} from the admin and blocks their login. All of their records (enrollments, invoices, payments and history) are kept.
         </Text>
       </Modal>
     </div>

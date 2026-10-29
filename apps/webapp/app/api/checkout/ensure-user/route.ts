@@ -53,13 +53,19 @@ export async function POST(request: NextRequest) {
       // 2. Check if corresponding student record exists
       const { data: student, error: studentError } = await supabase
         .from('students')
-        .select('id')
+        .select('id, deleted_at')
         .eq('id', existingAuthUser.id)
         .maybeSingle();
 
       if (studentError) {
         console.error('Error checking student record:', studentError);
         // Continue anyway, we'll just report that we couldn't check
+      } else if (student?.deleted_at) {
+        // Soft-deleted student: refuse rather than silently re-activating or duplicating the account
+        return NextResponse.json(
+          { error: 'This account has been deactivated. Please contact support to restore access.' },
+          { status: 403 }
+        );
       } else if (student) {
         studentExists = true;
         console.log(`[Ensure User] Student record exists for email ${email}`);
