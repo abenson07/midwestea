@@ -41,6 +41,7 @@ export async function GET(
       .from('classes')
       .select('id, class_id, class_name, class_start_date, location, is_online, enrollment_start, enrollment_close')
       .eq('course_code', courseCode)
+      .is('deleted_at', null)
       .order('class_start_date', { ascending: true });
 
     if (error) {

@@ -50,6 +50,7 @@ export async function PUT(
       .from('classes')
       .update(updateData)
       .eq('id', classId)
+      .is('deleted_at', null)
       .select()
       .single();
 

@@ -98,6 +98,7 @@ export async function PUT(
       .from('classes')
       .select('id, webflow_item_id, course_uuid, class_name, course_code, class_id')
       .eq('id', classId)
+      .is('deleted_at', null)
       .single();
 
     if (fetchError || !currentClass) {
@@ -150,6 +151,7 @@ export async function PUT(
       .from('classes')
       .update(updateData)
       .eq('id', classId)
+      .is('deleted_at', null)
       .select()
       .single();
 

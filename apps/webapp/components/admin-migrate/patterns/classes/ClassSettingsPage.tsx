@@ -539,7 +539,7 @@ export function ClassSettingsPage({
         }
       >
         <Text size="sm" color="secondary">
-          This permanently deletes {draft.title} and its activity log entries. It cannot be undone. If the class still has enrollments or other records the database requires, the delete will be refused and the class will stay.
+          This hides {draft.title} everywhere in the app and on the website, and it can no longer be enrolled in or paid for. Existing enrollments, invoices and history are kept.
         </Text>
       </Modal>
     </div>

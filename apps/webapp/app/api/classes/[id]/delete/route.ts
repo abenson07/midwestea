@@ -52,12 +52,12 @@ export async function DELETE(
       );
     }
 
-    // First, verify the class exists and get webflow_item_id and course_uuid
+    // Verify the class exists (including already-deleted ones, for idempotency)
     const { data: existingClass, error: getError } = await supabase
       .from('classes')
-      .select('id, class_id, class_name, webflow_item_id, course_uuid')
+      .select('id, deleted_at')
       .eq('id', classId)
-      .single();
+      .maybeSingle();
 
     if (getError || !existingClass) {
       return NextResponse.json(
@@ -66,25 +66,21 @@ export async function DELETE(
       );
     }
 
-    // Delete all logs associated with this class
-    const { error: logsDeleteError } = await supabase
-      .from('logs')
-      .delete()
-      .eq('class_id', classId);
-
-    if (logsDeleteError) {
-      console.error('Error deleting logs for class:', logsDeleteError);
-      // Log the error but don't fail the class deletion
-      // The logs deletion is best-effort cleanup
-    } else {
-      console.log('[API] Deleted logs associated with class:', classId);
+    if (existingClass.deleted_at) {
+      return NextResponse.json({
+        success: true,
+        alreadyDeleted: true,
+        message: 'Class was already deleted',
+      });
     }
 
-    // Delete the class from Supabase
+    // Soft delete: hide the class everywhere but keep all history
+    // (logs, enrollments, transactions).
     const { error: deleteError } = await supabase
       .from('classes')
-      .delete()
-      .eq('id', classId);
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', classId)
+      .is('deleted_at', null);
 
     if (deleteError) {
       console.error('Error deleting class:', deleteError);

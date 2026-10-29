@@ -141,7 +141,8 @@ export async function getBannerEnrollmentItems(): Promise<BannerEnrollmentItem[]
     .select(
       "id, class_id, course_code, enrollment_start, enrollment_close, class_start_date, is_online"
     )
-    .in("course_code", programCodes);
+    .in("course_code", programCodes)
+    .is("deleted_at", null);
 
   if (classesError) {
     console.error("Failed to fetch classes for banner:", classesError);

@@ -8,7 +8,7 @@ export async function TransactionsMigrate() {
   const [transactions, students, classes] = await Promise.all([
     listTransactions(),
     listStudents(),
-    listClasses(),
+    listClasses({ includeDeleted: true }),
   ]);
 
   return <PaymentsDemo rows={mapTransactionRows(transactions, students, classes)} />;

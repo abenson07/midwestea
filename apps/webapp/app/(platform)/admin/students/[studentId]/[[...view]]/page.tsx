@@ -18,7 +18,7 @@ export default async function StudentProfileRoute({
   const [stagingStudent, enrollments, classes, courses, studentTransactions, certificates] = await Promise.all([
     getStudentById(studentId),
     listEnrollments({ studentId }),
-    listClasses(),
+    listClasses({ includeDeleted: true }),
     listCourses(),
     listTransactions({ studentId }),
     listCertificates({ studentId }),

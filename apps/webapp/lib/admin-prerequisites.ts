@@ -247,6 +247,7 @@ export async function getClassPrerequisiteMatrix(
     .from('classes')
     .select('id, class_name, class_start_date')
     .eq('id', classId)
+    .is('deleted_at', null)
     .maybeSingle();
 
   if (classError) {
@@ -408,6 +409,7 @@ export async function getFollowUpRows(
   const { data: classRows, error: classesError } = await supabase
     .from('classes')
     .select('id, class_name, class_start_date')
+    .is('deleted_at', null)
     .or(`class_start_date.gte.${today},class_start_date.is.null`);
 
   if (classesError) {

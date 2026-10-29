@@ -41,6 +41,7 @@ export async function getActiveClassesForCourseCode(
       "id, class_id, class_name, course_code, price, registration_fee, class_start_date, is_online, enrollment_start, enrollment_close"
     )
     .eq("course_code", courseCode)
+    .is("deleted_at", null)
     .order("class_start_date", { ascending: true });
 
   if (error) {

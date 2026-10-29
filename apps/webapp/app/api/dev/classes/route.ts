@@ -15,6 +15,7 @@ export async function GET() {
     .select(
       'id, class_id, class_name, course_code, class_image, class_start_date, enrollment_close'
     )
+    .is('deleted_at', null)
     .order('class_start_date', { ascending: false })
     .limit(50);
 
