@@ -10,6 +10,7 @@ import {
   getTransactionAmountCents,
 } from "@/data/mocks/transaction-status";
 import type { TransactionRow } from "@/data/mocks/transactions";
+import { updateTransactionAmount } from "@/lib/payments";
 import { TransactionAmountCell } from "./TransactionAmountCell";
 
 export type AdjustAmountModalProps = {
@@ -35,6 +36,7 @@ const inputStyle = {
 export function AdjustAmountModal({ isOpen, transaction, onClose, onApply }: AdjustAmountModalProps) {
   const [percent, setPercent] = useState("");
   const [amount, setAmount] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !transaction) return;
@@ -45,39 +47,66 @@ export function AdjustAmountModal({ isOpen, transaction, onClose, onApply }: Adj
   if (!transaction) return null;
   const row = transaction;
 
-  function applyDiscount() {
+  // Persists via the admin API (which voids + reissues any linked Stripe
+  // invoice), and only updates local state once the server reports success.
+  async function persist(
+    nextDue: number,
+    discountPercent: number | null,
+    successMessage: string
+  ) {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const { success, error } = await updateTransactionAmount(
+        row.id,
+        nextDue,
+        discountPercent ?? undefined
+      );
+      if (!success) {
+        toast.error(error || "Failed to update amount");
+        return;
+      }
+      onApply({
+        amountDueCents: nextDue,
+        // The server stores the pre-change amount_due as original_amount_due.
+        originalAmountDueCents: row.amountDueCents,
+        discountPercent,
+      });
+      toast.success(successMessage);
+      onClose();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function applyDiscount() {
     const pct = Number.parseFloat(percent);
-    if (!Number.isFinite(pct) || pct < 0 || pct > 100) {
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
       toast.error("Enter a discount between 0 and 100.");
       return;
     }
-    const original = row.originalAmountDueCents ?? row.amountDueCents;
-    const nextDue = Math.round(original * (1 - pct / 100));
-    onApply({
-      amountDueCents: nextDue,
-      originalAmountDueCents: original,
-      discountPercent: pct,
-    });
-    toast.success(`${pct}% discount applied — demo mode, saved locally only`);
-    onClose();
+    const quantity = row.quantity || 1;
+    // amount_due is stored pre-quantity: discount the payable amount, then
+    // convert back (same as the previous admin).
+    const payable = row.amountDueCents * quantity;
+    const newPayable = Math.round(payable * (1 - pct / 100));
+    const nextDue = Math.round(newPayable / quantity);
+    await persist(nextDue, pct, `${pct}% discount applied`);
   }
 
-  function setAmountDirectly() {
+  async function setAmountDirectly() {
     const dollars = Number.parseFloat(amount);
     if (!Number.isFinite(dollars) || dollars < 0) {
       toast.error("Enter a valid dollar amount.");
       return;
     }
-    const original = row.originalAmountDueCents ?? row.amountDueCents;
     const quantity = row.quantity || 1;
-    const nextDue = Math.round((dollars * 100) / quantity);
-    onApply({
-      amountDueCents: nextDue,
-      originalAmountDueCents: original,
-      discountPercent: null,
-    });
-    toast.success(`Amount set to ${formatCentsAsUSD(Math.round(dollars * 100))} — demo mode, saved locally only`);
-    onClose();
+    const nextDue = Math.round(Math.round(dollars * 100) / quantity);
+    await persist(
+      nextDue,
+      null,
+      `Amount set to ${formatCentsAsUSD(Math.round(dollars * 100))}`
+    );
   }
 
   return (
@@ -115,7 +144,7 @@ export function AdjustAmountModal({ isOpen, transaction, onClose, onApply }: Adj
               placeholder="e.g. 15"
               style={{ ...inputStyle, width: "auto", flex: 1, minWidth: 0 }}
             />
-            <Button label="Apply Discount" variant="primary" onClick={applyDiscount} />
+            <Button label="Apply Discount" variant="primary" disabled={saving} onClick={applyDiscount} />
           </div>
         </label>
 
@@ -132,7 +161,7 @@ export function AdjustAmountModal({ isOpen, transaction, onClose, onApply }: Adj
               onChange={(event) => setAmount(event.target.value)}
               style={{ ...inputStyle, width: "auto", flex: 1, minWidth: 0 }}
             />
-            <Button label="Set Amount" variant="secondary" onClick={setAmountDirectly} />
+            <Button label="Set Amount" variant="secondary" disabled={saving} onClick={setAmountDirectly} />
           </div>
         </label>
       </div>
