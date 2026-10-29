@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     // 2. Ensure student exists
     const { data: existingStudent, error: studentCheckError } = await supabase
       .from('students')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, deleted_at')
       .eq('id', userId)
       .maybeSingle();
 
@@ -94,6 +94,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Failed to check student record' },
         { status: 500 }
+      );
+    }
+
+    if (existingStudent?.deleted_at) {
+      return NextResponse.json(
+        { error: 'This account has been deactivated. Please contact support to restore access.' },
+        { status: 403 }
       );
     }
 

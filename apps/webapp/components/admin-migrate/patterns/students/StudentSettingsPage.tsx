@@ -156,7 +156,7 @@ export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageP
         return;
       }
       setDeleteOpen(false);
-      toast.success(`${baseline.name} deleted`);
+      toast.success(`${baseline.name} removed and login blocked`);
       onDeleted?.();
     } finally {
       setDeleting(false);
@@ -289,7 +289,7 @@ export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageP
           <Card padding={4}>
             <SettingsRow
               label="Delete student"
-              description="Permanently removes the student, their enrollments, payments and invoices, transactions, email and activity logs, and their login. This cannot be undone."
+              description="Hides the student from the admin and blocks their login. All records (enrollments, invoices, payments and history) are kept."
               control={
                 <Button
                   label="Delete student"
@@ -321,7 +321,7 @@ export function StudentSettingsPage({ student, onDeleted }: StudentSettingsPageP
         }
       >
         <Text size="sm" color="secondary">
-          This permanently deletes {draft.name}, including their enrollments, payments and invoices, transactions, email and activity logs, and their login account. It cannot be undone.
+          This hides {draft.name} from the admin and blocks their login. All of their records (enrollments, invoices, payments and history) are kept.
         </Text>
       </Modal>
     </div>

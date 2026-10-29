@@ -52,9 +52,13 @@ export async function POST(
 
     const { data: student } = await supabase
       .from('students')
-      .select('id, stripe_customer_id, full_name')
+      .select('id, stripe_customer_id, full_name, deleted_at')
       .eq('id', user.id)
       .maybeSingle();
+
+    if (student?.deleted_at) {
+      return NextResponse.json({ success: false, error: 'This account has been deactivated.' }, { status: 403 });
+    }
 
     let customerId = student?.stripe_customer_id || null;
     if (!customerId) {

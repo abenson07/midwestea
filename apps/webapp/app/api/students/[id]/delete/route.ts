@@ -46,135 +46,80 @@ export async function DELETE(
       );
     }
 
+    // Soft delete: nothing is removed. The student is hidden (deleted_at) and
+    // their login is blocked; enrollments, transactions, payments, logs,
+    // certificates and email logs are all kept.
     const { data: existingStudent, error: getError } = await supabase
       .from('students')
-      .select('id')
+      .select('id, deleted_at')
       .eq('id', studentId)
-      .single();
+      .maybeSingle();
 
-    if (getError || !existingStudent) {
+    if (getError) {
+      console.error('[delete student] lookup:', getError);
+      return NextResponse.json(
+        { success: false, error: getError.message || 'Failed to look up student' },
+        { status: 500 }
+      );
+    }
+    if (!existingStudent) {
       return NextResponse.json(
         { success: false, error: 'Student not found' },
         { status: 404 }
       );
     }
+    let alreadyDeleted = Boolean(existingStudent.deleted_at);
 
-    const { data: enrollments } = await supabase
-      .from('enrollments')
-      .select('id')
-      .eq('student_id', studentId);
-    const enrollmentIds = (enrollments ?? []).map((e) => e.id);
-
-    let paymentIds: string[] = [];
-    if (enrollmentIds.length > 0) {
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('id')
-        .in('enrollment_id', enrollmentIds);
-      paymentIds = (payments ?? []).map((p) => p.id);
-    }
-
-    if (paymentIds.length > 0) {
-      const { error: invoicesError } = await supabase
-        .from('invoices_to_import')
-        .delete()
-        .in('payment_id', paymentIds);
-      if (invoicesError) {
-        console.error('[delete student] invoices_to_import:', invoicesError);
+    // 1. Mark deleted first (hides them everywhere).
+    if (!alreadyDeleted) {
+      const { data: updated, error: markError } = await supabase
+        .from('students')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', studentId)
+        .is('deleted_at', null)
+        .select('id');
+      if (markError) {
+        console.error('[delete student] mark deleted:', markError);
         return NextResponse.json(
-          { success: false, error: invoicesError.message || 'Failed to delete related invoices' },
+          { success: false, error: markError.message || 'Failed to delete student' },
           { status: 500 }
         );
       }
-    }
-
-    const { error: transactionsError } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('student_id', studentId);
-    if (transactionsError) {
-      console.error('[delete student] transactions:', transactionsError);
-      return NextResponse.json(
-        { success: false, error: transactionsError.message || 'Failed to delete transactions' },
-        { status: 500 }
-      );
-    }
-
-    if (enrollmentIds.length > 0) {
-      const { error: paymentsError } = await supabase
-        .from('payments')
-        .delete()
-        .in('enrollment_id', enrollmentIds);
-      if (paymentsError) {
-        console.error('[delete student] payments:', paymentsError);
-        return NextResponse.json(
-          { success: false, error: paymentsError.message || 'Failed to delete payments' },
-          { status: 500 }
-        );
+      if (!updated || updated.length === 0) {
+        alreadyDeleted = true; // lost a race with another delete request
+      } else {
+        await insertLog({
+          admin_user_id: admin.id,
+          reference_id: studentId,
+          reference_type: 'student',
+          action_type: 'student_deleted',
+          student_id: studentId,
+        });
       }
     }
 
-    const { error: enrollmentsError } = await supabase
-      .from('enrollments')
-      .delete()
-      .eq('student_id', studentId);
-    if (enrollmentsError) {
-      console.error('[delete student] enrollments:', enrollmentsError);
-      return NextResponse.json(
-        { success: false, error: enrollmentsError.message || 'Failed to delete enrollments' },
-        { status: 500 }
-      );
-    }
-
-    const { error: emailLogsError } = await supabase
-      .from('email_logs')
-      .delete()
-      .eq('student_id', studentId);
-    if (emailLogsError) {
-      console.error('[delete student] email_logs:', emailLogsError);
-      return NextResponse.json(
-        { success: false, error: emailLogsError.message || 'Failed to delete email logs' },
-        { status: 500 }
-      );
-    }
-
-    const { error: logsError } = await supabase
-      .from('logs')
-      .delete()
-      .eq('student_id', studentId);
-    if (logsError) {
-      console.error('[delete student] logs:', logsError);
-      return NextResponse.json(
-        { success: false, error: logsError.message || 'Failed to delete logs' },
-        { status: 500 }
-      );
-    }
-
-    const { error: studentsError } = await supabase
-      .from('students')
-      .delete()
-      .eq('id', studentId);
-    if (studentsError) {
-      console.error('[delete student] students:', studentsError);
-      return NextResponse.json(
-        { success: false, error: studentsError.message || 'Failed to delete student' },
-        { status: 500 }
-      );
-    }
-
-    await insertLog({
-      admin_user_id: admin.id,
-      reference_id: studentId,
-      reference_type: 'student',
-      action_type: 'student_deleted',
-      student_id: studentId,
+    // 2. Block login (~100 years). Reversible with ban_duration: 'none'.
+    // Also runs when already deleted, so a retry after a failed ban completes it.
+    const { error: banError } = await supabase.auth.admin.updateUserById(studentId, {
+      ban_duration: '876000h',
     });
-
-    const { error: authDeleteError } = await supabase.auth.admin.deleteUser(studentId);
-    if (authDeleteError) {
-      console.warn('[delete student] auth delete (user may already be gone):', authDeleteError.message);
+    if (banError) {
+      console.error('[delete student] ban:', banError);
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'The student is now hidden, but their login is NOT yet blocked (' +
+            (banError.message || 'unknown error') +
+            '). Run delete again to retry, or block the user in Supabase Auth.',
+        },
+        { status: 500 }
+      );
     }
 
+    if (alreadyDeleted) {
+      return NextResponse.json({ success: true, alreadyDeleted: true });
+    }
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal server error';

@@ -21,6 +21,7 @@ export async function getStudents(): Promise<{ students: StudentWithEmail[] | nu
     const { data, error } = await supabase
       .from("students")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     console.log("[getStudents] Query result:", { data, error, dataLength: data?.length });
@@ -87,6 +88,7 @@ export async function getStudentById(id: string): Promise<{ student: StudentWith
       .from("students")
       .select("*")
       .eq("id", id)
+      .is("deleted_at", null)
       .maybeSingle();
 
     console.log("[getStudentById] Query result:", { data, error });

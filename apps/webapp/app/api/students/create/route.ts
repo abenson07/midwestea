@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { getCurrentAdmin } from '@/lib/logging';
-import { findOrCreateStudent, updateStudentNameIfNeeded, createEnrollment } from '@/lib/enrollments';
+import { DeletedStudentError, findOrCreateStudent, updateStudentNameIfNeeded, createEnrollment } from '@/lib/enrollments';
 
 export const runtime = 'nodejs';
 
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const student = await findOrCreateStudent(email.trim());
+    const student = await findOrCreateStudent(email.trim(), { rejectDeleted: true });
     await updateStudentNameIfNeeded(student.id, fullName.trim());
 
     if (phone != null && typeof phone === 'string' && phone.trim() !== '') {
@@ -95,6 +95,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     console.error('[students/create] Error:', err);
+    if (err instanceof DeletedStudentError) {
+      return NextResponse.json({ success: false, error: err.message }, { status: 403 });
+    }
     const message = err?.message || 'Failed to create student';
     const isDuplicate = /already exists|duplicate|already in use/i.test(message);
     return NextResponse.json(

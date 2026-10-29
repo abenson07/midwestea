@@ -41,6 +41,7 @@ export async function GET(request: NextRequest) {
     const { data: students, error: studentsError } = await supabase
       .from('students')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (studentsError) {
