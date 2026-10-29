@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, X } from "lucide-react";
+import { getSession } from "@/lib/auth";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
 import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
@@ -33,6 +34,35 @@ export function ClassPrerequisiteViewer({
 }: ClassPrerequisiteViewerProps) {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
+  const [fileSrc, setFileSrc] = useState<string | null>(null);
+  const [fileError, setFileError] = useState(false);
+
+  // The file route needs a Bearer token, which an iframe can't send, so mint
+  // the signed URL here and point the iframe at the same-origin /view proxy.
+  useEffect(() => {
+    let cancelled = false;
+    setFileSrc(null);
+    setFileError(false);
+    (async () => {
+      try {
+        const { session } = await getSession();
+        if (!session) throw new Error("no session");
+        const response = await fetch(`/api/prerequisites/credentials/${submission.id}/file`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const result = await response.json();
+        if (!result.success || !result.url) throw new Error(result.error || "no url");
+        if (!cancelled) {
+          setFileSrc(`/api/prerequisites/credentials/${submission.id}/view?src=${encodeURIComponent(result.url)}`);
+        }
+      } catch {
+        if (!cancelled) setFileError(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [submission.id]);
 
   function confirmReject() {
     const next = reason.trim();
@@ -64,11 +94,17 @@ export function ClassPrerequisiteViewer({
           background: "var(--linear-color-canvas)",
         }}
       >
-        <iframe
-          src={`/api/new-admin-migrate/prerequisite-submissions/${submission.id}/file#toolbar=0&navpanes=0`}
-          title={`${submission.type} — ${submission.student}`}
-          style={{ width: "100%", height: "100%", border: "none" }}
-        />
+        {fileSrc ? (
+          <iframe
+            src={fileSrc}
+            title={`${submission.type} — ${submission.student}`}
+            style={{ width: "100%", height: "100%", border: "none" }}
+          />
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+            <Text size="sm">{fileError ? "No file available for this submission." : "Loading file…"}</Text>
+          </div>
+        )}
       </div>
 
       {decision ? (
