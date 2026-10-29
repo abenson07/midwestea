@@ -190,6 +190,7 @@ function StudentDetailDemoInner({
       </FoundationLayout>
       <StudentMessageModal
         isOpen={messageOpen}
+        studentId={student.id}
         studentName={student.name}
         onClose={() => setMessageOpen(false)}
       />
