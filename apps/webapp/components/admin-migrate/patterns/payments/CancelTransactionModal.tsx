@@ -34,7 +34,7 @@ export function CancelTransactionModal({
       }
     >
       <Text size="sm" color="secondary">
-        Cancel {label}? This marks it cancelled in the demo. It cannot be undone from this screen.
+        Cancel {label}? This marks it cancelled and voids any open Stripe invoice. It cannot be undone from this screen.
       </Text>
     </Modal>
   );
