@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     const { data: classes, error: classesError } = await supabase
       .from('classes')
       .select(WAITLIST_CLASS_COLUMNS)
+      .is('deleted_at', null)
       .lte('enrollment_start', today)
       .gte('enrollment_close', today)
       .or('is_online.is.null,is_online.eq.false');

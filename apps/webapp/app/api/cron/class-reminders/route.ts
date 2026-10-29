@@ -75,6 +75,7 @@ export async function GET(request: NextRequest) {
     const { data: classes, error: classesError } = await supabase
       .from('classes')
       .select('id, class_name, class_image, class_start_date')
+      .is('deleted_at', null)
       .gte('class_start_date', earliestStart)
       .lte('class_start_date', latestStart);
 
@@ -93,8 +94,22 @@ export async function GET(request: NextRequest) {
 
     if (enrollmentsError) throw new Error(`Failed to query enrollments: ${enrollmentsError.message}`);
 
+    // Soft-deleted students get no automated email (their enrollments stay as history).
+    const activeStudentIds = new Set<string>();
+    const enrolledStudentIds = Array.from(new Set((enrollments ?? []).map((e) => e.student_id as string)));
+    for (const ids of chunk(enrolledStudentIds, CHUNK_SIZE)) {
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('id')
+        .in('id', ids)
+        .is('deleted_at', null);
+      if (studentsError) throw new Error(`Failed to query students: ${studentsError.message}`);
+      for (const student of students ?? []) activeStudentIds.add(student.id as string);
+    }
+
     // Enrolled at least REMINDER_LEAD_DAYS before the class start.
     const candidates = (enrollments ?? []).filter((enrollment) => {
+      if (!activeStudentIds.has(enrollment.student_id as string)) return false;
       const startDate = classById.get(enrollment.class_id)?.class_start_date as string | null | undefined;
       if (!startDate || !enrollment.enrolled_at) return false;
       return enrollment.enrolled_at.slice(0, 10) <= addDays(startDate, -REMINDER_LEAD_DAYS);

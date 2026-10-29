@@ -67,7 +67,17 @@ export async function notifyWaitlistForClass(
     .eq('course_code', classRecord.course_code.toUpperCase());
   if (waitlistError) throw new Error(`Failed to query waitlist: ${waitlistError.message}`);
 
-  const studentIds = Array.from(new Set((waitlist ?? []).map((row) => row.student_id as string)));
+  const waitlistedIds = Array.from(new Set((waitlist ?? []).map((row) => row.student_id as string)));
+  if (waitlistedIds.length === 0) return base;
+
+  // Soft-deleted students get no automated email.
+  const { data: activeStudents, error: studentsError } = await supabase
+    .from('students')
+    .select('id')
+    .in('id', waitlistedIds)
+    .is('deleted_at', null);
+  if (studentsError) throw new Error(`Failed to query students: ${studentsError.message}`);
+  const studentIds = (activeStudents ?? []).map((row) => row.id as string);
   if (studentIds.length === 0) return base;
 
   const { data: enrolled, error: enrolledError } = await supabase
