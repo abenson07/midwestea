@@ -9,6 +9,7 @@ import ClassReminder from './class-reminder';
 import CompletedClassFollowups from './completed-class-followups';
 import PrerequisiteRejected from './prerequisite-rejected';
 import PrerequisitePendingReview from './prerequisite-pending-review';
+import PrerequisiteMissing from './prerequisite-missing';
 import FullyEnrolled from './fully-enrolled';
 
 export type FieldType = 'text' | 'textarea' | 'json';
@@ -184,6 +185,18 @@ export const EMAIL_TEMPLATES: TemplateDef[] = [
       { key: 'className', label: 'Class name', type: 'text', classLink: 'courseName' },
       { key: 'outstandingList', label: 'Outstanding items (comma-joined text)', type: 'text' },
       { key: 'actionUrl', label: 'Action URL', type: 'text' },
+    ],
+  },
+  {
+    key: 'prerequisite-missing',
+    label: 'Prerequisite Missing (Reminder)',
+    component: PrerequisiteMissing,
+    hasClassPicker: true,
+    fields: [
+      { key: 'studentName', label: 'Student name', type: 'text' },
+      { key: 'prerequisiteTypeName', label: 'Prerequisite type name', type: 'text' },
+      { key: 'className', label: 'Class name', type: 'text', classLink: 'courseName' },
+      { key: 'uploadUrl', label: 'Upload URL', type: 'text' },
     ],
   },
   {

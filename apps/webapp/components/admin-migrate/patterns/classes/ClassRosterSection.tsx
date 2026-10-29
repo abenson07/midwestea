@@ -21,6 +21,7 @@ import {
 } from "./classMocks";
 import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
 import { useTransactions } from "../payments/useTransactions";
+import { sendPrerequisiteReminder } from "@/lib/prerequisite-reminders";
 import type { TransactionRow } from "@/data/mocks/transactions";
 
 const STATUS_ORDER = ["Enrolled", "Waitlisted"];
@@ -56,8 +57,63 @@ const certificateLinkStyle = {
   textDecoration: "none",
 } as const;
 
-function remindPrerequisite(name: string) {
-  toast.success(`Reminder sent to ${name} — demo mode, not delivered`);
+/** A required document a student has not submitted yet (live mode, from the class matrix). */
+export type MissingPrerequisite = { typeId: string; name: string };
+
+function RemindButton({
+  studentId,
+  studentName,
+  classId,
+  missing,
+}: {
+  studentId: string;
+  studentName: string;
+  classId: string;
+  /** undefined = demo mode (nothing real to send). */
+  missing?: MissingPrerequisite[];
+}) {
+  const [sending, setSending] = useState(false);
+
+  async function remind() {
+    if (!missing) {
+      toast.message(`Reminders for ${studentName} aren’t available in demo mode`);
+      return;
+    }
+    if (missing.length === 0) {
+      toast.error(`${studentName} has no missing documents to remind about`);
+      return;
+    }
+    setSending(true);
+    try {
+      const failures: string[] = [];
+      let sent = 0;
+      for (const item of missing) {
+        const result = await sendPrerequisiteReminder({ studentId, classId, prerequisiteTypeId: item.typeId });
+        if (result.ok) sent += 1;
+        else failures.push(`${item.name}: ${result.error}`);
+      }
+      if (failures.length === 0) {
+        toast.success(`Reminder emailed to ${studentName} (${missing.map((item) => item.name).join(", ")})`);
+      } else if (sent > 0) {
+        toast.error(`Sent ${sent} of ${missing.length}. ${failures.join("; ")}`, { duration: 20000 });
+      } else {
+        toast.error(failures.join("; "), { duration: 20000 });
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <Button
+      label={sending ? "Sending…" : "Remind"}
+      variant="secondary"
+      size="sm"
+      icon={<Bell size={13} strokeWidth={1.75} />}
+      disabled={sending}
+      onClick={remind}
+    />
+  );
 }
 
 function StatusBadge({
@@ -111,6 +167,7 @@ function buildColumns(
   onGenerateCertificateForRow?: (row: ClassRosterRow) => void,
   submissions?: ClassPrerequisiteSubmission[],
   unmetPrerequisiteStudentIds?: Set<string>,
+  missingPrerequisitesByStudent?: Map<string, MissingPrerequisite[]>,
 ): TableColumn<ClassRosterRow>[] {
   const pendingStudentIds = new Set((submissions ?? []).map((row) => row.studentId));
   function selectIfStudent(row: ClassRosterRow) {
@@ -195,12 +252,11 @@ function buildColumns(
         }
         return (
           <span onClick={stopRowClick}>
-            <Button
-              label="Remind"
-              variant="secondary"
-              size="sm"
-              icon={<Bell size={13} strokeWidth={1.75} />}
-              onClick={() => remindPrerequisite(row.name)}
+            <RemindButton
+              studentId={row.id}
+              studentName={row.name}
+              classId={classId}
+              missing={missingPrerequisitesByStudent?.get(row.id) ?? (missingPrerequisitesByStudent ? [] : undefined)}
             />
           </span>
         );
@@ -297,6 +353,8 @@ export type ClassRosterSectionProps = {
   submissions?: ClassPrerequisiteSubmission[];
   /** Real students (live mode) who haven't satisfied all required prerequisites and aren't in `submissions`. */
   unmetPrerequisiteStudentIds?: Set<string>;
+  /** Real students' required documents with no submission yet (live mode) — what "Remind" emails about. */
+  missingPrerequisitesByStudent?: Map<string, MissingPrerequisite[]>;
 };
 
 export function ClassRosterSection({
@@ -310,6 +368,7 @@ export function ClassRosterSection({
   onGenerateCertificateForRow,
   submissions,
   unmetPrerequisiteStudentIds,
+  missingPrerequisitesByStudent,
 }: ClassRosterSectionProps) {
   const { transactions } = useTransactions();
   const [search, setSearch] = useState("");
@@ -333,6 +392,7 @@ export function ClassRosterSection({
         onGenerateCertificateForRow,
         submissions,
         unmetPrerequisiteStudentIds,
+        missingPrerequisitesByStudent,
       ),
     [
       onSelectStudent,
@@ -346,6 +406,7 @@ export function ClassRosterSection({
       onGenerateCertificateForRow,
       submissions,
       unmetPrerequisiteStudentIds,
+      missingPrerequisitesByStudent,
     ],
   );
 
