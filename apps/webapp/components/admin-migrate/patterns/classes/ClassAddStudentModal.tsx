@@ -6,8 +6,8 @@ import { Modal } from "@/components/admin-migrate/patterns/shared/Modal";
 import { Button } from "@/components/admin-migrate/patterns/primitives/Button";
 import { TextInput } from "@/components/admin-migrate/patterns/primitives/TextInput";
 import { Text } from "@/components/admin-migrate/patterns/primitives/Text";
-import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { STUDENT_ROWS } from "../students/studentData";
+import { addStudentToClass, listStudentOptions, type StudentOption } from "./addStudentToClass";
 import type { ClassRosterRow } from "./classMocks";
 
 export type ClassAddStudentModalProps = {
@@ -15,6 +15,10 @@ export type ClassAddStudentModalProps = {
   onClose: () => void;
   roster: ClassRosterRow[];
   onAdd: (student: ClassRosterRow) => void;
+  /** Real class UUID. Required when `live`. */
+  classId?: string;
+  /** Persist through POST /api/admin/enrollments instead of local-only demo state. */
+  live?: boolean;
 };
 
 export function ClassAddStudentModal({
@@ -22,12 +26,17 @@ export function ClassAddStudentModal({
   onClose,
   roster,
   onAdd,
+  classId,
+  live = false,
 }: ClassAddStudentModalProps) {
   const [mode, setMode] = useState<"search" | "create">("search");
   const [query, setQuery] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [liveStudents, setLiveStudents] = useState<StudentOption[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -36,24 +45,80 @@ export function ClassAddStudentModal({
     setName("");
     setEmail("");
     setPhone("");
+    setBusy(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !live) return;
+    let cancelled = false;
+    setLoadingStudents(true);
+    listStudentOptions().then((result) => {
+      if (cancelled) return;
+      setLoadingStudents(false);
+      if (result.ok) setLiveStudents(result.students);
+      else toast.error(result.error);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, live]);
 
   const enrolledEmails = useMemo(
     () => new Set(roster.map((row) => row.email.toLowerCase())),
     [roster],
   );
 
-  const live = useIsNewAdminMigrate();
+  const enrolledIds = useMemo(() => new Set(roster.map((row) => row.id)), [roster]);
+
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q || live) return [];
-    return STUDENT_ROWS.filter((row) => {
-      if (enrolledEmails.has(row.email.toLowerCase())) return false;
-      return row.name.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
-    }).slice(0, 8);
-  }, [query, enrolledEmails, live]);
+    if (!q) return [];
+    const source: { id: string; name: string; email: string }[] = live ? liveStudents : STUDENT_ROWS;
+    return source
+      .filter((row) => {
+        if (enrolledEmails.has(row.email.toLowerCase()) || enrolledIds.has(row.id)) return false;
+        return row.name.toLowerCase().includes(q) || row.email.toLowerCase().includes(q);
+      })
+      .slice(0, 8);
+  }, [query, enrolledEmails, enrolledIds, live, liveStudents]);
+
+  async function enrollLive(
+    input:
+      | { studentId: string }
+      | { email: string; fullName: string; phone?: string },
+    fallbackName: string,
+    fallbackEmail: string,
+  ) {
+    if (busy) return;
+    if (!classId) {
+      toast.error("Class not found");
+      return;
+    }
+    setBusy(true);
+    const result = await addStudentToClass({ classId, ...input });
+    if (!result.ok) {
+      setBusy(false);
+      toast.error(result.error);
+      return;
+    }
+    onAdd({
+      id: result.studentId,
+      name: result.name || fallbackName,
+      email: result.email || fallbackEmail,
+      role: "Student",
+      status: "Enrolled",
+      enrollmentId: result.enrollmentId,
+    });
+    setBusy(false);
+    toast.success(`${result.restored ? "Restored" : "Enrolled"} ${result.name || fallbackName}`);
+    onClose();
+  }
 
   function enrollExisting(student: { id: string; name: string; email: string }) {
+    if (live) {
+      void enrollLive({ studentId: student.id }, student.name, student.email);
+      return;
+    }
     onAdd({
       id: `${student.id}-${Date.now()}`,
       name: student.name,
@@ -72,6 +137,14 @@ export function ClassAddStudentModal({
     }
     if (enrolledEmails.has(email.trim().toLowerCase())) {
       toast.error("That student is already in this class");
+      return;
+    }
+    if (live) {
+      void enrollLive(
+        { email: email.trim(), fullName: name.trim(), phone: phone.trim() || undefined },
+        name.trim(),
+        email.trim(),
+      );
       return;
     }
     onAdd({
@@ -94,8 +167,13 @@ export function ClassAddStudentModal({
       footer={
         mode === "create" ? (
           <>
-            <Button label="Cancel" variant="ghost" onClick={onClose} />
-            <Button label="Enroll" variant="primary" onClick={createAndEnroll} />
+            <Button label="Cancel" variant="ghost" disabled={busy} onClick={onClose} />
+            <Button
+              label={busy ? "Enrolling…" : "Enroll"}
+              variant="primary"
+              disabled={busy}
+              onClick={createAndEnroll}
+            />
           </>
         ) : (
           <Button label="Close" variant="ghost" onClick={onClose} />
@@ -127,11 +205,13 @@ export function ClassAddStudentModal({
                   <button
                     key={row.id}
                     type="button"
+                    disabled={busy}
                     onClick={() => enrollExisting(row)}
                     style={{
                       all: "unset",
                       boxSizing: "border-box",
-                      cursor: "pointer",
+                      cursor: busy ? "not-allowed" : "pointer",
+                      opacity: busy ? 0.6 : 1,
                       padding: "8px 10px",
                       borderRadius: 6,
                       background: "var(--linear-color-sidebar-item-hover, transparent)",
@@ -146,6 +226,10 @@ export function ClassAddStudentModal({
                   </button>
                 ))}
               </div>
+            ) : live && loadingStudents ? (
+              <Text size="sm" color="secondary">
+                Loading students…
+              </Text>
             ) : query.trim() ? (
               <Text size="sm" color="secondary">
                 No matching students who aren’t already enrolled.
