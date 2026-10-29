@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Bell, ClipboardCheck, FileCheck, MoreHorizontal, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ import {
   type StudentPrerequisiteRow,
   type StudentToRemove,
 } from "./classMocks";
+import { sendPrerequisiteReminder } from "@/lib/prerequisite-reminders";
 import { PREREQUISITE_STATUS_COLOR, PREREQUISITE_STATUS_LABEL } from "./prerequisiteStatus";
 import type { TransactionRow } from "@/data/mocks/transactions";
 import { useTransactions } from "../payments/useTransactions";
@@ -38,6 +40,8 @@ export type ClassStudentPaymentsCardProps = {
   className: string;
   student: ClassRosterRow;
   requiredPrerequisites?: string[];
+  /** Live mode: prerequisite type id by name for documents this student has not submitted. */
+  missingPrerequisiteTypeIds?: Record<string, string>;
   onClose: () => void;
   onRemove: (student: StudentToRemove) => void;
   onReviewPrerequisite?: (submissionId: string) => void;
@@ -152,14 +156,40 @@ function SupplementalInvoice({ invoice }: { invoice: TransactionRow }) {
 function PrerequisiteRow({
   row,
   studentName,
+  studentId,
+  classId,
+  prerequisiteTypeId,
+  live,
   onReview,
 }: {
   row: StudentPrerequisiteRow;
   studentName: string;
+  studentId: string;
+  classId: string;
+  /** Live mode: the type id when this document is missing; undefined otherwise. */
+  prerequisiteTypeId?: string;
+  live: boolean;
   onReview?: (submissionId: string) => void;
 }) {
-  function remind() {
-    toast.success(`Reminder sent to ${studentName} — demo mode, not delivered`);
+  const [sending, setSending] = useState(false);
+
+  async function remind() {
+    if (!live) {
+      toast.message(`Reminders for ${studentName} aren’t available in demo mode`);
+      return;
+    }
+    if (!prerequisiteTypeId) {
+      toast.error(`${row.type} isn’t missing for ${studentName}, so no reminder was sent`);
+      return;
+    }
+    setSending(true);
+    try {
+      const result = await sendPrerequisiteReminder({ studentId, classId, prerequisiteTypeId });
+      if (result.ok) toast.success(`Reminder for ${row.type} emailed to ${studentName}`);
+      else toast.error(result.error, { duration: 20000 });
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -197,10 +227,11 @@ function PrerequisiteRow({
         />
       ) : (
         <Button
-          label="Remind"
+          label={sending ? "Sending…" : "Remind"}
           variant="secondary"
           size="sm"
           icon={<Bell size={13} strokeWidth={1.75} />}
+          disabled={sending}
           onClick={remind}
         />
       )}
@@ -222,6 +253,7 @@ export function ClassStudentPaymentsCard({
   className,
   student,
   requiredPrerequisites,
+  missingPrerequisiteTypeIds,
   onClose,
   onRemove,
   onReviewPrerequisite,
@@ -296,6 +328,10 @@ export function ClassStudentPaymentsCard({
                 key={row.type}
                 row={row}
                 studentName={student.name}
+                studentId={student.id}
+                classId={classId}
+                prerequisiteTypeId={missingPrerequisiteTypeIds?.[row.type]}
+                live={live}
                 onReview={onReviewPrerequisite}
               />
             ))}
@@ -347,7 +383,11 @@ export function ClassStudentPaymentsCard({
                     onGenerateCertificate?.(student);
                     return;
                   }
-                  toast.message(`Certificate generation for ${student.name} isn’t wired yet — demo mode`);
+                  toast.message(
+                    live
+                      ? `${student.name} has no enrollment to issue a certificate for`
+                      : `Certificate generation for ${student.name} isn’t wired yet — demo mode`,
+                  );
                 }}
               />
             )}

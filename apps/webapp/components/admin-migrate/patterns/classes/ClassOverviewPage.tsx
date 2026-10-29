@@ -9,7 +9,7 @@ import { ClassPrerequisitesQueue } from "./ClassPrerequisitesQueue";
 import { ClassPrerequisitesList } from "./ClassPrerequisitesList";
 import { ClassActivityCard } from "./ClassActivityCard";
 import { ClassDueInvoicesSection } from "./ClassDueInvoicesSection";
-import { ClassRosterSection } from "./ClassRosterSection";
+import { ClassRosterSection, type MissingPrerequisite } from "./ClassRosterSection";
 import { ClassStudentPaymentsCard } from "./ClassStudentPaymentsCard";
 import { ClassRevenueCard } from "./ClassRevenueCard";
 import { useIsNewAdminMigrate } from "@/components/admin-migrate/patterns/client-templates/shared";
@@ -67,6 +67,9 @@ export function ClassOverviewPage({
   const [liveSubmissions, setLiveSubmissions] = useState<ClassPrerequisiteSubmission[]>([]);
   const submissions = live ? liveSubmissions : classPrerequisiteQueueFor(classDetail.id);
   const [unmetPrerequisiteStudentIds, setUnmetPrerequisiteStudentIds] = useState<Set<string>>(new Set());
+  const [missingPrerequisitesByStudent, setMissingPrerequisitesByStudent] = useState<Map<string, MissingPrerequisite[]>>(
+    new Map(),
+  );
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reviewSubmissionId, setReviewSubmissionId] = useState<string | null>(null);
 
@@ -127,8 +130,26 @@ export function ClassOverviewPage({
       if (!result.success || cancelled) return;
       const rows = (result.payload?.rows ?? []) as Array<{
         student_id: string;
-        evaluation: { allRequiredSatisfied: boolean };
+        evaluation: {
+          allRequiredSatisfied: boolean;
+          items: Array<{
+            prerequisite_type_id: string;
+            is_required: boolean;
+            status: string;
+            prerequisite_type?: { name?: string } | null;
+          }>;
+        };
       }>;
+      const missing = new Map<string, MissingPrerequisite[]>();
+      for (const row of rows) {
+        missing.set(
+          row.student_id,
+          row.evaluation.items
+            .filter((item) => item.is_required && item.status === "missing")
+            .map((item) => ({ typeId: item.prerequisite_type_id, name: item.prerequisite_type?.name ?? "Document" })),
+        );
+      }
+      setMissingPrerequisitesByStudent(missing);
       setUnmetPrerequisiteStudentIds(
         new Set(rows.filter((row) => !row.evaluation.allRequiredSatisfied).map((row) => row.student_id)),
       );
@@ -241,6 +262,7 @@ export function ClassOverviewPage({
           onGenerateCertificateForRow={onGenerateCertificateForRow}
           submissions={submissions}
           unmetPrerequisiteStudentIds={live ? unmetPrerequisiteStudentIds : undefined}
+          missingPrerequisitesByStudent={live ? missingPrerequisitesByStudent : undefined}
         />
       </div>
       <div
@@ -262,6 +284,13 @@ export function ClassOverviewPage({
             className={classDetail.title}
             student={selectedStudent}
             requiredPrerequisites={classDetail.prerequisites}
+            missingPrerequisiteTypeIds={
+              live
+                ? Object.fromEntries(
+                    (missingPrerequisitesByStudent.get(selectedStudent.id) ?? []).map((item) => [item.name, item.typeId]),
+                  )
+                : undefined
+            }
             onClose={() => setSelectedStudentId(null)}
             onRemove={(row) => onRemoveStudent?.(row)}
             onReviewPrerequisite={(submissionId) => setReviewSubmissionId(submissionId)}

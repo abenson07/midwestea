@@ -41,6 +41,7 @@ footer update in lockstep across all 8 emails.
 | OTP / Login code | `otp-login-code.tsx` | Wired manually into `lib/email-templates/admin-otp.html` (Supabase Auth SMTP paste-in, not rendered by app code) | code |
 | Prerequisite Rejected | `prerequisite-rejected.tsx` | `sendPrerequisiteRejectedEmail` in `lib/email.ts` (called from `app/api/admin/prerequisites/review/route.ts`) | studentName, prerequisiteTypeName, className, rejectionReason, resubmitUrl, resubmitLabel |
 | Prerequisite Pending Review | `prerequisite-pending-review.tsx` | `sendPrerequisitePendingReviewEmail` in `lib/email.ts` | studentName, className, outstandingList, actionUrl |
+| Prerequisite Missing (Reminder) | `prerequisite-missing.tsx` | `sendPrerequisiteMissingEmail` in `lib/prerequisite-reminder-email.ts` (admin Remind button -> `POST /api/admin/prerequisites/remind`). Deduped 24h per student/class/type via `email_logs.email_type = 'prerequisite_missing:<class uuid>:<type uuid>'`. | studentName, prerequisiteTypeName, className, uploadUrl |
 | Fully Enrolled | `fully-enrolled.tsx` | `sendFullyEnrolledEmail` in `lib/email.ts` (called from `app/api/admin/prerequisites/review/route.ts`) | studentName, className, profileUrl |
 
 ## Content-config pattern (`content/enrollment/`)
