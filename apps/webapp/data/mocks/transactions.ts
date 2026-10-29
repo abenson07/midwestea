@@ -10,6 +10,8 @@ export type TransactionStatus = "pending" | "paid" | "cancelled" | "refunded";
 export type TransactionRow = {
   id: string;
   invoiceNumber: string | null;
+  /** Owning enrollment (DB `transactions.enrollment_id`). Absent on demo fixtures. */
+  enrollmentId?: string | null;
   studentId: string;
   studentName: string;
   studentEmail: string | null;

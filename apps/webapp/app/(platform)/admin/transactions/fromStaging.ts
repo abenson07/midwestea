@@ -30,6 +30,7 @@ export function toTransactionRow(
   return {
     id: transaction.id,
     invoiceNumber: transaction.invoiceNumber == null ? null : String(transaction.invoiceNumber),
+    enrollmentId: transaction.enrollmentId,
     studentId: transaction.studentId ?? "",
     studentName: student?.name ?? "Unknown Student",
     studentEmail: student?.email ?? null,
