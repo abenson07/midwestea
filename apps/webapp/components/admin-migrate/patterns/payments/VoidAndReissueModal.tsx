@@ -54,7 +54,15 @@ export type VoidAndReissueModalProps = {
   className: string;
   openInvoices: TransactionRow[];
   onClose: () => void;
-  onConfirm: (voidedIds: string[], replacements: { amountCents: number; dueDateIso: string }[]) => void;
+  /**
+   * Persists the void and reissue. Resolve `true` only after the server confirmed;
+   * resolve `false` (after surfacing its own error) to keep the modal open.
+   */
+  onConfirm: (
+    voidedIds: string[],
+    replacements: { amountCents: number; dueDateIso: string }[],
+    payInFull: boolean,
+  ) => Promise<boolean>;
 };
 
 /** Voids the class's open invoices and replaces them with a new schedule, or a single pay-in-full row. */
@@ -66,9 +74,14 @@ export function VoidAndReissueModal({
   onConfirm,
 }: VoidAndReissueModalProps) {
   const [rows, setRows] = useState<ReplacementRow[]>([]);
+  const [isPayInFull, setIsPayInFull] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isOpen) setRows(rowsFromOpenInvoices(openInvoices));
+    if (isOpen) {
+      setRows(rowsFromOpenInvoices(openInvoices));
+      setIsPayInFull(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -80,10 +93,12 @@ export function VoidAndReissueModal({
   }
 
   function removeRow(id: string) {
+    setIsPayInFull(false);
     setRows((prev) => prev.filter((row) => row.id !== id));
   }
 
   function addRow() {
+    setIsPayInFull(false);
     setRows((prev) => [
       ...prev,
       { id: `new-${Date.now()}`, amount: "", dueDate: todayLocalDateInputValue() },
@@ -91,6 +106,7 @@ export function VoidAndReissueModal({
   }
 
   function payInFull() {
+    setIsPayInFull(true);
     setRows([
       {
         id: `pay-in-full-${Date.now()}`,
@@ -100,7 +116,8 @@ export function VoidAndReissueModal({
     ]);
   }
 
-  function confirm() {
+  async function confirm() {
+    if (submitting) return;
     if (!rows.length) {
       toast.error("Add at least one replacement invoice, or use Pay in Full.");
       return;
@@ -112,14 +129,29 @@ export function VoidAndReissueModal({
         toast.error("Every replacement row needs an amount and a due date.");
         return;
       }
-      replacements.push({ amountCents: Math.round(dollars * 100), dueDateIso: endOfLocalDayIso(row.dueDate) });
+      const dueDateIso = endOfLocalDayIso(row.dueDate);
+      // Stripe rejects a due date in the past, and the server voids the old
+      // invoices before creating the new ones, so catch it here first.
+      if (new Date(dueDateIso).getTime() <= Date.now()) {
+        toast.error("Due dates must be today or later.");
+        return;
+      }
+      replacements.push({ amountCents: Math.round(dollars * 100), dueDateIso });
     }
-    onConfirm(
-      openInvoices.map((row) => row.id),
-      replacements,
-    );
-    toast.success(`Voided and reissued invoices for ${className} — demo mode, saved locally only`);
-    onClose();
+    setSubmitting(true);
+    try {
+      const ok = await onConfirm(
+        openInvoices.map((row) => row.id),
+        replacements,
+        isPayInFull && replacements.length === 1,
+      );
+      if (ok) {
+        toast.success(`Voided and reissued invoices for ${className}`);
+        onClose();
+      }
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -130,8 +162,8 @@ export function VoidAndReissueModal({
       width={480}
       footer={
         <>
-          <Button label="Cancel" variant="secondary" onClick={onClose} />
-          <Button label="Confirm" variant="primary" onClick={confirm} />
+          <Button label="Cancel" variant="secondary" onClick={onClose} disabled={submitting} />
+          <Button label={submitting ? "Working…" : "Confirm"} variant="primary" onClick={confirm} disabled={submitting} />
         </>
       }
     >

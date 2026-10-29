@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Wallet } from "lucide-react";
+import { toast } from "sonner";
+import { createSupabaseClient } from "@midwestea/utils";
 import { ClassBanner } from "../classes/ClassBanner";
 import { ClassPrerequisitesQueue } from "../classes/ClassPrerequisitesQueue";
 import { ClassActivityCard } from "../classes/ClassActivityCard";
@@ -47,7 +49,7 @@ export function StudentOverviewPage({
   const router = useRouter();
   const basePath = useAdminBasePath();
   const live = useIsNewAdminMigrate();
-  const { transactions, updateTransaction, addTransaction } = useTransactions();
+  const { transactions, updateTransaction } = useTransactions();
   const submissions = live ? [] : pendingPrereqsForStudent(student.id);
   const pastDue = transactions.filter(
     (row) => row.studentId === student.id && getTransactionListStatus(row) === "past_due",
@@ -69,32 +71,58 @@ export function StudentOverviewPage({
     matchesTransactionStatusFilter(row, "open"),
   );
 
-  function confirmVoidAndReissue(
+  async function confirmVoidAndReissue(
     voidedIds: string[],
     replacements: { amountCents: number; dueDateIso: string }[],
-  ) {
+    payInFull: boolean,
+  ): Promise<boolean> {
+    // The route voids every pending invoice on one enrollment, so all of the
+    // class's open invoices must belong to the same, known enrollment.
+    const enrollmentIds = new Set(openInvoices.map((row) => row.enrollmentId));
+    const enrollmentId = enrollmentIds.size === 1 ? [...enrollmentIds][0] : null;
+    if (!enrollmentId) {
+      toast.error("Can't void and reissue: these invoices aren't tied to a single enrollment.");
+      return false;
+    }
+    try {
+      const supabase = await createSupabaseClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Not authenticated");
+        return false;
+      }
+      const response = await fetch(`/api/admin/enrollments/${enrollmentId}/void-and-reissue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          replacementInvoices: replacements.map((r) => ({
+            amountCents: r.amountCents,
+            dueDate: r.dueDateIso,
+          })),
+          payInFull,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        toast.error(result?.error || "Failed to void and reissue invoices");
+        return false;
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to void and reissue invoices");
+      return false;
+    }
+    // Server succeeded. Mark the old rows cancelled locally and refetch so the
+    // replacement rows appear with their real ids and Stripe links.
     for (const id of voidedIds) {
       updateTransaction(id, { transactionStatus: "cancelled" });
     }
-    const template = selectedClassInvoices[0];
-    if (!template) return;
-    replacements.forEach((replacement, index) => {
-      addTransaction({
-        ...template,
-        id: `txn-reissue-${Date.now()}-${index}`,
-        invoiceNumber: null,
-        transactionType: "custom",
-        quantity: 1,
-        amountDueCents: replacement.amountCents,
-        amountPaidCents: null,
-        transactionStatus: "pending",
-        dueDate: replacement.dueDateIso,
-        paymentDate: null,
-        createdAt: new Date().toISOString(),
-        discountPercent: null,
-        originalAmountDueCents: null,
-      });
-    });
+    router.refresh();
+    return true;
   }
 
   return (
