@@ -194,7 +194,7 @@ function ClassDetailDemoInner({
   }
 
   async function confirmLiveRemove(student: StudentToRemove, refundAmount: number, refundPercent: number) {
-    // The route takes a percentage and records it on paid transactions. 0% is sent as null so
+    // The route refunds paid transactions through Stripe by percentage. 0% is sent as null so
     // paid transactions are left untouched (not flipped to "refunded" with a $0 refund).
     const result = await removeEnrollment({
       studentId: student.id,
@@ -202,7 +202,7 @@ function ClassDetailDemoInner({
       refundPercentage: refundPercent > 0 ? refundPercent : null,
     });
     if (!result.ok) {
-      toast.error(`Failed to remove ${student.name}: ${result.error}`);
+      toast.error(`Failed to remove ${student.name}: ${result.error}`, { duration: 20000 });
       return;
     }
 
@@ -211,11 +211,19 @@ function ClassDetailDemoInner({
     router.refresh();
 
     if (refundPercent > 0) {
-      // Restore only flips the enrollment back; it cannot reverse the recorded refund, so no Undo.
-      const formatted = refundAmount.toLocaleString("en-US", { style: "currency", currency: "USD" });
-      toast.success(
-        `Removed ${student.name}. Refund of ${formatted} (${refundPercent}%) recorded — no money was returned automatically.`,
-      );
+      // A Stripe refund can't be undone, so no Undo here.
+      const usd = (cents: number) => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+      const manualCents = result.manualRefundNeeded.reduce((sum, m) => sum + m.amountCents, 0);
+      const stripeCents = result.refundedCents - manualCents;
+      let message = `Removed ${student.name}. ${usd(stripeCents)} (${refundPercent}%) was refunded to their card through Stripe.`;
+      if (result.manualRefundNeeded.length > 0) {
+        message += ` ${usd(manualCents)} across ${result.manualRefundNeeded.length} payment${
+          result.manualRefundNeeded.length === 1 ? "" : "s"
+        } was not paid through Stripe and must be refunded by hand (${result.manualRefundNeeded
+          .map((m) => `${m.transactionId}: ${usd(m.amountCents)}`)
+          .join(", ")}).`;
+      }
+      toast.success(message, { duration: result.manualRefundNeeded.length > 0 ? 30000 : 8000 });
       return;
     }
 

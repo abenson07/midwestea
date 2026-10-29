@@ -26,7 +26,7 @@ export type RemoveStudentModalProps = {
    * the modal on success and leaves it open (after toasting) on failure.
    */
   onConfirm: (student: StudentToRemove, refundAmount: number, refundPercent: number) => void | Promise<void>;
-  /** Live wiring: copy reflects that the refund is only recorded and undo is limited. */
+  /** Live wiring: refunds are issued through Stripe, so copy says so and undo is limited. */
   live?: boolean;
 };
 
@@ -84,8 +84,8 @@ export function RemoveStudentModal({ student, onClose, onConfirm, live = false }
           Remove{" "}
           <span style={{ color: "var(--linear-color-ink)", fontWeight: 500 }}>{student?.name}</span>{" "}
           from {student?.className}?{" "}
-          {live
-            ? "Undo is only available when no refund is recorded."
+          {live && refundAmount != null && refundAmount > 0
+            ? "A refund cannot be undone once it is issued."
             : "This can be undone immediately after."}
         </Text>
 
@@ -156,7 +156,9 @@ export function RemoveStudentModal({ student, onClose, onConfirm, live = false }
 
         <Text size="sm" color="secondary">
           {live
-            ? "The refund is recorded against the student’s paid invoices. No money is returned automatically — issue the refund in Stripe separately."
+            ? refundAmount != null && refundAmount > 0
+              ? `${formatUsd(refundAmount)} will be refunded to the student’s card through Stripe when you confirm. This cannot be undone. Any payment not made through Stripe will be flagged so you can refund it by hand.`
+              : "No money will be refunded."
             : "Refunds are handled case-by-case — adjust the percentage as needed before confirming."}
         </Text>
       </div>
