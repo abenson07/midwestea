@@ -446,9 +446,12 @@ function ClassDetailDemoInner({
         isOpen={addStudentOpen}
         onClose={() => setAddStudentOpen(false)}
         roster={roster}
+        classId={classDetail?.id ?? classId}
+        live={live}
         onAdd={(student) => {
-          setRoster((prev) => [...prev, student]);
+          setRoster((prev) => (prev.some((row) => row.id === student.id) ? prev : [...prev, student]));
           logActivity("enroll", `${student.name} enrolled`);
+          if (live) router.refresh();
         }}
       />
       <RemoveStudentModal
