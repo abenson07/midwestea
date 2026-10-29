@@ -16,6 +16,7 @@ import {
   DetailTimeline,
   type DetailTimelineStep,
 } from "@/components/admin-migrate/patterns/foundation/detail";
+import { updateTransactionDueDate } from "@/lib/payments";
 import { useAdminBasePath } from "@/components/admin-migrate/patterns/client-templates/shared";
 import { classDetailHref, classHasDetailRoute } from "@/components/admin-migrate/patterns/catalog";
 import {
@@ -140,6 +141,7 @@ export function TransactionDetailPanel({
   const { transactions } = useTransactions();
   const [dueDate, setDueDate] = useState(dueDateInputValue(transaction.dueDate));
   const [editingDueDate, setEditingDueDate] = useState(false);
+  const [savingDueDate, setSavingDueDate] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [markPaidOpen, setMarkPaidOpen] = useState(false);
@@ -169,12 +171,34 @@ export function TransactionDetailPanel({
     toast.info("Demo mode — no detail page for this class");
   }
 
-  function saveDueDate(next: string) {
-    if (!next) return;
-    setDueDate(next);
+  function cancelDueDateEdit() {
+    setDueDate(dueDateInputValue(transaction.dueDate));
     setEditingDueDate(false);
-    onChange({ dueDate: endOfLocalDayIso(next) });
-    toast.success("Due date saved — demo mode, saved locally only");
+  }
+
+  // Persists through the admin API route (which also reissues any linked
+  // Stripe invoice). Local state only changes after the server confirms.
+  async function saveDueDate(next: string) {
+    if (!next || savingDueDate) return;
+    if (next === dueDateInputValue(transaction.dueDate)) {
+      setEditingDueDate(false);
+      return;
+    }
+    const iso = endOfLocalDayIso(next);
+    setSavingDueDate(true);
+    try {
+      const { success, error } = await updateTransactionDueDate(transaction.id, iso);
+      if (!success) {
+        toast.error(error || "Failed to update due date");
+        return;
+      }
+      setDueDate(next);
+      setEditingDueDate(false);
+      onChange({ dueDate: iso });
+      toast.success("Due date saved");
+    } finally {
+      setSavingDueDate(false);
+    }
   }
 
   function remind() {
@@ -280,14 +304,45 @@ export function TransactionDetailPanel({
             valueContent={
               <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 {editingDueDate ? (
-                  <input
-                    type="date"
-                    value={dueDate}
-                    autoFocus
-                    onChange={(event) => saveDueDate(event.target.value)}
-                    onBlur={() => setEditingDueDate(false)}
-                    style={dateInputStyle}
-                  />
+                  <>
+                    <input
+                      type="date"
+                      value={dueDate}
+                      autoFocus
+                      disabled={savingDueDate}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        setDueDate(next);
+                        // Typing fires an InputEvent per segment (inputType set);
+                        // picking from the native calendar fires a plain event.
+                        // Only the latter commits immediately.
+                        const inputType = (event.nativeEvent as InputEvent).inputType;
+                        if (!inputType && next) void saveDueDate(next);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void saveDueDate(dueDate);
+                        } else if (event.key === "Escape") {
+                          event.preventDefault();
+                          cancelDueDateEdit();
+                        }
+                      }}
+                      style={dateInputStyle}
+                    />
+                    <Button
+                      label={savingDueDate ? "Saving…" : "Save"}
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void saveDueDate(dueDate)}
+                    />
+                    <Button
+                      label="Cancel"
+                      variant="ghost"
+                      size="sm"
+                      onClick={cancelDueDateEdit}
+                    />
+                  </>
                 ) : (
                   <>
                     <Text weight="medium">{formatShortDate(transaction.dueDate)}</Text>
