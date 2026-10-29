@@ -22,6 +22,7 @@ import { ProfilePanel } from "./ProfilePanel";
 import { LogsPage } from "./LogsPage";
 import { ReconcilePage } from "./ReconcilePage";
 import { DownloadInvoicesPage } from "./DownloadInvoicesPage";
+import type { PendingInvoiceRow } from "@/lib/admin-migrate/downloadInvoices";
 
 const INSET_IDS = new Set([
   "trainers",
@@ -78,12 +79,14 @@ function SettingsBody({
   locations,
   prerequisites,
   admins,
+  pendingInvoices,
 }: {
   navId: string;
   templates?: CatalogTemplate[];
   locations?: LocationRow[];
   prerequisites?: PrerequisiteRow[];
   admins?: StaffRow[];
+  pendingInvoices?: PendingInvoiceRow[];
 }) {
   if (navId === "profile") return <ProfilePanel />;
   if (navId === "preferences") return <PreferencesPanel />;
@@ -93,7 +96,7 @@ function SettingsBody({
   if (navId === "locations") return <LocationsDemo rows={locations} />;
   if (navId === "logs") return <LogsPage />;
   if (navId === "reconcile") return <ReconcilePage />;
-  if (navId === "download-invoices") return <DownloadInvoicesPage />;
+  if (navId === "download-invoices") return <DownloadInvoicesPage rows={pendingInvoices} />;
 
   const programMatch = navId.match(/^programs\/(.+)$/);
   if (programMatch?.[1]) {
@@ -112,9 +115,10 @@ export type SettingsDemoProps = {
   locations?: LocationRow[];
   prerequisites?: PrerequisiteRow[];
   admins?: StaffRow[];
+  pendingInvoices?: PendingInvoiceRow[];
 };
 
-export function SettingsDemo({ templates, locations, prerequisites, admins }: SettingsDemoProps = {}) {
+export function SettingsDemo({ templates, locations, prerequisites, admins, pendingInvoices }: SettingsDemoProps = {}) {
   const router = useRouter();
   const pathname = usePathname();
   const basePath = useAdminBasePath();
@@ -143,6 +147,7 @@ export function SettingsDemo({ templates, locations, prerequisites, admins }: Se
             locations={locations}
             prerequisites={prerequisites}
             admins={admins}
+            pendingInvoices={pendingInvoices}
           />
         ) : isCatalog ? (
           <div style={{ height: "100%", minHeight: 0, overflow: "auto" }}>
@@ -153,6 +158,7 @@ export function SettingsDemo({ templates, locations, prerequisites, admins }: Se
               locations={locations}
               prerequisites={prerequisites}
               admins={admins}
+              pendingInvoices={pendingInvoices}
             />
           </div>
         ) : (
@@ -173,6 +179,7 @@ export function SettingsDemo({ templates, locations, prerequisites, admins }: Se
                 locations={locations}
                 prerequisites={prerequisites}
                 admins={admins}
+                pendingInvoices={pendingInvoices}
               />
             </div>
           </div>
