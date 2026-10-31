@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdminClient } from '@midwestea/utils';
 import { sendWaitlistSuccessfulEmail } from '@/lib/react-emails';
+import { findAuthUserByEmail } from '@/lib/find-auth-user';
 
 /**
  * Submit waitlist form
@@ -36,27 +37,16 @@ export async function POST(request: NextRequest) {
     // 1. Ensure user exists in auth.users
     let userId: string | null = null;
     
-    // Check if user exists
-    let existingAuthUser = null;
-    try {
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error listing auth users:', authError);
-        return NextResponse.json(
-          { error: 'Failed to check users' },
-          { status: 500 }
-        );
-      }
-
-      existingAuthUser = authUsers.users.find((user) => user.email?.toLowerCase() === email.toLowerCase());
-    } catch (error: any) {
-      console.error('Error checking auth users:', error);
+    // Check if user exists (searches every page of accounts, not just the first 50)
+    const lookup = await findAuthUserByEmail(supabase, email);
+    if (lookup.error) {
+      console.error('Error checking auth users:', lookup.error);
       return NextResponse.json(
         { error: 'Failed to check users' },
         { status: 500 }
       );
     }
+    const existingAuthUser = lookup.user;
 
     if (existingAuthUser) {
       userId = existingAuthUser.id;
@@ -71,15 +61,22 @@ export async function POST(request: NextRequest) {
       });
 
       if (createError) {
-        console.error('Error creating user:', createError);
-        return NextResponse.json(
-          { error: `Failed to create user: ${createError.message}` },
-          { status: 500 }
-        );
+        // The account may have been created a moment ago by another request.
+        // Look once more before giving up.
+        const retry = await findAuthUserByEmail(supabase, email);
+        if (!retry.user) {
+          console.error('Error creating user:', createError);
+          return NextResponse.json(
+            { error: `Failed to create user: ${createError.message}` },
+            { status: 500 }
+          );
+        }
+        userId = retry.user.id;
+        console.log(`[Waitlist] Email ${email} already existed (found on retry)`);
+      } else {
+        userId = newUser.user.id;
+        console.log(`[Waitlist] New user created for email ${email} with ID: ${userId}`);
       }
-
-      userId = newUser.user.id;
-      console.log(`[Waitlist] New user created for email ${email} with ID: ${userId}`);
     }
 
     // 2. Ensure student exists
