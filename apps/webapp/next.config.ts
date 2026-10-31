@@ -53,6 +53,13 @@ const nextConfig: NextConfig = {
   // identity) fails and throws "Minified React error #31" (object with
   // {$$typeof, type, key, props, ...} keys not recognized as an element).
   serverExternalPackages: ["@react-pdf/renderer", "@react-pdf/reconciler"],
+  // lib/email-templates/index.ts reads the .html templates from disk with
+  // fs.readFileSync at send time. Vercel only bundles files it can trace
+  // statically, so without this the deployed functions fail with
+  // ENOENT (".../lib/email-templates/tuition-reminder.html").
+  outputFileTracingIncludes: {
+    "/**/*": ["./lib/email-templates/**/*.html"],
+  },
   async redirects() {
     return [
       ...programRedirects,
