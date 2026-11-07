@@ -2262,7 +2262,9 @@ export async function sendProgramEnrollmentEmail(
   // Render email template
   let html: string;
   try {
-    const totalOutstanding = outstandingInvoices.reduce(
+    // Only the first outstanding invoice is shown in the email; the second is hidden.
+    const emailInvoices = outstandingInvoices.slice(0, 1);
+    const totalOutstanding = emailInvoices.reduce(
       (total, invoice) => total + invoice.quantity * invoice.amountDue,
       0
     );
@@ -2274,10 +2276,10 @@ export async function sendProgramEnrollmentEmail(
       heroImageUrl: classRecord.class_image || DEFAULT_HERO_IMAGE_URL,
       startDateLabel: formatDate(startDate, 'date'),
       endDateLabel: 'the end of class',
-      remainingCost: outstandingInvoices.length > 0 ? formatCurrency(totalOutstanding) : undefined,
+      remainingCost: emailInvoices.length > 0 ? formatCurrency(totalOutstanding) : undefined,
       installments:
-        outstandingInvoices.length > 0
-          ? outstandingInvoices.map((invoice, index) => ({
+        emailInvoices.length > 0
+          ? emailInvoices.map((invoice, index) => ({
               label: index === 0 ? 'First installment' : 'Second installment',
               date: formatDate(invoice.dueDate, 'date'),
             }))

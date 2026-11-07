@@ -110,7 +110,9 @@ export const ParamedicPricing = (props: ParamedicPricingProps) => {
                       <span className={payment.emphasized ? "font-semibold" : undefined}>{payment.label}</span>
                       <span>{payment.amount}</span>
                     </div>
-                    <p className="text-[11px] leading-[1.4] text-neutral-darker">{payment.note}</p>
+                    {payment.note ? (
+                      <p className="text-[11px] leading-[1.4] text-neutral-darker">{payment.note}</p>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -139,12 +141,12 @@ export const ParamedicPricingDefaults: Props = {
     {
       label: "Payment 1:",
       amount: "Half of tuition",
-      note: "Due 3 weeks before class starts",
+      note: "",
     },
     {
       label: "Payment 2:",
       amount: "Half of tuition",
-      note: "Due 1 week after class starts",
+      note: "",
     },
   ],
   included: {
