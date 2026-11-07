@@ -88,21 +88,29 @@ export default function EnrollmentSuccessful({
         {hasInstallments && (
           <div style={{ marginBottom: 24 }}>
             <DetailItem
-              title={`Final Payment Due ${lastInstallmentDate}`}
+              title={
+                installments!.length === 1
+                  ? `Payment Due ${lastInstallmentDate}`
+                  : `Final Payment Due ${lastInstallmentDate}`
+              }
               description={
-                <>
-                  Your registration fee is paid! The remaining class cost is {remainingCost},
-                  paid in two installments.
-                  <br />
-                  <span style={{ fontFamily: EMAIL_FONTS.body, fontWeight: 500, fontSize: 12 }}>
-                    {installments!.map((installment) => (
-                      <React.Fragment key={installment.label}>
-                        {installment.label}: {installment.date}
-                        <br />
-                      </React.Fragment>
-                    ))}
-                  </span>
-                </>
+                installments!.length === 1 ? (
+                  <>Your registration fee is paid! Your next payment is {remainingCost}.</>
+                ) : (
+                  <>
+                    Your registration fee is paid! The remaining class cost is {remainingCost},
+                    paid in two installments.
+                    <br />
+                    <span style={{ fontFamily: EMAIL_FONTS.body, fontWeight: 500, fontSize: 12 }}>
+                      {installments!.map((installment) => (
+                        <React.Fragment key={installment.label}>
+                          {installment.label}: {installment.date}
+                          <br />
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  </>
+                )
               }
             />
             <div style={{ marginTop: 16 }}>

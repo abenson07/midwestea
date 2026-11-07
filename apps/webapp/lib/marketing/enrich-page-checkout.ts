@@ -134,16 +134,12 @@ function applyParamedicPricingToProps(
     payments[1] = {
       ...payments[1],
       amount: `$${formatPriceForProse(schedule.firstCents)}`,
-      note: schedule.firstDueDate
-        ? `Due ${schedule.firstDueDate}`
-        : "Due 3 weeks before class starts",
+      note: "",
     };
     payments[2] = {
       ...payments[2],
       amount: `$${formatPriceForProse(schedule.secondCents)}`,
-      note: schedule.secondDueDate
-        ? `Due ${schedule.secondDueDate}`
-        : "Due 1 week after class starts",
+      note: "",
     };
   }
 
